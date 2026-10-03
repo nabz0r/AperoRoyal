@@ -14,8 +14,8 @@ public final class GameEngine {
   };
 
   public static final class Player {
-    public String name, language;
-    public int avatar, score, wins, games, drinks;
+    public String name, language, photo = "";
+    public int avatar, score, wins, games, drinks, sips;
 
     Player(String name, String language, int avatar) {
       this.name = name;
@@ -29,10 +29,12 @@ public final class GameEngine {
         j.put("name", name);
         j.put("language", language);
         j.put("avatar", avatar);
+        j.put("photo", photo);
         j.put("score", score);
         j.put("wins", wins);
         j.put("games", games);
         j.put("drinks", drinks);
+        j.put("sips", sips);
       } catch (Exception ignored) {
       }
       return j;
@@ -46,6 +48,8 @@ public final class GameEngine {
       p.wins = j.optInt("wins");
       p.games = j.optInt("games");
       p.drinks = j.optInt("drinks");
+      p.sips = j.optInt("sips", p.drinks);
+      p.photo = j.optString("photo", "");
       return p;
     }
   }
@@ -63,6 +67,8 @@ public final class GameEngine {
       selected = -1,
       target = 0,
       rhythmHits = 0;
+  public int wager = 1;
+  public int bombNext = 0;
   public long deadline = 0, started = 0;
   public boolean lastWon = false, drawingReady = false;
   public String note = "";
@@ -70,6 +76,11 @@ public final class GameEngine {
   public float targetX = 200, targetY = 390;
   public final ArrayList<float[]> strokes = new ArrayList<>();
   public int loserCup = 0;
+  public String mode = "VOTE";
+  public int[] offers = {}, votes = {}, catTaps = {};
+  public String ruleOwner = "";
+  public int ruleId = -1, voteWinner = -1, freePick = 0;
+  public int bonusId = 0;
 
   public Player current() {
     return players.isEmpty() ? null : players.get(Math.min(active, players.size() - 1));
@@ -98,31 +109,108 @@ public final class GameEngine {
     active = turn = 0;
     screen = "LOBBY";
     deck.clear();
+    mode = "VOTE";
+    offers = votes = catTaps = new int[0];
+    ruleOwner = "";
+    ruleId = voteWinner = -1;
   }
 
   public void begin() {
     if (players.size() < 2) return;
     active = 0;
     turn = 0;
-    startNext();
+    startSelection();
   }
 
-  public void startNext() {
+  public void startSelection() {
+    deadline = 0;
+    started = System.currentTimeMillis();
+    voteWinner = -1;
+    bonusId = random.nextInt(4);
+    if ("FREE".equals(mode)) {
+      screen = "LIBRARY";
+      return;
+    }
     if (deck.isEmpty()) {
       for (int i = 0; i < TYPES.length; i++) deck.add(i);
       Collections.shuffle(deck, random);
     }
-    game = deck.remove(0);
+    ArrayList<Integer> pool = new ArrayList<>(deck);
+    if (turn > 0) pool.remove(Integer.valueOf(game));
+    if (pool.size() < 3)
+      for (int i = 0; i < TYPES.length; i++)
+        if (!pool.contains(i) && (turn == 0 || i != game)) pool.add(i);
+    Collections.shuffle(pool, random);
+    offers = new int[] {pool.get(0), pool.get(1), pool.get(2)};
+    votes = new int[players.size()];
+    java.util.Arrays.fill(votes, -1);
+    if (catTaps.length != players.size()) catTaps = new int[players.size()];
+    screen = "VOTE";
+  }
+
+  public int indexOf(String name) {
+    for (int i = 0; i < players.size(); i++)
+      if (players.get(i).name.equals(name)) return i;
+    return -1;
+  }
+
+  public boolean castVote(String name, int choice) {
+    int i = indexOf(name);
+    if (!"VOTE".equals(screen) || i < 0 || i >= votes.length || votes[i] >= 0 || choice < 0 || choice >= 3) return false;
+    votes[i] = choice;
+    completeVoteIfReady();
+    return true;
+  }
+
+  public int voteCount() {
+    int n = 0;
+    for (int v : votes) if (v >= 0) n++;
+    return n;
+  }
+
+  private void completeVoteIfReady() {
+    if (voteCount() != players.size() || (!ruleOwner.isEmpty() && ruleId < 0)) return;
+    int[] counts = new int[3];
+    for (int v : votes) counts[v]++;
+    int max = Math.max(counts[0], Math.max(counts[1], counts[2]));
+    ArrayList<Integer> tied = new ArrayList<>();
+    for (int i = 0; i < 3; i++) if (counts[i] == max) tied.add(i);
+    voteWinner = tied.get(random.nextInt(tied.size()));
+    startNext(offers[voteWinner]);
+  }
+
+  public boolean catTap(String name) {
+    int i = indexOf(name);
+    if (!("VOTE".equals(screen) || "LIBRARY".equals(screen)) || i < 0 || ruleId >= 0 || !ruleOwner.isEmpty()) return false;
+    if (catTaps.length != players.size()) catTaps = new int[players.size()];
+    catTaps[i]++;
+    if (catTaps[i] >= 20) ruleOwner = name;
+    return true;
+  }
+
+  public boolean chooseRule(String name, int id) {
+    if (!name.equals(ruleOwner) || ruleId >= 0 || id < 0 || id > 2) return false;
+    ruleId = id;
+    if ("VOTE".equals(screen)) completeVoteIfReady();
+    return true;
+  }
+
+  public void startNext(int chosen) {
+    if (deck.isEmpty()) for (int i = 0; i < TYPES.length; i++) deck.add(i);
+    game = chosen;
+    deck.remove(Integer.valueOf(chosen));
     variant = random.nextInt(6);
     target = random.nextInt(4);
     progress = taps = 0;
     selected = -1;
     rhythmHits = 0;
+    wager = 1;
+    bombNext = active;
     drawingReady = false;
     note = "";
     strokes.clear();
     targetX = 80 + random.nextInt(240);
-    targetY = 280 + random.nextInt(300);
+    targetY = 380 + random.nextInt(200);
     loserCup = random.nextInt(6);
     int count = 3 + Math.min(2, turn / 10);
     sequence = new int[count];
@@ -133,7 +221,25 @@ public final class GameEngine {
   }
 
   public void enterGame() {
+    if (!"TRANSITION".equals(screen)) return;
+    screen = "BET";
+    started = System.currentTimeMillis();
+  }
+
+  public boolean placeBet(int sips) {
+    if (!"BET".equals(screen) || sips < 1 || sips > 3) return false;
+    wager = sips;
+    startGame();
+    return true;
+  }
+
+  private void startGame() {
     screen = "GAME";
+    resumeGame();
+  }
+
+  public void resumeGame() {
+    if (!"GAME".equals(screen)) return;
     started = System.currentTimeMillis();
     int seconds =
         switch (game) {
@@ -142,10 +248,19 @@ public final class GameEngine {
           case 3 -> 12;
           case 6 -> 22;
           case 7 -> 16;
-          case 9 -> 12;
+          case 9 -> 20;
           default -> 0;
         };
+    if (bonusId == 3 && seconds > 0) seconds += 5;
     deadline = seconds == 0 ? 0 : started + seconds * 1000L;
+  }
+
+  public int winPoints() {
+    return (ruleId == 0 ? 2 : 1) * (100 + 50 * (wager - 1) + (bonusId == 1 ? 50 : 0));
+  }
+
+  public int lossSips() {
+    return ruleId == 1 ? 0 : Math.max(0, wager - (bonusId == 2 ? 1 : 0));
   }
 
   public void finish(boolean won) {
@@ -156,21 +271,32 @@ public final class GameEngine {
     p.games++;
     if (won) {
       p.wins++;
-      p.score += 100;
+      p.score += winPoints();
     } else {
-      p.drinks++;
-      p.score = Math.max(0, p.score - 25);
+      if (lossSips() > 0) {
+        p.drinks++;
+        p.sips += lossSips();
+      }
+      p.score = Math.max(0, p.score - 25 * wager);
     }
     screen = "RESULT";
     deadline = 0;
     started = System.currentTimeMillis();
   }
 
+  public boolean bombTap(String name) {
+    if (!"GAME".equals(screen) || game != 9 || players.isEmpty()
+        || !players.get(bombNext).name.equals(name)) return false;
+    taps++;
+    bombNext = (bombNext + 1) % players.size();
+    return true;
+  }
+
   public void advance() {
     if (!"RESULT".equals(screen)) return;
-    active = (active + 1) % players.size();
+    active = Math.floorMod(active + (ruleId == 2 ? -1 : 1), players.size());
     turn++;
-    startNext();
+    startSelection();
   }
 
   public void checkTimeout() {
@@ -194,6 +320,8 @@ public final class GameEngine {
       j.put("selected", selected);
       j.put("target", target);
       j.put("rhythmHits", rhythmHits);
+      j.put("wager", wager);
+      j.put("bombNext", bombNext);
       j.put("deadline", deadline);
       j.put("started", started);
       j.put("lastWon", lastWon);
@@ -202,6 +330,15 @@ public final class GameEngine {
       j.put("targetX", targetX);
       j.put("targetY", targetY);
       j.put("loserCup", loserCup);
+      j.put("mode", mode);
+      j.put("offers", new JSONArray(offers));
+      j.put("votes", new JSONArray(votes));
+      j.put("catTaps", new JSONArray(catTaps));
+      j.put("ruleOwner", ruleOwner);
+      j.put("ruleId", ruleId);
+      j.put("voteWinner", voteWinner);
+      j.put("freePick", freePick);
+      j.put("bonusId", bonusId);
       JSONArray ps = new JSONArray();
       for (Player p : players) ps.put(p.json());
       j.put("players", ps);
@@ -238,6 +375,8 @@ public final class GameEngine {
     selected = j.optInt("selected", -1);
     target = j.optInt("target");
     rhythmHits = j.optInt("rhythmHits");
+    wager = j.optInt("wager", 1);
+    bombNext = j.optInt("bombNext", active);
     deadline = j.optLong("deadline");
     started = j.optLong("started");
     lastWon = j.optBoolean("lastWon");
@@ -246,6 +385,15 @@ public final class GameEngine {
     targetX = (float) j.optDouble("targetX", 200);
     targetY = (float) j.optDouble("targetY", 390);
     loserCup = j.optInt("loserCup");
+    mode = j.optString("mode", "VOTE");
+    offers = readInts(j.optJSONArray("offers"));
+    votes = readInts(j.optJSONArray("votes"));
+    catTaps = readInts(j.optJSONArray("catTaps"));
+    ruleOwner = j.optString("ruleOwner", "");
+    ruleId = j.optInt("ruleId", -1);
+    voteWinner = j.optInt("voteWinner", -1);
+    freePick = j.optInt("freePick", 0);
+    bonusId = j.optInt("bonusId", 0);
     deck.clear();
     JSONArray d = j.optJSONArray("deck");
     if (d != null) for (int i = 0; i < d.length(); i++) deck.add(d.optInt(i));
@@ -264,6 +412,13 @@ public final class GameEngine {
         }
       }
     if (active >= players.size()) active = 0;
+  }
+
+  private static int[] readInts(JSONArray a) {
+    if (a == null) return new int[0];
+    int[] result = new int[a.length()];
+    for (int i = 0; i < result.length; i++) result[i] = a.optInt(i);
+    return result;
   }
 
   public static final String[][] QUIZ_FR = {

@@ -16,11 +16,15 @@ import java.util.HashMap;
 import org.json.JSONObject;
 
 /** A small LAN room: the host owns the state, clients send touches and receive snapshots. */
-public final class PartyNetwork {
+public class PartyNetwork {
   public interface Events {
     void joined(String name, String language);
 
     void action(String name, float x, float y, int kind, float height);
+
+    void command(String name, String command, int value);
+
+    void profile(String name, String photo);
 
     void snapshot(JSONObject state);
 
@@ -116,17 +120,26 @@ public final class PartyNetwork {
             names.put(s, name);
           }
           ui.post(() -> events.joined(name, lang));
-        } else if ("ACTION".equals(type)) {
+        } else if ("ACTION".equals(type) || "COMMAND".equals(type) || "PROFILE".equals(type)) {
           String name;
           synchronized (names) {
             name = names.get(s);
           }
           if (name != null) {
-            float x = (float) j.optDouble("x");
-            float y = (float) j.optDouble("y");
-            int kind = j.optInt("kind");
-            float height = (float) j.optDouble("height", 800);
-            ui.post(() -> events.action(name, x, y, kind, height));
+            if ("PROFILE".equals(type)) {
+              String photo = j.optString("photo", "");
+              if (photo.length() <= 60000) ui.post(() -> events.profile(name, photo));
+            } else if ("COMMAND".equals(type)) {
+              String command = j.optString("command");
+              int value = j.optInt("value", -1);
+              ui.post(() -> events.command(name, command, value));
+            } else {
+              float x = (float) j.optDouble("x");
+              float y = (float) j.optDouble("y");
+              int kind = j.optInt("kind");
+              float height = (float) j.optDouble("height", 800);
+              ui.post(() -> events.action(name, x, y, kind, height));
+            }
           }
         }
       }
@@ -224,6 +237,33 @@ public final class PartyNetwork {
       send(j);
     } catch (Exception ignored) {
     }
+  }
+
+  public void command(String name, int value) {
+    if (!connected) return;
+    try {
+      JSONObject j = new JSONObject();
+      j.put("type", "COMMAND");
+      j.put("command", name);
+      j.put("value", value);
+      send(j);
+    } catch (Exception ignored) {
+    }
+  }
+
+  public void profile(String photo) {
+    if (!connected || photo.length() > 60000) return;
+    try {
+      JSONObject j = new JSONObject();
+      j.put("type", "PROFILE");
+      j.put("photo", photo);
+      send(j);
+    } catch (Exception ignored) {
+    }
+  }
+
+  public boolean isRemote(String name) {
+    synchronized (names) { return names.containsValue(name); }
   }
 
   private void send(JSONObject j) {

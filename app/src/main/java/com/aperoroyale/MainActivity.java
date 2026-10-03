@@ -2,9 +2,19 @@ package com.aperoroyale;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
+import android.util.Base64;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.view.View;
@@ -15,6 +25,9 @@ import android.widget.Spinner;
 import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
 
 /** Activity owns the host authority, persistence, sound and external integrations. */
 public final class MainActivity extends Activity
@@ -27,6 +40,13 @@ public final class MainActivity extends Activity
   ArcadeView view;
   private boolean savedSession = false;
   private String status = "";
+  private int photoPlayer = -1;
+  private String statsOrigin = "HOME";
+  private String settingsOrigin = "HOME";
+  private long settingsPausedAt = 0;
+  private String guideOrigin = "HOME";
+  private boolean passPending = false, soundEffects = true, haptics = true;
+  private Runnable pendingBluetooth;
 
   @Override
   protected void onCreate(Bundle state) {
@@ -43,6 +63,11 @@ public final class MainActivity extends Activity
     savedSession = store.load(game);
     if (savedSession) game.screen = "HOME";
     audio = new ArcadeAudio();
+    audio.setEnabled(getPreferences(MODE_PRIVATE).getBoolean("music", false));
+    audio.setStyle(getPreferences(MODE_PRIVATE).getInt("musicStyle", 0));
+    audio.setVolume(getPreferences(MODE_PRIVATE).getFloat("musicVolume", .5f));
+    soundEffects = getPreferences(MODE_PRIVATE).getBoolean("soundEffects", true);
+    haptics = getPreferences(MODE_PRIVATE).getBoolean("haptics", true);
     network = new PartyNetwork(this);
     spotify = new SpotifyBridge(this);
     view = new ArcadeView(this, game, this);
@@ -53,6 +78,7 @@ public final class MainActivity extends Activity
 
   private void clockTick() {
     if (isFinishing()) return;
+    audio.setScene(game.screen);
     if (!network.connected
         && "GAME".equals(game.screen)
         && game.deadline > 0
@@ -84,9 +110,14 @@ public final class MainActivity extends Activity
     if (!"GAME".equals(game.screen)) return;
     GameEngine.Player p = game.current();
     game.finish(won);
-    if (p != null) store.record(p, game.game, won);
-    if (won) audio.win();
-    else audio.lose();
+    if (p != null) store.record(p, game.game, won,
+        won ? game.winPoints() : -25 * game.wager,
+        won || game.lossSips() == 0 ? 0 : 1,
+        won ? 0 : game.lossSips());
+    if (soundEffects) {
+      if (won) audio.win();
+      else audio.lose();
+    }
     haptic();
     save();
   }
@@ -94,7 +125,14 @@ public final class MainActivity extends Activity
   @Override
   public void enterGame() {
     game.enterGame();
+    save();
+  }
+
+  @Override
+  public void placeBet(int sips) {
+    if (!game.placeBet(sips)) return;
     if (game.game == 2) {
+      audio.duck(14000);
       if (spotify.ready() && spotify.connected()) {
         game.note = "loading";
         spotify.blind(
@@ -123,6 +161,24 @@ public final class MainActivity extends Activity
   }
 
   @Override
+  public void bombTap() {
+    if (network.connected) {
+      network.command("BOMB", 0);
+      return;
+    }
+    if (game.players.isEmpty() || game.bombNext >= game.players.size()) return;
+    String name = game.players.get(game.bombNext).name;
+    if (network.isRemote(name) || !game.bombTap(name)) return;
+    if (game.taps >= 8) finishGame(true);
+    else save();
+  }
+
+  public boolean passPending() { return passPending; }
+
+  @Override
+  public void confirmPass() { passPending = false; view.invalidate(); }
+
+  @Override
   public void addPlayer() {
     EditText name = input("Pseudo / Nickname");
     Spinner language = spinner(new String[] {"FR", "EN"});
@@ -145,8 +201,157 @@ public final class MainActivity extends Activity
   }
 
   @Override
+  public void editPlayer(int index) {
+    if (index < 0 || index >= game.players.size()) return;
+    GameEngine.Player player = game.players.get(index);
+    if (network.connected && !player.name.equals(network.localName)) return;
+    new AlertDialog.Builder(this)
+        .setTitle(player.name)
+        .setItems(new String[] {
+            game.t("Importer une photo", "Import a photo"),
+            game.t("Changer de sprite", "Change sprite"),
+            game.t("Supprimer la photo", "Remove photo")
+        }, (d, which) -> {
+          if (which == 0) {
+            photoPlayer = index;
+            Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+            pick.setType("image/*");
+            pick.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(pick, game.t("Choisir une image", "Choose image")), 301);
+          } else if (which == 1) {
+            player.avatar = (player.avatar + 1) % 6;
+            player.photo = "";
+            if (network.connected) network.command("AVATAR", player.avatar);
+            else save();
+          } else {
+            player.photo = "";
+            if (network.connected) network.profile("");
+            else save();
+          }
+        }).show();
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == 302) {
+      Runnable continuation = pendingBluetooth;
+      pendingBluetooth = null;
+      if (resultCode == RESULT_OK && continuation != null) continuation.run();
+      else message(game.t("Bluetooth désactivé", "Bluetooth is off"));
+      return;
+    }
+    if (requestCode != 301 || resultCode != RESULT_OK || data == null || data.getData() == null
+        || photoPlayer < 0 || photoPlayer >= game.players.size()) return;
+    try {
+      Uri uri = data.getData();
+      BitmapFactory.Options bounds = new BitmapFactory.Options();
+      bounds.inJustDecodeBounds = true;
+      try (InputStream input = getContentResolver().openInputStream(uri)) {
+        BitmapFactory.decodeStream(input, null, bounds);
+      }
+      if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw new IllegalArgumentException("Invalid image");
+      BitmapFactory.Options options = new BitmapFactory.Options();
+      options.inSampleSize = Math.max(1, Math.max(bounds.outWidth, bounds.outHeight) / 256);
+      Bitmap original;
+      try (InputStream input = getContentResolver().openInputStream(uri)) {
+        original = BitmapFactory.decodeStream(input, null, options);
+      }
+      if (original == null) throw new IllegalArgumentException("Invalid image");
+      Bitmap small = Bitmap.createScaledBitmap(original, 128, 128, true);
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+      small.compress(Bitmap.CompressFormat.JPEG, 72, bytes);
+      byte[] result = bytes.toByteArray();
+      if (result.length > 40000) throw new IllegalArgumentException("Image too large");
+      game.players.get(photoPlayer).photo = Base64.encodeToString(result, Base64.NO_WRAP);
+      if (small != original) small.recycle();
+      original.recycle();
+      if (network.connected) network.profile(game.players.get(photoPlayer).photo);
+      else save();
+    } catch (Exception e) {
+      message(game.t("Image illisible", "Could not read image"));
+    }
+  }
+
+  public GameEngine.Player localVoter() {
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i < 0 || (game.votes.length > i && game.votes[i] >= 0) ? null : game.players.get(i);
+    }
+    for (int i = 0; i < game.players.size(); i++)
+      if (!network.isRemote(game.players.get(i).name)
+          && (game.votes.length <= i || game.votes[i] < 0)) return game.players.get(i);
+    return null;
+  }
+
+  public GameEngine.Player localParticipant() {
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i < 0 ? null : game.players.get(i);
+    }
+    if (!game.ruleOwner.isEmpty() && game.ruleId < 0) {
+      int i = game.indexOf(game.ruleOwner);
+      if (i >= 0 && !network.isRemote(game.ruleOwner)) return game.players.get(i);
+    }
+    GameEngine.Player voter = localVoter();
+    if (voter != null) return voter;
+    for (GameEngine.Player p : game.players) if (!network.isRemote(p.name)) return p;
+    return null;
+  }
+
+  @Override
+  public void vote(int choice) {
+    if (network.connected) network.command("VOTE", choice);
+    else {
+      if (passPending) return;
+      GameEngine.Player p = localVoter();
+      if (p != null && game.castVote(p.name, choice)) {
+        passPending = "VOTE".equals(game.screen) && localVoter() != null;
+        save();
+      }
+    }
+  }
+
+  @Override
+  public void catTap() {
+    if (network.connected) network.command("CAT", 0);
+    else {
+      GameEngine.Player p = localParticipant();
+      if (p != null && game.catTap(p.name)) {
+        if (!game.ruleOwner.isEmpty()) audio.win();
+        save();
+      }
+    }
+  }
+
+  @Override
+  public void chooseRule(int id) {
+    if (network.connected) network.command("RULE", id);
+    else {
+      GameEngine.Player p = localParticipant();
+      if (p != null && game.chooseRule(p.name, id)) save();
+    }
+  }
+
+  @Override
+  public void selectGame(int id) {
+    if (network.connected || !"LIBRARY".equals(game.screen) || id < 0 || id >= GameEngine.TYPES.length) return;
+    game.freePick = id;
+    game.startNext(id);
+    save();
+  }
+
+  @Override
+  public void setMode(String mode) {
+    if (network.connected || !"LOBBY".equals(game.screen)) return;
+    game.mode = mode;
+    save();
+  }
+
+  @Override
   public void newParty() {
     network.close();
+    passPending = false;
     game.newParty();
     save();
   }
@@ -155,7 +360,7 @@ public final class MainActivity extends Activity
   public void resumeParty() {
     if (store.load(game)) {
       if ("HOME".equals(game.screen)) game.screen = "LOBBY";
-      if ("GAME".equals(game.screen)) game.enterGame();
+      if ("GAME".equals(game.screen)) game.resumeGame();
       save();
     } else message("No saved party / Aucune partie");
   }
@@ -168,13 +373,77 @@ public final class MainActivity extends Activity
   @Override
   public void startHost() {
     if (network.connected) return;
-    network.host();
-    save();
-    message("Wi-Fi room: " + network.ip() + ":43867");
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Héberger une salle", "Host a room"))
+        .setItems(new String[] {"Wi-Fi", "Bluetooth", "Internet"}, (d, which) -> {
+          if (which == 0) {
+            network.close();
+            network = new PartyNetwork(this);
+            network.host();
+            save();
+          } else if (which == 1) withBluetooth(() -> {
+            network.close();
+            BluetoothPartyNetwork bluetooth = new BluetoothPartyNetwork(this);
+            network = bluetooth;
+            bluetooth.hostBluetooth(bluetoothAdapter());
+            save();
+          });
+          else hostInternet();
+        }).show();
   }
 
   @Override
   public void joinRoom() {
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Rejoindre une salle", "Join a room"))
+        .setItems(new String[] {"Wi-Fi", "Bluetooth", "Internet"}, (d, which) -> {
+          if (which == 0) joinWifi();
+          else if (which == 1) withBluetooth(this::joinBluetoothRoom);
+          else joinInternet();
+        }).show();
+  }
+
+  private void hostInternet() {
+    EditText relay = input("TLS relay URL");
+    relay.setText(getPreferences(MODE_PRIVATE).getString("relay", InternetPartyNetwork.DEFAULT_RELAY));
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Salle Internet", "Internet room"))
+        .setView(column(relay))
+        .setNegativeButton(game.t("Annuler", "Cancel"), null)
+        .setPositiveButton(game.t("Créer", "Create"), (d, w) -> {
+          String uri = relay.getText().toString().trim();
+          getPreferences(MODE_PRIVATE).edit().putString("relay", uri).apply();
+          network.close();
+          InternetPartyNetwork internet = new InternetPartyNetwork(this);
+          network = internet;
+          internet.hostInternet(uri);
+          save();
+        }).show();
+  }
+
+  private void joinInternet() {
+    EditText code = input("12-character room code / code de salle");
+    EditText name = input("Pseudo / Nickname");
+    Spinner lang = spinner(new String[] {"FR", "EN"});
+    EditText relay = input("TLS relay URL");
+    relay.setText(getPreferences(MODE_PRIVATE).getString("relay", InternetPartyNetwork.DEFAULT_RELAY));
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Rejoindre par Internet", "Join over Internet"))
+        .setView(column(code, name, lang, relay))
+        .setNegativeButton(game.t("Annuler", "Cancel"), null)
+        .setPositiveButton(game.t("Rejoindre", "Join"), (d, w) -> {
+          String nickname = name.getText().toString().trim();
+          if (nickname.isEmpty()) { message(game.t("Pseudo requis", "Nickname required")); return; }
+          String uri = relay.getText().toString().trim();
+          getPreferences(MODE_PRIVATE).edit().putString("relay", uri).apply();
+          network.close();
+          InternetPartyNetwork internet = new InternetPartyNetwork(this);
+          network = internet;
+          internet.joinInternet(uri, code.getText().toString(), nickname, lang.getSelectedItem().toString());
+        }).show();
+  }
+
+  private void joinWifi() {
     EditText ip = input("Host IP / IP de l'hôte");
     EditText pin = input("6-digit room PIN / code à 6 chiffres");
     pin.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
@@ -194,13 +463,107 @@ public final class MainActivity extends Activity
                 message("Name, IP and 6-digit PIN required");
                 return;
               }
+              network.close();
+              network = new PartyNetwork(this);
               network.join(address, n, lang.getSelectedItem().toString(), code);
             })
         .show();
   }
 
+  private BluetoothAdapter bluetoothAdapter() {
+    BluetoothManager manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+    return manager == null ? null : manager.getAdapter();
+  }
+
+  private void withBluetooth(Runnable ready) {
+    BluetoothAdapter adapter = bluetoothAdapter();
+    if (adapter == null) { message(game.t("Bluetooth indisponible", "Bluetooth unavailable")); return; }
+    if (Build.VERSION.SDK_INT >= 31
+        && checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+      pendingBluetooth = ready;
+      requestPermissions(new String[] {android.Manifest.permission.BLUETOOTH_CONNECT}, 104);
+      return;
+    }
+    if (!adapter.isEnabled()) {
+      pendingBluetooth = ready;
+      startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), 302);
+      return;
+    }
+    ready.run();
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    if (requestCode != 104) return;
+    Runnable continuation = pendingBluetooth;
+    pendingBluetooth = null;
+    if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED
+        && continuation != null) withBluetooth(continuation);
+    else message(game.t("Autorisation Bluetooth nécessaire", "Bluetooth permission needed"));
+  }
+
+  private void joinBluetoothRoom() {
+    BluetoothAdapter adapter = bluetoothAdapter();
+    if (adapter == null) return;
+    ArrayList<BluetoothDevice> devices = new ArrayList<>(adapter.getBondedDevices());
+    if (devices.isEmpty()) {
+      message(game.t("Associe d'abord les téléphones dans Android > Bluetooth",
+          "Pair the phones in Android Bluetooth settings first"));
+      return;
+    }
+    String[] names = new String[devices.size()];
+    for (int i = 0; i < devices.size(); i++) {
+      String label = devices.get(i).getName();
+      names[i] = label == null || label.isEmpty() ? devices.get(i).getAddress() : label;
+    }
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Téléphone hôte associé", "Paired host phone"))
+        .setItems(names, (d, which) -> joinBluetoothDetails(devices.get(which)))
+        .show();
+  }
+
+  private void joinBluetoothDetails(BluetoothDevice device) {
+    EditText pin = input("6-digit room PIN / code à 6 chiffres");
+    pin.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+    EditText name = input("Pseudo / Nickname");
+    Spinner lang = spinner(new String[] {"FR", "EN"});
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Rejoindre via Bluetooth", "Join over Bluetooth"))
+        .setView(column(pin, name, lang))
+        .setNegativeButton(game.t("Annuler", "Cancel"), null)
+        .setPositiveButton(game.t("Rejoindre", "Join"), (d, w) -> {
+          String code = pin.getText().toString().trim();
+          String nickname = name.getText().toString().trim();
+          if (code.length() != 6 || nickname.isEmpty()) {
+            message(game.t("Code et pseudo requis", "PIN and nickname required"));
+            return;
+          }
+          network.close();
+          BluetoothPartyNetwork bluetooth = new BluetoothPartyNetwork(this);
+          network = bluetooth;
+          bluetooth.joinBluetooth(device, nickname, lang.getSelectedItem().toString(), code);
+        }).show();
+  }
+
   @Override
   public void showSettings() {
+    if ("SETTINGS".equals(game.screen)) return;
+    settingsOrigin = game.screen;
+    settingsPausedAt = System.currentTimeMillis();
+    game.screen = "SETTINGS";
+    view.invalidate();
+  }
+
+  @Override
+  public void guide() {
+    guideOrigin = game.screen;
+    game.screen = "GUIDE";
+    view.invalidate();
+  }
+
+  @Override
+  public void spotifySettings() {
     EditText id = input("Spotify Client ID");
     id.setText(spotify.clientId());
     EditText playlist = input("Spotify playlist URL or ID");
@@ -222,14 +585,52 @@ public final class MainActivity extends Activity
               spotify.connect(
                   (error, round) -> message(error == null ? "Spotify connected" : error));
             })
-        .setNegativeButton(
-            game.t("Musique OUI/NON", "Music ON/OFF"),
-            (d, w) -> {
-              audio.setEnabled(!audio.enabled());
-              message(audio.enabled() ? "Arcade music ON" : "Arcade music OFF");
-            })
+        .setNegativeButton(game.t("Fermer", "Close"), null)
         .show();
   }
+
+  @Override
+  public void toggleMusic() {
+    audio.setEnabled(!audio.enabled());
+    getPreferences(MODE_PRIVATE).edit().putBoolean("music", audio.enabled()).apply();
+    view.invalidate();
+  }
+
+  @Override
+  public void toggleEffects() {
+    soundEffects = !soundEffects;
+    getPreferences(MODE_PRIVATE).edit().putBoolean("soundEffects", soundEffects).apply();
+    view.invalidate();
+  }
+
+  @Override
+  public void toggleHaptics() {
+    haptics = !haptics;
+    getPreferences(MODE_PRIVATE).edit().putBoolean("haptics", haptics).apply();
+    view.invalidate();
+  }
+
+  @Override
+  public void changeMusicStyle() {
+    int style = (audio.style() + 1) % 2;
+    audio.setStyle(style);
+    getPreferences(MODE_PRIVATE).edit().putInt("musicStyle", style).apply();
+    view.invalidate();
+  }
+
+  @Override
+  public void changeMusicVolume() {
+    float next = audio.volume() < .35f ? .5f : audio.volume() < .75f ? 1f : .25f;
+    audio.setVolume(next);
+    getPreferences(MODE_PRIVATE).edit().putFloat("musicVolume", next).apply();
+    view.invalidate();
+  }
+
+  public boolean musicEnabled() { return audio.enabled(); }
+  public int musicStyle() { return audio.style(); }
+  public float musicVolume() { return audio.volume(); }
+  public boolean effectsEnabled() { return soundEffects; }
+  public boolean hapticsEnabled() { return haptics; }
 
   @Override
   public void radio() {
@@ -242,13 +643,23 @@ public final class MainActivity extends Activity
 
   @Override
   public void stats() {
+    statsOrigin = game.screen;
     game.screen = "STATS";
     view.invalidate();
   }
 
   @Override
   public void home() {
-    game.screen = "HOME";
+    boolean fromSettings = "SETTINGS".equals(game.screen);
+    game.screen = "STATS".equals(game.screen) ? statsOrigin
+        : "SETTINGS".equals(game.screen) ? settingsOrigin
+        : "GUIDE".equals(game.screen) ? guideOrigin : "HOME";
+    if (fromSettings && "GAME".equals(game.screen) && !network.connected) {
+      long paused = Math.max(0, System.currentTimeMillis() - settingsPausedAt);
+      game.started += paused;
+      if (game.deadline > 0) game.deadline += paused;
+      save();
+    }
     view.invalidate();
   }
 
@@ -266,7 +677,10 @@ public final class MainActivity extends Activity
 
   @Override
   public String hostAddress() {
-    return network.hosting ? network.ip() + ":43867 • PIN " + network.roomCode() : "";
+    return network.hosting ? (network instanceof BluetoothPartyNetwork
+        ? "Bluetooth • PIN " + network.roomCode()
+        : network instanceof InternetPartyNetwork ? "Internet • CODE " + network.roomCode()
+        : network.ip() + ":43867 • PIN " + network.roomCode()) : "";
   }
 
   @Override
@@ -281,12 +695,13 @@ public final class MainActivity extends Activity
 
   @Override
   public void click() {
-    audio.click();
+    if (soundEffects) audio.click();
     haptic();
   }
 
   @Override
   public void tune() {
+    audio.duck(4000);
     try {
       String uri = new JSONObject(game.note).optString("uri");
       if (!uri.isEmpty()) {
@@ -303,6 +718,7 @@ public final class MainActivity extends Activity
   }
 
   private void haptic() {
+    if (!haptics) return;
     try {
       Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
       if (v != null)
@@ -324,8 +740,13 @@ public final class MainActivity extends Activity
 
   @Override
   public void action(String name, float x, float y, int kind, float height) {
+    if ("GAME".equals(game.screen) && game.game == 9) return;
     GameEngine.Player p = game.current();
-    if (p == null || !name.equals(p.name)) return;
+    boolean drawingGuesser = "GAME".equals(game.screen) && game.game == 5
+        && game.drawingReady && game.players.size() > 1
+        && name.equals(game.players.get((game.active + 1) % game.players.size()).name);
+    if (p == null || ("GAME".equals(game.screen) && game.game == 5 && game.drawingReady
+        ? !drawingGuesser : !name.equals(p.name))) return;
     boolean bottom =
         "TRANSITION".equals(game.screen)
             || "RESULT".equals(game.screen)
@@ -335,8 +756,51 @@ public final class MainActivity extends Activity
                     || (game.game == 5 && !game.drawingReady && y > height - 190)));
     if (bottom) y += view.virtualHeight() - height;
     if ("GAME".equals(game.screen)
+        || "BET".equals(game.screen)
         || "TRANSITION".equals(game.screen)
         || "RESULT".equals(game.screen)) view.handleRemote(x, y, kind);
+  }
+
+  @Override
+  public void command(String name, String command, int value) {
+    if ("BOMB".equals(command)) {
+      if (game.bombTap(name)) {
+        if (game.taps >= 8) finishGame(true);
+        else save();
+      }
+      return;
+    }
+    if ("AVATAR".equals(command)) {
+      int i = game.indexOf(name);
+      if ("LOBBY".equals(game.screen) && i >= 0 && value >= 0 && value < 6) {
+        game.players.get(i).avatar = value;
+        game.players.get(i).photo = "";
+        save();
+      }
+      return;
+    }
+    boolean changed = switch (command) {
+      case "VOTE" -> game.castVote(name, value);
+      case "CAT" -> game.catTap(name);
+      case "RULE" -> game.chooseRule(name, value);
+      default -> false;
+    };
+    if (changed) save();
+  }
+
+  @Override
+  public void profile(String name, String photo) {
+    int i = game.indexOf(name);
+    if (!"LOBBY".equals(game.screen) || i < 0 || photo.length() > 60000) return;
+    try {
+      if (!photo.isEmpty()) {
+        byte[] bytes = Base64.decode(photo, Base64.DEFAULT);
+        if (bytes.length > 40000 || BitmapFactory.decodeByteArray(bytes, 0, bytes.length) == null) return;
+      }
+      game.players.get(i).photo = photo;
+      save();
+    } catch (Exception ignored) {
+    }
   }
 
   @Override
@@ -376,7 +840,10 @@ public final class MainActivity extends Activity
 
   @Override
   public void onBackPressed() {
-    if (network.connected) {
+    if ("SETTINGS".equals(game.screen) || "GUIDE".equals(game.screen)
+        || "STATS".equals(game.screen)) {
+      home();
+    } else if (network.connected) {
       network.close();
       game.screen = "HOME";
       view.invalidate();

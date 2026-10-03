@@ -1,13 +1,22 @@
 # Privacy / Confidentialité
 
-Apéro Royale stores nicknames, chosen languages, avatars, game results and lifetime stats in a local SQLite database on the Android device. It does not run its own analytics, advertising service, cloud account or telemetry.
+## English
 
-When a player uses a same-Wi-Fi room, nicknames, languages, scores and game state are transmitted over the local network to the host and other joined phones. The room uses a six-digit PIN but LAN traffic is not encrypted. Use a trusted private Wi-Fi network.
+Apéro Royale stores each player's nickname, language, selected avatar or optional imported photo, scores, virtual sips, game results and the active party in a local SQLite database on the host device. An imported photo is downscaled and encoded locally before storage. The all-time leaderboard is calculated from that device's local history. Uninstalling the app normally removes its local data under Android's app-data rules.
 
-Spotify is optional. If enabled, Apéro Royale opens Spotify authorization in the browser using OAuth PKCE and sends authorized API requests directly to Spotify to read the selected playlist and control playback. Spotify may process data under its own privacy policy. The Spotify Client ID and playlist ID are saved on device. Access and refresh tokens are kept only in app memory and discarded when the app process ends. Apéro Royale does not download Spotify audio or transmit tokens to its LAN peers.
+The app has no Apéro Royale account, ads, analytics or telemetry. It does not operate its own player-data server.
 
-Uninstalling the app removes its local database under Android's normal app-data rules. No personal data is collected by the project operator.
+- **One phone:** party data stays on that device.
+- **Wi-Fi room:** the host sends game snapshots and receives player actions over local TCP. This traffic is **not encrypted**. Use a trusted Wi-Fi network. Other joined phones receive nicknames, avatars/photos, scores and game state.
+- **Bluetooth room:** paired phones exchange the same room state and actions over RFCOMM. The available security depends on the Android Bluetooth pairing and device implementation.
+- **Internet room:** devices use a TLS MQTT relay. Room messages, including optional photos and nicknames, are additionally encrypted with AES-GCM using a key derived from the 12-character room code. The relay sees connection metadata and the room topic but cannot read correctly encrypted payloads without the room code. The default `test.mosquitto.org` relay is a public test service operated by a third party; users can enter a private TLS MQTT relay URL. Share the room code only with participants.
 
----
+Spotify is optional. If enabled, the app opens Spotify authorization in the browser using OAuth PKCE and sends authorized API requests directly to Spotify to read the selected playlist and control playback. Spotify processes those requests under its own privacy policy. The Spotify Client ID and playlist ID are stored locally. Access and refresh tokens remain in app memory and are discarded when the process ends. The app does not download Spotify audio or send Spotify tokens to peers.
 
-Apéro Royale conserve les pseudos, langues, avatars, résultats et statistiques dans une base SQLite sur l'appareil. L'application n'utilise ni publicité, ni télémétrie, ni compte cloud. En mode Wi-Fi local, l'état de la partie est transmis aux téléphones du salon, sans chiffrement ; utilisez un réseau privé de confiance. Spotify est facultatif et ses jetons restent uniquement en mémoire pendant la session. Désinstaller l'application supprime normalement ses données locales.
+## Français
+
+Apéro Royale conserve localement dans SQLite les pseudos, langues, sprites ou photos facultatives, scores, gorgées virtuelles, résultats et la partie en cours. Une photo importée est réduite sur l'appareil avant son enregistrement. Le classement historique est calculé depuis l'historique local du téléphone hôte. La désinstallation supprime normalement ces données selon les règles Android.
+
+L'application ne possède ni compte Apéro Royale, ni publicité, ni analytique, ni télémétrie. En Wi-Fi, les données du salon circulent **sans chiffrement** sur le réseau local. En Bluetooth, elles passent entre appareils associés. Sur Internet, les messages passent par un relais MQTT TLS et sont chiffrés en AES-GCM à partir du code de salle ; le relais public proposé par défaut est un service de test tiers. Le code doit rester entre participants. Les autres téléphones de la salle reçoivent les pseudos, avatars ou photos, scores et état de la partie.
+
+Spotify est facultatif. Ses requêtes sont envoyées directement à Spotify après autorisation OAuth PKCE. Le Client ID et la playlist sont enregistrés localement ; les jetons restent uniquement en mémoire pendant la session et ne sont pas envoyés aux autres joueurs. L'application ne télécharge pas l'audio Spotify.
