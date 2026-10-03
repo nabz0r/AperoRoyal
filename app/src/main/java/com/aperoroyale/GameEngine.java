@@ -23,13 +23,13 @@ public final class GameEngine {
       this.avatar = avatar;
     }
 
-    JSONObject json() {
+    JSONObject json(boolean includePhoto) {
       JSONObject j = new JSONObject();
       try {
         j.put("name", name);
         j.put("language", language);
         j.put("avatar", avatar);
-        j.put("photo", photo);
+        if (includePhoto) j.put("photo", photo);
         j.put("score", score);
         j.put("wins", wins);
         j.put("games", games);
@@ -69,6 +69,12 @@ public final class GameEngine {
       rhythmHits = 0;
   public int wager = 1;
   public int bombNext = 0;
+  public int roundPoints = 0, roundSips = 0, chosenCup = -1, reflexSeed = 0;
+  public long revealUntil = 0, revision = 0;
+  public boolean juryPhase = false;
+  public int[] juryVotes = {};
+  public int[] predictions = {};
+  public boolean betPlaced = false;
   public long deadline = 0, started = 0;
   public boolean lastWon = false, drawingReady = false;
   public String note = "";
@@ -81,6 +87,12 @@ public final class GameEngine {
   public String ruleOwner = "";
   public int ruleId = -1, voteWinner = -1, freePick = 0;
   public int bonusId = 0;
+  public int secretMask = 0, secretId = -1;
+  public int[] ruleOffers = {};
+  public String reportTarget = "", reportBy = "", reportReturn = "VOTE";
+  public int[] reportVotes = {};
+  public long reportDeadline = 0;
+  public boolean rulePenaltyApplied = false;
 
   public Player current() {
     return players.isEmpty() ? null : players.get(Math.min(active, players.size() - 1));
@@ -99,7 +111,14 @@ public final class GameEngine {
     name = name.trim();
     if (name.isEmpty() || players.size() >= 6 || name.length() > 16) return false;
     for (Player p : players) if (p.name.equalsIgnoreCase(name)) return false;
-    players.add(new Player(name, language, avatar % 6));
+    int chosen = Math.floorMod(avatar, 6);
+    for (int tries = 0; tries < 6; tries++) {
+      boolean used = false;
+      for (Player player : players) if (player.avatar == chosen) { used = true; break; }
+      if (!used) break;
+      chosen = (chosen + 1) % 6;
+    }
+    players.add(new Player(name, language, chosen));
     screen = "LOBBY";
     return true;
   }
@@ -113,6 +132,18 @@ public final class GameEngine {
     offers = votes = catTaps = new int[0];
     ruleOwner = "";
     ruleId = voteWinner = -1;
+    secretMask = 0;
+    secretId = -1;
+    ruleOffers = new int[0];
+    reportTarget = reportBy = "";
+    reportReturn = "VOTE";
+    reportVotes = new int[0];
+    reportDeadline = 0;
+    rulePenaltyApplied = false;
+    deadline = 0;
+    juryPhase = false;
+    juryVotes = predictions = new int[0];
+    revision = 0;
   }
 
   public void begin() {
@@ -184,12 +215,26 @@ public final class GameEngine {
     if (!("VOTE".equals(screen) || "LIBRARY".equals(screen)) || i < 0 || ruleId >= 0 || !ruleOwner.isEmpty()) return false;
     if (catTaps.length != players.size()) catTaps = new int[players.size()];
     catTaps[i]++;
-    if (catTaps[i] >= 20) ruleOwner = name;
+    if (catTaps[i] >= 20) unlockSecret(0, name);
     return true;
   }
 
+  private void unlockSecret(int id, String owner) {
+    int bit = 1 << id;
+    if ((secretMask & bit) != 0) return;
+    secretMask |= bit;
+    if (ruleId >= 0 || !ruleOwner.isEmpty()) return;
+    ruleOwner = owner;
+    secretId = id;
+    int base = (id * 3) % 10;
+    ruleOffers = new int[] {base, (base + 3) % 10, (base + 7) % 10};
+  }
+
   public boolean chooseRule(String name, int id) {
-    if (!name.equals(ruleOwner) || ruleId >= 0 || id < 0 || id > 2) return false;
+    if (!name.equals(ruleOwner) || ruleId >= 0 || id < 0 || id >= 10) return false;
+    boolean offered = false;
+    for (int value : ruleOffers) if (value == id) offered = true;
+    if (!offered) return false;
     ruleId = id;
     if ("VOTE".equals(screen)) completeVoteIfReady();
     return true;
@@ -199,20 +244,36 @@ public final class GameEngine {
     if (deck.isEmpty()) for (int i = 0; i < TYPES.length; i++) deck.add(i);
     game = chosen;
     deck.remove(Integer.valueOf(chosen));
-    variant = random.nextInt(6);
+    variant = random.nextInt(switch (chosen) {
+      case 0 -> QUIZ_FR.length;
+      case 1 -> POSES.length;
+      case 2 -> TUNES.length;
+      case 5 -> DRAW.length;
+      case 8 -> BLUFF.length;
+      default -> 6;
+    });
     target = random.nextInt(4);
-    progress = taps = 0;
+    progress = chosen == 7 ? -1 : 0;
+    taps = 0;
     selected = -1;
     rhythmHits = 0;
     wager = 1;
+    roundPoints = roundSips = 0;
+    chosenCup = -1;
+    revealUntil = 0;
+    juryPhase = false;
+    juryVotes = new int[0];
+    predictions = new int[0];
+    betPlaced = false;
     bombNext = active;
     drawingReady = false;
     note = "";
     strokes.clear();
-    targetX = 80 + random.nextInt(240);
-    targetY = 380 + random.nextInt(200);
+    reflexSeed = random.nextInt();
+    targetX = reflexX(0);
+    targetY = reflexY(0);
     loserCup = random.nextInt(6);
-    int count = 3 + Math.min(2, turn / 10);
+    int count = 4 + Math.min(3, turn / 5);
     sequence = new int[count];
     for (int i = 0; i < count; i++) sequence[i] = random.nextInt(4);
     screen = "TRANSITION";
@@ -229,6 +290,33 @@ public final class GameEngine {
   public boolean placeBet(int sips) {
     if (!"BET".equals(screen) || sips < 1 || sips > 3) return false;
     wager = sips;
+    betPlaced = true;
+    predictions = new int[players.size()];
+    java.util.Arrays.fill(predictions, -1);
+    predictions[active] = 2;
+    screen = "PREDICT";
+    deadline = System.currentTimeMillis() + 8000;
+    return true;
+  }
+
+  public boolean predict(String name, boolean win) {
+    int i = indexOf(name);
+    if (!"PREDICT".equals(screen) || i < 0 || i == active
+        || i >= predictions.length || predictions[i] >= 0) return false;
+    predictions[i] = win ? 1 : 0;
+    if (predictionsReady()) startGame();
+    return true;
+  }
+
+  public boolean predictionsReady() {
+    if (!"PREDICT".equals(screen)) return false;
+    for (int i = 0; i < predictions.length; i++)
+      if (i != active && predictions[i] < 0) return false;
+    return true;
+  }
+
+  public boolean predictionTimedOut() {
+    if (!"PREDICT".equals(screen) || System.currentTimeMillis() < deadline) return false;
     startGame();
     return true;
   }
@@ -244,11 +332,13 @@ public final class GameEngine {
     int seconds =
         switch (game) {
           case 0 -> 16;
-          case 1 -> 30;
-          case 3 -> 12;
+          case 1 -> 24;
+          case 2 -> 18;
+          case 3 -> 15;
           case 6 -> 22;
           case 7 -> 16;
-          case 9 -> 20;
+          case 8 -> 24;
+          case 9 -> 30;
           default -> 0;
         };
     if (bonusId == 3 && seconds > 0) seconds += 5;
@@ -263,21 +353,117 @@ public final class GameEngine {
     return ruleId == 1 ? 0 : Math.max(0, wager - (bonusId == 2 ? 1 : 0));
   }
 
+  public float reflexX(int step) {
+    Random pattern = new Random(reflexSeed ^ (0x9e3779b9L * (step + 1)));
+    return 77 + pattern.nextInt(246);
+  }
+
+  public float reflexY(int step) {
+    Random pattern = new Random((reflexSeed * 31L) ^ (0x6a09e667L * (step + 1)));
+    return 380 + pattern.nextInt(198);
+  }
+
+  public boolean reflexTap(String name, int expectedStep) {
+    if (!"GAME".equals(screen) || game != 3 || current() == null
+        || !current().name.equals(name) || expectedStep != taps || taps >= 10
+        || (deadline > 0 && System.currentTimeMillis() > deadline)) return false;
+    taps++;
+    targetX = reflexX(taps);
+    targetY = reflexY(taps);
+    return true;
+  }
+
+  public boolean rhythmTap(String name, int beat) {
+    if (!"GAME".equals(screen) || game != 7 || current() == null
+        || !current().name.equals(name) || beat < 0 || beat > 40 || beat <= progress
+        || (deadline > 0 && System.currentTimeMillis() > deadline)) return false;
+    progress = beat;
+    rhythmHits++;
+    return true;
+  }
+
+  public boolean selectCup(int cup) {
+    if (!"GAME".equals(screen) || game != 4 || cup < 0 || cup >= 6 || chosenCup >= 0) return false;
+    chosenCup = cup;
+    revealUntil = System.currentTimeMillis() + 1300;
+    return true;
+  }
+
+  public boolean cupIsSafe() { return Math.floorMod(chosenCup - loserCup, 6) >= wager; }
+
+  public boolean beginJury() {
+    if (!"GAME".equals(screen) || (game != 1 && game != 8) || juryPhase) return false;
+    juryPhase = true;
+    juryVotes = new int[players.size()];
+    java.util.Arrays.fill(juryVotes, -1);
+    if (active < juryVotes.length) juryVotes[active] = 2;
+    deadline = System.currentTimeMillis() + 20000;
+    return true;
+  }
+
+  public boolean castJury(String name, boolean yes) {
+    int i = indexOf(name);
+    if (!"GAME".equals(screen) || !juryPhase || i < 0 || i == active
+        || i >= juryVotes.length || juryVotes[i] >= 0) return false;
+    juryVotes[i] = yes ? 1 : 0;
+    return true;
+  }
+
+  public boolean juryComplete() {
+    if (!juryPhase) return false;
+    for (int i = 0; i < juryVotes.length; i++) if (i != active && juryVotes[i] < 0) return false;
+    return true;
+  }
+
+  public boolean juryVerdict() {
+    int yes = 0;
+    for (int i = 0; i < juryVotes.length; i++) if (i != active && juryVotes[i] == 1) yes++;
+    return yes > (players.size() - 1) / 2;
+  }
+
   public void finish(boolean won) {
     if (!"GAME".equals(screen)) return;
     lastWon = won;
     Player p = current();
     if (p == null) return;
     p.games++;
+    roundPoints = 0;
+    roundSips = 0;
     if (won) {
       p.wins++;
-      p.score += winPoints();
+      int speed = (game == 0 || game == 2) && deadline > 0
+          ? Math.min(80, (int) Math.max(0, (deadline - System.currentTimeMillis()) / 1000L) * 5) : 0;
+      roundPoints = winPoints() + speed;
+      p.score += roundPoints;
     } else {
       if (lossSips() > 0) {
         p.drinks++;
-        p.sips += lossSips();
+        roundSips = lossSips();
+        p.sips += roundSips;
       }
-      p.score = Math.max(0, p.score - 25 * wager);
+      roundPoints = -Math.min(p.score, 25 * wager);
+      p.score += roundPoints;
+    }
+    for (int i = 0; i < players.size() && i < predictions.length; i++) {
+      if (i == active || predictions[i] < 0) continue;
+      Player spectator = players.get(i);
+      if ((predictions[i] == 1) == won) spectator.score += 35;
+      else if (ruleId != 1) { spectator.drinks++; spectator.sips++; }
+    }
+    if (won) {
+      boolean secret = switch (game) {
+        case 0 -> deadline - System.currentTimeMillis() >= 8000;
+        case 1, 8 -> juryPhase && juryComplete() && juryVerdict();
+        case 2 -> deadline - System.currentTimeMillis() >= 4000;
+        case 3 -> taps >= 10 && deadline - System.currentTimeMillis() >= 4000;
+        case 4 -> wager == 3;
+        case 5 -> strokes.size() >= 12;
+        case 6 -> sequence.length >= 5;
+        case 7 -> rhythmHits >= 4;
+        case 9 -> taps >= 8;
+        default -> false;
+      };
+      if (secret) unlockSecret(game + 1, p.name);
     }
     screen = "RESULT";
     deadline = 0;
@@ -299,6 +485,54 @@ public final class GameEngine {
     startSelection();
   }
 
+  public boolean reportRule(String reporter, String targetName) {
+    int reporterIndex = indexOf(reporter), targetIndex = indexOf(targetName);
+    if (!("VOTE".equals(screen) || "LIBRARY".equals(screen)) || ruleId < 3
+        || reporterIndex < 0 || targetIndex < 0 || reporterIndex == targetIndex) return false;
+    reportReturn = screen;
+    reportBy = reporter;
+    reportTarget = targetName;
+    reportVotes = new int[players.size()];
+    java.util.Arrays.fill(reportVotes, -1);
+    if (players.size() > 2) reportVotes[targetIndex] = 2;
+    reportVotes[reporterIndex] = 1;
+    reportDeadline = System.currentTimeMillis() + 10000;
+    rulePenaltyApplied = false;
+    screen = "RULE_VOTE";
+    return true;
+  }
+
+  public boolean castRuleVote(String name, boolean yes) {
+    int i = indexOf(name);
+    if (!"RULE_VOTE".equals(screen) || i < 0 || i >= reportVotes.length
+        || reportVotes[i] >= 0) return false;
+    reportVotes[i] = yes ? 1 : 0;
+    if (ruleVoteReady()) resolveRuleVote();
+    return true;
+  }
+
+  public boolean ruleVoteReady() {
+    if (!"RULE_VOTE".equals(screen)) return false;
+    for (int value : reportVotes) if (value < 0) return false;
+    return true;
+  }
+
+  public boolean ruleVoteTimedOut() {
+    if (!"RULE_VOTE".equals(screen) || System.currentTimeMillis() < reportDeadline) return false;
+    resolveRuleVote();
+    return true;
+  }
+
+  private void resolveRuleVote() {
+    int yes = 0, no = 0;
+    for (int value : reportVotes) { if (value == 1) yes++; else if (value == 0) no++; }
+    if (yes > no && ruleId != 1) {
+      int i = indexOf(reportTarget);
+      if (i >= 0) { players.get(i).sips++; players.get(i).drinks++; rulePenaltyApplied = true; }
+    }
+    screen = reportReturn;
+  }
+
   public void checkTimeout() {
     if ("GAME".equals(screen) && deadline > 0 && System.currentTimeMillis() > deadline) {
       if (game == 3) finish(taps >= 10);
@@ -308,8 +542,18 @@ public final class GameEngine {
   }
 
   public JSONObject json() {
+    return json(true, true);
+  }
+
+  public JSONObject networkJson() {
+    return json("LOBBY".equals(screen), game != 5 || drawingReady);
+  }
+
+  private JSONObject json(boolean includePhotos, boolean includeStrokes) {
     JSONObject j = new JSONObject();
     try {
+      j.put("revision", revision);
+      j.put("sentAt", System.currentTimeMillis());
       j.put("screen", screen);
       j.put("active", active);
       j.put("turn", turn);
@@ -322,6 +566,15 @@ public final class GameEngine {
       j.put("rhythmHits", rhythmHits);
       j.put("wager", wager);
       j.put("bombNext", bombNext);
+      j.put("roundPoints", roundPoints);
+      j.put("roundSips", roundSips);
+      j.put("chosenCup", chosenCup);
+      j.put("reflexSeed", reflexSeed);
+      j.put("revealUntil", revealUntil);
+      j.put("juryPhase", juryPhase);
+      j.put("juryVotes", new JSONArray(juryVotes));
+      j.put("predictions", new JSONArray(predictions));
+      j.put("betPlaced", betPlaced);
       j.put("deadline", deadline);
       j.put("started", started);
       j.put("lastWon", lastWon);
@@ -339,8 +592,17 @@ public final class GameEngine {
       j.put("voteWinner", voteWinner);
       j.put("freePick", freePick);
       j.put("bonusId", bonusId);
+      j.put("secretMask", secretMask);
+      j.put("secretId", secretId);
+      j.put("ruleOffers", new JSONArray(ruleOffers));
+      j.put("reportTarget", reportTarget);
+      j.put("reportBy", reportBy);
+      j.put("reportReturn", reportReturn);
+      j.put("reportVotes", new JSONArray(reportVotes));
+      j.put("reportDeadline", reportDeadline);
+      j.put("rulePenaltyApplied", rulePenaltyApplied);
       JSONArray ps = new JSONArray();
-      for (Player p : players) ps.put(p.json());
+      for (Player p : players) ps.put(p.json(includePhotos));
       j.put("players", ps);
       JSONArray d = new JSONArray();
       for (int x : deck) d.put(x);
@@ -350,6 +612,7 @@ public final class GameEngine {
       j.put("sequence", s);
       JSONArray lines = new JSONArray();
       for (float[] v : strokes) {
+        if (!includeStrokes) break;
         JSONArray a = new JSONArray();
         for (float f : v) a.put(f);
         lines.put(a);
@@ -361,10 +624,19 @@ public final class GameEngine {
   }
 
   public void restore(JSONObject j) {
+    java.util.HashMap<String, String> knownPhotos = new java.util.HashMap<>();
+    for (Player player : players) knownPhotos.put(player.name, player.photo);
     players.clear();
     JSONArray ps = j.optJSONArray("players");
     if (ps != null)
-      for (int i = 0; i < ps.length(); i++) players.add(Player.from(ps.optJSONObject(i)));
+      for (int i = 0; i < ps.length(); i++) {
+        JSONObject row = ps.optJSONObject(i);
+        if (row == null) continue;
+        Player player = Player.from(row);
+        if (!row.has("photo")) player.photo = knownPhotos.getOrDefault(player.name, "");
+        players.add(player);
+      }
+    revision = j.optLong("revision", revision);
     screen = j.optString("screen", "HOME");
     active = j.optInt("active");
     turn = j.optInt("turn");
@@ -377,6 +649,15 @@ public final class GameEngine {
     rhythmHits = j.optInt("rhythmHits");
     wager = j.optInt("wager", 1);
     bombNext = j.optInt("bombNext", active);
+    roundPoints = j.optInt("roundPoints");
+    roundSips = j.optInt("roundSips");
+    chosenCup = j.optInt("chosenCup", -1);
+    reflexSeed = j.optInt("reflexSeed");
+    revealUntil = j.optLong("revealUntil");
+    juryPhase = j.optBoolean("juryPhase");
+    juryVotes = readInts(j.optJSONArray("juryVotes"));
+    predictions = readInts(j.optJSONArray("predictions"));
+    betPlaced = j.optBoolean("betPlaced");
     deadline = j.optLong("deadline");
     started = j.optLong("started");
     lastWon = j.optBoolean("lastWon");
@@ -394,6 +675,17 @@ public final class GameEngine {
     voteWinner = j.optInt("voteWinner", -1);
     freePick = j.optInt("freePick", 0);
     bonusId = j.optInt("bonusId", 0);
+    secretMask = j.optInt("secretMask");
+    secretId = j.optInt("secretId", -1);
+    ruleOffers = readInts(j.optJSONArray("ruleOffers"));
+    if (!ruleOwner.isEmpty() && ruleId < 0 && ruleOffers.length != 3)
+      ruleOffers = new int[] {0, 1, 2};
+    reportTarget = j.optString("reportTarget", "");
+    reportBy = j.optString("reportBy", "");
+    reportReturn = j.optString("reportReturn", "VOTE");
+    reportVotes = readInts(j.optJSONArray("reportVotes"));
+    reportDeadline = j.optLong("reportDeadline");
+    rulePenaltyApplied = j.optBoolean("rulePenaltyApplied");
     deck.clear();
     JSONArray d = j.optJSONArray("deck");
     if (d != null) for (int i = 0; i < d.length(); i++) deck.add(d.optInt(i));
@@ -429,7 +721,18 @@ public final class GameEngine {
       "Quelle planète pleut des diamants selon les modèles ?", "Neptune", "Mars", "Mercure", "Vénus"
     },
     {"Quel animal dort debout ?", "Cheval", "Poulpe", "Pingouin", "Taupe"},
-    {"Combien de cerveaux a une pieuvre ?", "9", "1", "2", "6"}
+    {"Combien de cerveaux a une pieuvre ?", "9", "1", "2", "6"},
+    {"Quelle est la couleur de la peau de l'ours polaire ?", "Noire", "Blanche", "Rose", "Bleue"},
+    {"Quel oiseau sait voler en marche arrière ?", "Colibri", "Corbeau", "Flamant", "Manchot"},
+    {"Combien d'os possède généralement un adulte ?", "206", "106", "306", "406"},
+    {"Quelle planète est la plus chaude ?", "Vénus", "Mercure", "Mars", "Jupiter"},
+    {"Quel est le plus grand désert du monde ?", "Antarctique", "Sahara", "Gobi", "Atacama"},
+    {"Quel animal a des empreintes proches des nôtres ?", "Koala", "Pingouin", "Dauphin", "Lama"},
+    {"Dans quel pays le papier a-t-il été inventé ?", "Chine", "Italie", "Pérou", "Égypte"},
+    {"Combien de faces a un dé de jeu de rôle D20 ?", "20", "12", "16", "24"},
+    {"Quel organe humain est le plus grand ?", "Peau", "Foie", "Cœur", "Poumon"},
+    {"Quel métal est liquide à température ambiante ?", "Mercure", "Cuivre", "Fer", "Or"},
+    {"Quelle planète a les anneaux les plus visibles ?", "Saturne", "Mars", "Terre", "Vénus"}
   };
   public static final String[][] QUIZ_EN = {
     {"Which animal has three hearts?", "Octopus", "Panda", "Duck", "Mosquito"},
@@ -437,7 +740,18 @@ public final class GameEngine {
     {"Which fruit is botanically a berry?", "Banana", "Strawberry", "Raspberry", "Cherry"},
     {"Which planet may rain diamonds?", "Neptune", "Mars", "Mercury", "Venus"},
     {"Which animal can sleep standing?", "Horse", "Octopus", "Penguin", "Mole"},
-    {"How many brains does an octopus have?", "9", "1", "2", "6"}
+    {"How many brains does an octopus have?", "9", "1", "2", "6"},
+    {"What color is a polar bear's skin?", "Black", "White", "Pink", "Blue"},
+    {"Which bird can fly backward?", "Hummingbird", "Crow", "Flamingo", "Penguin"},
+    {"How many bones does an adult usually have?", "206", "106", "306", "406"},
+    {"Which planet is the hottest?", "Venus", "Mercury", "Mars", "Jupiter"},
+    {"What is the world's largest desert?", "Antarctica", "Sahara", "Gobi", "Atacama"},
+    {"Which animal has fingerprints like ours?", "Koala", "Penguin", "Dolphin", "Llama"},
+    {"Where was paper invented?", "China", "Italy", "Peru", "Egypt"},
+    {"How many faces does a D20 role-playing die have?", "20", "12", "16", "24"},
+    {"What is the human body's largest organ?", "Skin", "Liver", "Heart", "Lung"},
+    {"Which metal is liquid at room temperature?", "Mercury", "Copper", "Iron", "Gold"},
+    {"Which planet has the most visible rings?", "Saturn", "Mars", "Earth", "Venus"}
   };
   public static final String[][] POSES = {
     {
@@ -463,7 +777,19 @@ public final class GameEngine {
     {
       "Marche comme un crabe royal jusqu'à la porte et reviens.",
       "Crab walk to the door and back like royalty."
-    }
+    },
+    {"Rejoue la démarche du pote à ta droite. Qu'il valide !", "Copy the walk of the friend on your right. Get their verdict!"},
+    {"Pose de couverture d'album avec deux voisins.", "Pose for an album cover with two friends."},
+    {"Fais une entrée de star au ralenti, applaudissements obligatoires.", "Make a slow-motion star entrance. Demand applause."},
+    {"Mets-toi en statue de musée. Les autres te donnent un titre.", "Become a museum statue. Let the others name the artwork."},
+    {"Imite un barman qui sert un cocktail invisible.", "Mime a bartender serving an invisible cocktail."},
+    {"Fais le robot qui manque de batterie pendant dix secondes.", "Be a robot running out of battery for ten seconds."},
+    {"Danse avec un partenaire imaginaire sans quitter ta place.", "Dance with an imaginary partner without leaving your spot."},
+    {"Deviens le commentateur sportif du prochain geste d'un ami.", "Commentate a friend's next move like a sports announcer."},
+    {"Mime ton humeur du lundi à huit heures. Le groupe doit deviner.", "Mime your Monday 8 a.m. mood. The group must guess."},
+    {"Pose en super-héros dont le pouvoir est de faire l'apéro.", "Pose as a superhero whose power is hosting parties."},
+    {"Fais une révérence royale à la personne de ton choix.", "Give a royal bow to someone of your choosing."},
+    {"Transforme une chaise en trône avec une pose grandiose.", "Turn a chair into a throne with a grand pose."}
   };
   public static final String[][] DRAW = {
     {"Une licorne en boîte de nuit", "A unicorn at a nightclub"},
@@ -471,7 +797,18 @@ public final class GameEngine {
     {"Un astronaute en slip", "An astronaut in underwear"},
     {"Un avocat qui danse", "A dancing avocado"},
     {"Une pizza qui pleure", "A crying pizza"},
-    {"Un robot amoureux", "A robot in love"}
+    {"Un robot amoureux", "A robot in love"},
+    {"Un chat qui gouverne la ville", "A cat ruling the city"},
+    {"Une licorne en métro", "A unicorn on the subway"},
+    {"Un croissant bodybuilder", "A bodybuilder croissant"},
+    {"Un lama qui fait du skate", "A llama on a skateboard"},
+    {"Une boule disco triste", "A sad disco ball"},
+    {"Une grenouille en costume", "A frog in a suit"},
+    {"Un taco astronaute", "An astronaut taco"},
+    {"Un fantôme au karaoké", "A ghost at karaoke"},
+    {"Un dragon qui souffle des bulles", "A dragon blowing bubbles"},
+    {"Un pigeon DJ", "A DJ pigeon"},
+    {"Une chaussette couronnée", "A crowned sock"}
   };
   public static final String[][] BLUFF = {
     {
@@ -494,7 +831,18 @@ public final class GameEngine {
       "Explique pourquoi tu es le champion du monde de rien.",
       "Explain why you're world champion of nothing."
     },
-    {"Convaincs le groupe que tu viens du futur.", "Convince the group you're from the future."}
+    {"Convaincs le groupe que tu viens du futur.", "Convince the group you're from the future."},
+    {"Explique pourquoi ton pseudo serait un nom de cocktail.", "Explain why your nickname would make a cocktail name."},
+    {"Raconte la pire excuse possible pour être en retard à cette soirée.", "Tell the worst excuse for arriving late to this party."},
+    {"Vends au groupe une appli qui ne sert absolument à rien.", "Pitch an app that does absolutely nothing."},
+    {"Prouve que la personne à ta gauche est un agent secret.", "Prove the person on your left is a secret agent."},
+    {"Invente un titre de presse sur cette soirée.", "Invent a news headline about this party."},
+    {"Explique pourquoi ton verre devrait avoir son propre fan-club.", "Explain why your glass deserves a fan club."},
+    {"Fais un discours de victoire pour un talent que tu n'as pas.", "Give a victory speech for a talent you do not have."},
+    {"Convaincs le jury que tu as déjà rencontré un roi des pixels.", "Convince the jury you once met the king of pixels."},
+    {"Raconte une aventure héroïque avec une serviette en papier.", "Tell a heroic tale starring a paper napkin."},
+    {"Défends ton voisin comme s'il était accusé d'avoir volé la musique.", "Defend your friend as if accused of stealing the music."},
+    {"Présente ta boisson comme une découverte scientifique.", "Present your drink as a scientific discovery."}
   };
   public static final String[][] TUNES = {
     {"Neon Canard", "Neon Duck"},

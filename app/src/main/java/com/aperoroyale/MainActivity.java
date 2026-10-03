@@ -20,6 +20,8 @@ import android.os.Vibrator;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.GridLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -46,6 +48,7 @@ public final class MainActivity extends Activity
   private long settingsPausedAt = 0;
   private String guideOrigin = "HOME";
   private boolean passPending = false, soundEffects = true, haptics = true;
+  private long clockSkew = Long.MAX_VALUE;
   private Runnable pendingBluetooth;
 
   @Override
@@ -79,11 +82,20 @@ public final class MainActivity extends Activity
   private void clockTick() {
     if (isFinishing()) return;
     audio.setScene(game.screen);
+    if (!network.connected && game.predictionTimedOut()) {
+      beginGameAudio();
+      save();
+    }
+    if (!network.connected && game.ruleVoteTimedOut()) finishRuleVote();
+    if (!network.connected && "GAME".equals(game.screen) && game.game == 4
+        && game.chosenCup >= 0 && System.currentTimeMillis() >= game.revealUntil)
+      finishGame(game.cupIsSafe());
     if (!network.connected
         && "GAME".equals(game.screen)
         && game.deadline > 0
         && System.currentTimeMillis() > game.deadline) {
-      finishGame((game.game == 3 && game.taps >= 10) || (game.game == 7 && game.rhythmHits >= 4));
+      finishGame(game.juryPhase ? game.juryVerdict()
+          : (game.game == 3 && game.taps >= 10) || (game.game == 7 && game.rhythmHits >= 4));
     }
     view.invalidate();
     view.postDelayed(this::clockTick, 100);
@@ -99,9 +111,11 @@ public final class MainActivity extends Activity
 
   @Override
   public void save() {
+    game.revision++;
     store.save(game);
     savedSession = true;
-    network.broadcast(game.json());
+    if (!("GAME".equals(game.screen) && game.game == 5 && !game.drawingReady
+        && !game.strokes.isEmpty())) network.broadcast(game.networkJson());
     view.invalidate();
   }
 
@@ -109,11 +123,16 @@ public final class MainActivity extends Activity
   public void finishGame(boolean won) {
     if (!"GAME".equals(game.screen)) return;
     GameEngine.Player p = game.current();
+    long duration = Math.max(0, System.currentTimeMillis() - game.started);
     game.finish(won);
     if (p != null) store.record(p, game.game, won,
-        won ? game.winPoints() : -25 * game.wager,
-        won || game.lossSips() == 0 ? 0 : 1,
-        won ? 0 : game.lossSips());
+        game.roundPoints, game.roundSips > 0 ? 1 : 0, game.roundSips, duration);
+    for (int i = 0; i < game.players.size() && i < game.predictions.length; i++) {
+      if (i == game.active || game.predictions[i] < 0) continue;
+      boolean correct = (game.predictions[i] == 1) == won;
+      store.recordPrediction(game.players.get(i), game.game, correct,
+          correct || game.ruleId == 1 ? 0 : 1);
+    }
     if (soundEffects) {
       if (won) audio.win();
       else audio.lose();
@@ -131,6 +150,149 @@ public final class MainActivity extends Activity
   @Override
   public void placeBet(int sips) {
     if (!game.placeBet(sips)) return;
+    save();
+  }
+
+  public GameEngine.Player localPredictor() {
+    if (!"PREDICT".equals(game.screen)) return null;
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i >= 0 && i != game.active && i < game.predictions.length
+          && game.predictions[i] < 0 ? game.players.get(i) : null;
+    }
+    for (int i = 0; i < game.players.size() && i < game.predictions.length; i++)
+      if (i != game.active && game.predictions[i] < 0
+          && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    return null;
+  }
+
+  @Override
+  public void predict(boolean win) {
+    GameEngine.Player voter = localPredictor();
+    if (voter == null) return;
+    if (network.connected) { network.command("PREDICT", win ? 1 : 0); return; }
+    if (game.predict(voter.name, win)) {
+      if ("GAME".equals(game.screen)) beginGameAudio();
+      save();
+    }
+  }
+
+  @Override
+  public void beginJury() {
+    if (game.beginJury()) save();
+  }
+
+  public GameEngine.Player localJudge() {
+    if (!game.juryPhase || !"GAME".equals(game.screen)) return null;
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i >= 0 && i != game.active && i < game.juryVotes.length
+          && game.juryVotes[i] < 0 ? game.players.get(i) : null;
+    }
+    for (int i = 0; i < game.players.size() && i < game.juryVotes.length; i++)
+      if (i != game.active && game.juryVotes[i] < 0
+          && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    return null;
+  }
+
+  @Override
+  public void judge(boolean yes) {
+    GameEngine.Player juror = localJudge();
+    if (juror == null) return;
+    if (network.connected) { network.command("JUDGE", yes ? 1 : 0); return; }
+    if (game.castJury(juror.name, yes)) {
+      if (game.juryComplete()) finishGame(game.juryVerdict());
+      else save();
+    }
+  }
+
+  @Override
+  public void reflexTap(int expectedStep) {
+    if (network.connected) { network.command("REFLEX", expectedStep); return; }
+    GameEngine.Player player = game.current();
+    if (player != null && game.reflexTap(player.name, expectedStep)) {
+      if (game.taps >= 10) finishGame(true);
+      else save();
+    }
+  }
+
+  @Override
+  public void rhythmTap(int beat) {
+    if (network.connected) { network.command("RHYTHM", beat); return; }
+    GameEngine.Player player = game.current();
+    if (player != null && game.rhythmTap(player.name, beat)) {
+      if (game.rhythmHits >= 4) finishGame(true);
+      else save();
+    }
+  }
+
+  @Override
+  public void selectCup(int cup) {
+    if (network.connected) { network.command("CUP", cup); return; }
+    if (game.selectCup(cup)) save();
+  }
+
+  @Override
+  public void reportRule() {
+    if (game.ruleId < 3 || !("VOTE".equals(game.screen) || "LIBRARY".equals(game.screen))) return;
+    GameEngine.Player reporter = localParticipant();
+    if (reporter == null) return;
+    ArrayList<String> choices = new ArrayList<>();
+    ArrayList<Integer> indexes = new ArrayList<>();
+    for (int i = 0; i < game.players.size(); i++)
+      if (!game.players.get(i).name.equals(reporter.name)) {
+        choices.add(game.players.get(i).name);
+        indexes.add(i);
+      }
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Qui a brisé la règle ?", "Who broke the rule?"))
+        .setItems(choices.toArray(new String[0]), (dialog, which) -> {
+          int target = indexes.get(which);
+          if (network.connected) network.command("REPORT", target);
+          else if (game.reportRule(reporter.name, game.players.get(target).name)) save();
+        })
+        .show();
+  }
+
+  public GameEngine.Player localRuleVoter() {
+    if (!"RULE_VOTE".equals(game.screen)) return null;
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i >= 0 && i < game.reportVotes.length && game.reportVotes[i] < 0
+          ? game.players.get(i) : null;
+    }
+    for (int i = 0; i < game.players.size() && i < game.reportVotes.length; i++)
+      if (game.reportVotes[i] < 0 && !network.isRemote(game.players.get(i).name))
+        return game.players.get(i);
+    return null;
+  }
+
+  @Override
+  public void ruleVote(boolean yes) {
+    GameEngine.Player voter = localRuleVoter();
+    if (voter == null) return;
+    if (network.connected) { network.command("RULE_VOTE", yes ? 1 : 0); return; }
+    if (game.castRuleVote(voter.name, yes)) {
+      if (!"RULE_VOTE".equals(game.screen)) finishRuleVote();
+      else save();
+    }
+  }
+
+  private void finishRuleVote() {
+    boolean penalty = game.rulePenaltyApplied;
+    if (penalty) store.recordRulePenalty(game.reportTarget);
+    game.rulePenaltyApplied = false;
+    message(penalty ? game.reportTarget + " +1 " + game.t("gorgée", "sip")
+        : game.t("Règle non retenue", "Rule claim dismissed"));
+    save();
+  }
+
+  public long hostNow() {
+    return System.currentTimeMillis() - (network.connected && clockSkew != Long.MAX_VALUE ? clockSkew : 0);
+  }
+
+  private void beginGameAudio() {
+    if (!"GAME".equals(game.screen)) return;
     if (game.game == 2) {
       audio.duck(14000);
       if (spotify.ready() && spotify.connected()) {
@@ -157,7 +319,6 @@ public final class MainActivity extends Activity
             });
       } else audio.tune(game.variant);
     }
-    save();
   }
 
   @Override
@@ -180,24 +341,90 @@ public final class MainActivity extends Activity
 
   @Override
   public void addPlayer() {
+    if (game.players.size() >= 6) {
+      message(game.t("Salle complète (6 joueurs)", "Room full (6 players)"));
+      return;
+    }
     EditText name = input("Pseudo / Nickname");
     Spinner language = spinner(new String[] {"FR", "EN"});
-    Spinner avatar = spinner(new String[] {"CAT", "FROG", "DUCK", "ALIEN", "ROBOT", "DISCO"});
+    String[] labels = {"CAT", "FROG", "DUCK", "ALIEN", "ROBOT", "DISCO"};
+    ArrayList<Integer> available = new ArrayList<>();
+    ArrayList<String> names = new ArrayList<>();
+    for (int i = 0; i < 6; i++) {
+      boolean used = false;
+      for (GameEngine.Player player : game.players) if (player.avatar == i) used = true;
+      if (!used) { available.add(i); names.add(labels[i]); }
+    }
+    Spinner avatar = spinner(names.toArray(new String[0]));
     LinearLayout box = column(name, language, avatar);
     new AlertDialog.Builder(this)
         .setTitle(game.t("Nouveau joueur", "New player"))
         .setView(box)
         .setNegativeButton(game.t("Annuler", "Cancel"), null)
-        .setPositiveButton(
-            "OK",
-            (d, w) -> {
-              if (game.addPlayer(
-                  name.getText().toString(),
-                  language.getSelectedItem().toString(),
-                  avatar.getSelectedItemPosition())) save();
-              else message("Name unavailable / Nom indisponible");
-            })
+        .setPositiveButton(game.t("CRÉER", "CREATE"), (d, w) ->
+            createPlayer(name, language, available.get(avatar.getSelectedItemPosition()), false))
+        .setNeutralButton(game.t("CRÉER + PHOTO", "CREATE + PHOTO"), (d, w) ->
+            createPlayer(name, language, available.get(avatar.getSelectedItemPosition()), true))
         .show();
+  }
+
+  private void createPlayer(EditText name, Spinner language, int avatar, boolean photo) {
+    if (!game.addPlayer(name.getText().toString(), language.getSelectedItem().toString(), avatar)) {
+      message(game.t("Pseudo indisponible", "Name unavailable"));
+      return;
+    }
+    save();
+    if (photo) openPhotoPicker(game.players.size() - 1);
+  }
+
+  private void openPhotoPicker(int index) {
+    photoPlayer = index;
+    Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+    pick.setType("image/*");
+    pick.addCategory(Intent.CATEGORY_OPENABLE);
+    startActivityForResult(Intent.createChooser(pick, game.t("Choisir une image", "Choose image")), 301);
+  }
+
+  private void chooseAvatar(int index) {
+    if (index < 0 || index >= game.players.size()) return;
+    Bitmap sheet = BitmapFactory.decodeResource(getResources(), R.drawable.avatar_sheet);
+    if (sheet == null) return;
+    GridLayout grid = new GridLayout(this);
+    grid.setColumnCount(3);
+    grid.setPadding(16, 16, 16, 16);
+    AlertDialog dialog = new AlertDialog.Builder(this)
+        .setTitle(game.t("Choisis ton sprite", "Choose your sprite"))
+        .setView(grid)
+        .setNegativeButton(game.t("Fermer", "Close"), null)
+        .create();
+    for (int avatar = 0; avatar < 6; avatar++) {
+      boolean taken = false;
+      for (int i = 0; i < game.players.size(); i++)
+        if (i != index && game.players.get(i).avatar == avatar) taken = true;
+      if (taken) continue;
+      int cellW = sheet.getWidth() / 3, cellH = sheet.getHeight() / 2;
+      Bitmap crop = Bitmap.createBitmap(sheet, (avatar % 3) * cellW,
+          (avatar / 3) * cellH, cellW, cellH);
+      ImageView tile = new ImageView(this);
+      tile.setImageBitmap(crop);
+      tile.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      tile.setBackgroundColor(Color.rgb(25, 32, 65));
+      tile.setPadding(6, 6, 6, 6);
+      GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+      params.width = (int) (92 * getResources().getDisplayMetrics().density);
+      params.height = (int) (92 * getResources().getDisplayMetrics().density);
+      params.setMargins(5, 5, 5, 5);
+      grid.addView(tile, params);
+      final int chosen = avatar;
+      tile.setOnClickListener(v -> {
+        game.players.get(index).avatar = chosen;
+        game.players.get(index).photo = "";
+        if (network.connected) network.command("AVATAR", chosen);
+        else save();
+        dialog.dismiss();
+      });
+    }
+    dialog.show();
   }
 
   @Override
@@ -213,16 +440,9 @@ public final class MainActivity extends Activity
             game.t("Supprimer la photo", "Remove photo")
         }, (d, which) -> {
           if (which == 0) {
-            photoPlayer = index;
-            Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
-            pick.setType("image/*");
-            pick.addCategory(Intent.CATEGORY_OPENABLE);
-            startActivityForResult(Intent.createChooser(pick, game.t("Choisir une image", "Choose image")), 301);
+            openPhotoPicker(index);
           } else if (which == 1) {
-            player.avatar = (player.avatar + 1) % 6;
-            player.photo = "";
-            if (network.connected) network.command("AVATAR", player.avatar);
-            else save();
+            chooseAvatar(index);
           } else {
             player.photo = "";
             if (network.connected) network.profile("");
@@ -258,13 +478,17 @@ public final class MainActivity extends Activity
         original = BitmapFactory.decodeStream(input, null, options);
       }
       if (original == null) throw new IllegalArgumentException("Invalid image");
-      Bitmap small = Bitmap.createScaledBitmap(original, 128, 128, true);
+      int side = Math.min(original.getWidth(), original.getHeight());
+      Bitmap square = Bitmap.createBitmap(original, (original.getWidth() - side) / 2,
+          (original.getHeight() - side) / 2, side, side);
+      Bitmap small = Bitmap.createScaledBitmap(square, 128, 128, true);
       ByteArrayOutputStream bytes = new ByteArrayOutputStream();
       small.compress(Bitmap.CompressFormat.JPEG, 72, bytes);
       byte[] result = bytes.toByteArray();
       if (result.length > 40000) throw new IllegalArgumentException("Image too large");
       game.players.get(photoPlayer).photo = Base64.encodeToString(result, Base64.NO_WRAP);
-      if (small != original) small.recycle();
+      if (small != square) small.recycle();
+      if (square != original) square.recycle();
       original.recycle();
       if (network.connected) network.profile(game.players.get(photoPlayer).photo);
       else save();
@@ -352,6 +576,7 @@ public final class MainActivity extends Activity
   public void newParty() {
     network.close();
     passPending = false;
+    clockSkew = Long.MAX_VALUE;
     game.newParty();
     save();
   }
@@ -437,6 +662,8 @@ public final class MainActivity extends Activity
           String uri = relay.getText().toString().trim();
           getPreferences(MODE_PRIVATE).edit().putString("relay", uri).apply();
           network.close();
+          game.revision = 0;
+          clockSkew = Long.MAX_VALUE;
           InternetPartyNetwork internet = new InternetPartyNetwork(this);
           network = internet;
           internet.joinInternet(uri, code.getText().toString(), nickname, lang.getSelectedItem().toString());
@@ -464,6 +691,8 @@ public final class MainActivity extends Activity
                 return;
               }
               network.close();
+              game.revision = 0;
+              clockSkew = Long.MAX_VALUE;
               network = new PartyNetwork(this);
               network.join(address, n, lang.getSelectedItem().toString(), code);
             })
@@ -540,6 +769,8 @@ public final class MainActivity extends Activity
             return;
           }
           network.close();
+          game.revision = 0;
+          clockSkew = Long.MAX_VALUE;
           BluetoothPartyNetwork bluetooth = new BluetoothPartyNetwork(this);
           network = bluetooth;
           bluetooth.joinBluetooth(device, nickname, lang.getSelectedItem().toString(), code);
@@ -763,6 +994,51 @@ public final class MainActivity extends Activity
 
   @Override
   public void command(String name, String command, int value) {
+    if ("REPORT".equals(command)) {
+      if (value >= 0 && value < game.players.size()
+          && game.reportRule(name, game.players.get(value).name)) save();
+      return;
+    }
+    if ("RULE_VOTE".equals(command)) {
+      if (game.castRuleVote(name, value == 1)) {
+        if (!"RULE_VOTE".equals(game.screen)) finishRuleVote();
+        else save();
+      }
+      return;
+    }
+    if ("PREDICT".equals(command)) {
+      if (game.predict(name, value == 1)) {
+        if ("GAME".equals(game.screen)) beginGameAudio();
+        save();
+      }
+      return;
+    }
+    if ("JUDGE".equals(command)) {
+      if (game.castJury(name, value == 1)) {
+        if (game.juryComplete()) finishGame(game.juryVerdict());
+        else save();
+      }
+      return;
+    }
+    if ("REFLEX".equals(command)) {
+      if (game.reflexTap(name, value)) {
+        if (game.taps >= 10) finishGame(true);
+        else save();
+      }
+      return;
+    }
+    if ("RHYTHM".equals(command)) {
+      if (game.rhythmTap(name, value)) {
+        if (game.rhythmHits >= 4) finishGame(true);
+        else save();
+      }
+      return;
+    }
+    if ("CUP".equals(command)) {
+      GameEngine.Player player = game.current();
+      if (player != null && player.name.equals(name) && game.selectCup(value)) save();
+      return;
+    }
     if ("BOMB".equals(command)) {
       if (game.bombTap(name)) {
         if (game.taps >= 8) finishGame(true);
@@ -773,6 +1049,8 @@ public final class MainActivity extends Activity
     if ("AVATAR".equals(command)) {
       int i = game.indexOf(name);
       if ("LOBBY".equals(game.screen) && i >= 0 && value >= 0 && value < 6) {
+        for (int other = 0; other < game.players.size(); other++)
+          if (other != i && game.players.get(other).avatar == value) return;
         game.players.get(i).avatar = value;
         game.players.get(i).photo = "";
         save();
@@ -805,6 +1083,10 @@ public final class MainActivity extends Activity
 
   @Override
   public void snapshot(JSONObject state) {
+    long incoming = state.optLong("revision", 0);
+    if (incoming < game.revision) return;
+    long sample = System.currentTimeMillis() - state.optLong("sentAt", System.currentTimeMillis());
+    if (clockSkew == Long.MAX_VALUE || sample < clockSkew) clockSkew = sample;
     game.restore(state);
     view.invalidate();
   }

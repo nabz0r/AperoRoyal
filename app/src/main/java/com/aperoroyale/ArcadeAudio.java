@@ -4,6 +4,9 @@ import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /** Original continuous arcade score, mixed by Android with game effects and external audio. */
 public final class ArcadeAudio {
@@ -13,9 +16,11 @@ public final class ArcadeAudio {
   private volatile int style = 0;
   private volatile float volume = .5f;
   private volatile long duckUntil = 0;
+  private final ExecutorService effects = Executors.newFixedThreadPool(2);
+  private final AtomicLong lastClick = new AtomicLong(0);
   private Thread loop;
   private static final int RATE = 22050;
-  private static final int STEP_MS = 180;
+  private static final int STEP_MS = 250;
   private static final int[][] SCORE = {
     {64, 67, 71, 67, 62, 67, 69, 67, 64, 67, 71, 76, 74, 71, 69, 67},
     {69, 72, 76, 72, 67, 72, 79, 72, 69, 72, 76, 81, 79, 76, 72, 67},
@@ -59,19 +64,38 @@ public final class ArcadeAudio {
                   if (enabled) {
                     double lead = frequency(SCORE[currentScene][step % 16]);
                     double bass = frequency(BASS[currentScene][(step / 4) % 4]);
+                    boolean kickStep = step % 4 == 0;
+                    boolean snareStep = step % 4 == 2;
+                    boolean hatStep = step % 2 == 1;
                     for (int i = 0; i < pcm.length; i++) {
-                      double time = i / (double) RATE;
-                      double beat = i / (double) pcm.length;
-                      double envelope = Math.min(1, i / (RATE * .01)) * Math.min(1, (pcm.length - i) / (RATE * .035));
-                      double square = Math.sin(2 * Math.PI * lead * time) >= 0 ? 1 : -1;
-                      double triangle = 2 / Math.PI * Math.asin(Math.sin(2 * Math.PI * bass * time));
-                      double shimmer = Math.sin(2 * Math.PI * lead * .5 * time);
-                      double hat = step % 2 == 0 && beat < .11 ? (Math.sin(i * 7.13) > 0 ? 1 : -1) * (.11 - beat) * 2 : 0;
+                      double time = (step * (long) samplesPerStep + i) / (double) RATE;
+                      double within = i / (double) RATE;
+                      double attack = Math.min(1, within / .009);
+                      double leadEnvelope = attack * Math.exp(-9 * within);
+                      double leadWave = Math.sin(2 * Math.PI * lead * time)
+                          + .19 * Math.sin(4 * Math.PI * lead * time);
+                      double bassWave = Math.sin(2 * Math.PI * bass * time)
+                          + .24 * Math.sin(4 * Math.PI * bass * time);
+                      double pad = Math.sin(2 * Math.PI * frequency(BASS[currentScene][(step / 4) % 4] + 19) * time)
+                          + .6 * Math.sin(2 * Math.PI * frequency(BASS[currentScene][(step / 4) % 4] + 24) * time);
+                      double kick = 0;
+                      if (kickStep && within < .22) {
+                        double sweep = 53 + 90 * Math.exp(-30 * within);
+                        kick = Math.sin(2 * Math.PI * sweep * within) * Math.exp(-19 * within);
+                      }
+                      int noiseBits = (int) ((step * 1315423911L + i * 2654435761L) ^ (i << 7));
+                      noiseBits ^= noiseBits >>> 13;
+                      double noise = (noiseBits & 1023) / 511.5 - 1;
+                      double snare = snareStep && within < .16 ? noise * Math.exp(-28 * within) : 0;
+                      double hat = hatStep && within < .07 ? noise * Math.exp(-55 * within) : 0;
                       double duck = System.currentTimeMillis() < duckUntil ? .17 : 1;
-                      double sample = (square * (style == 0 ? .009 : .043)
-                          + triangle * (style == 0 ? .042 : .072)
-                          + shimmer * (style == 0 ? .018 : .02)
-                          + hat * (style == 0 ? .008 : .027)) * envelope * duck * volume;
+                      double activity = currentScene == 2 ? 1 : currentScene == 1 ? .72 : .55;
+                      double sample = (bassWave * .083
+                          + pad * (style == 0 ? .018 : .013)
+                          + leadWave * leadEnvelope * (style == 0 ? .038 : .060)
+                          + kick * (style == 0 ? .055 : .095) * activity
+                          + snare * (style == 0 ? .025 : .048) * activity
+                          + hat * (style == 0 ? .012 : .028) * activity) * duck * volume;
                       pcm[i] = (short) (Math.max(-1, Math.min(1, sample)) * Short.MAX_VALUE);
                     }
                   }
@@ -93,6 +117,7 @@ public final class ArcadeAudio {
 
   public void stop() {
     running.set(false);
+    effects.shutdownNow();
   }
 
   public void setEnabled(boolean b) {
@@ -119,35 +144,28 @@ public final class ArcadeAudio {
   }
 
   public void click() {
-    new Thread(() -> playNote(84, 55, 0.15f), "arcade-sfx").start();
+    long now = System.currentTimeMillis();
+    if (now - lastClick.getAndSet(now) < 45) return;
+    effects.execute(() -> playNote(79, 45, 0.13f));
   }
 
   public void win() {
-    new Thread(
-            () -> {
-              for (int n : new int[] {72, 76, 79, 84}) playNote(n, 110, 0.18f);
-            },
-            "arcade-win")
-        .start();
+    effects.execute(() -> {
+      for (int n : new int[] {72, 76, 79, 84}) playNote(n, 105, 0.16f);
+    });
   }
 
   public void lose() {
-    new Thread(
-            () -> {
-              for (int n : new int[] {60, 57, 53, 48}) playNote(n, 120, 0.15f);
-            },
-            "arcade-lose")
-        .start();
+    effects.execute(() -> {
+      for (int n : new int[] {60, 57, 53, 48}) playNote(n, 120, 0.14f);
+    });
   }
 
   public void tune(int index) {
     duck(3000);
-    new Thread(
-            () -> {
-              for (int n : MELODIES[Math.floorMod(index, MELODIES.length)]) playNote(n, 280, 0.20f);
-            },
-            "arcade-blind-test")
-        .start();
+    effects.execute(() -> {
+      for (int n : MELODIES[Math.floorMod(index, MELODIES.length)]) playNote(n, 270, 0.18f);
+    });
   }
 
   private static void sleep(int ms) {
@@ -164,9 +182,10 @@ public final class ArcadeAudio {
     double freq = 440 * Math.pow(2, (midi - 69) / 12.0);
     for (int i = 0; i < count; i++) {
       double phase = 2 * Math.PI * freq * i / RATE;
-      double square = Math.sin(phase) >= 0 ? 1 : -1;
-      double envelope = Math.min(1, i / (RATE * .015)) * Math.min(1, (count - i) / (RATE * .06));
-      samples[i] = (short) (square * envelope * volume * Short.MAX_VALUE);
+      double warm = Math.sin(phase) + .22 * Math.sin(2 * phase);
+      double envelope = Math.min(1, i / (RATE * .008))
+          * Math.min(1, (count - i) / (RATE * .045));
+      samples[i] = (short) (warm * envelope * volume * .76 * Short.MAX_VALUE);
     }
     AudioTrack track = null;
     try {
