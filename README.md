@@ -4,15 +4,15 @@
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.4.2**](releases/AperoRoyale-v1.4.2.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.3**](releases/AperoRoyale-v1.4.3.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
 1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites. Une vraie photo peut aussi être importée depuis l’appareil.
 2. **La salle choisit.** En mode Vote, chacun choisit parmi trois défis. En mode Libre, le groupe ouvre le catalogue ; en mode **Turbo**, le jeu enchaîne des défis surprises plus courts.
 3. **Le téléphone passe.** L’écran annonce le numéro de tour, le pseudo et le défi. Le chrono reste arrêté jusqu’à ce que le joueur concerné touche **Je suis prêt** sur le téléphone partagé ou le sien.
-4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis choisissent de **le couvrir** ou **le défier**. Une couverture réussie rapporte 35 points, peut ajouter deux secondes aux jeux chronométrés et retire une gorgée virtuelle en cas d’échec. Un défi réussi rapporte 50 points au pronostiqueur et augmente de 25 points le gain du joueur actif s’il gagne. Un mauvais choix ajoute une gorgée virtuelle. Sur un téléphone, pronostics et jurys ont un passage privé : le chrono attend que la personne suivante touche **C’est moi**.
-5. **Tout le monde joue.** Les poses passent devant le jury ; le bluff oppose la vérité secrète du conteur aux votes des amis ; le dessin passe au devineur ; la bombe demande deux actions par joueur avant de circuler. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours.
+4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Dans les six défis solo et le dessin, les amis choisissent de **le couvrir** ou **le défier**. Une couverture réussie rapporte 35 points, peut ajouter deux secondes aux jeux chronométrés et retire une gorgée virtuelle en cas d’échec. Un défi réussi rapporte 50 points au pronostiqueur et augmente de 25 points le gain du joueur actif s’il gagne. Un mauvais choix ajoute une gorgée virtuelle. Sur un téléphone, les choix privés ont un relais : le chrono attend que la personne suivante touche **C’est moi**. Poses, bluff et bombe passent directement au défi, puisque chacun y intervient déjà.
+5. **Les rôles changent.** Les poses passent devant le jury ; le bluff oppose la vérité secrète du conteur aux votes des amis ; le dessin passe au devineur. Dans la bombe, chaque porteur choisit à qui la passer ; après un tour de tous les joueurs, il peut tenter de couper un fil ou continuer le relais. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours. En Vote et Turbo, deux défis consécutifs sans action de toute la salle déclenchent une sélection parmi poses, bluff et bombe.
 6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
 
 **Confort 1.4.0.** L’accueil, la palette, l’icône et les réglages adoptent une direction nocturne plus adulte. La source musicale se choisit dans une liste claire ; un bouton dans l’en-tête ouvre l’application choisie pendant la partie. La bande originale du jeu se tait lorsqu’une source externe ou le silence est sélectionné. Effets et vibrations restent séparés. Les écrans s’adaptent aussi aux téléphones 16:9 ; les chronos locaux reprennent après un passage dans les réglages ou en arrière-plan.
@@ -20,6 +20,8 @@
 **Fiabilité 1.4.1.** [500 soirées simulées](docs/SIMULATION_500_PARTIES.md) ont traversé les dix jeux et les trois modes, avec 7 990 manches et 40 190 restaurations d’état. Deux anomalies ont été corrigées : le choix de règle secrète en Turbo et le verdict du jury à l’expiration du chrono dans le moteur.
 
 **Rythme 1.4.2.** [Un second audit de 500 soirées](docs/SIMULATION_EXPERIENCE_500.md) mesure le temps **modélisé**, les répétitions et les actions propres à chaque mini-jeu. Les contenus écrits et sonores sortent maintenant d'un paquet sans répétition avant épuisement ; roulette et dessin ont des délais finis. L'audit révèle aussi un vrai chantier : à six sur un seul téléphone, le mode Vote prendrait environ 87 s par manche selon les hypothèses publiées, et six jeux laissent leurs amis spectateurs du défi. Ce sont des risques de conception à tester avec de vrais groupes, pas du plaisir validé automatiquement.
+
+**Relais 1.4.3.** Les modes Vote et Turbo rappellent un défi collectif après au plus deux manches sans action de toute la salle. La bombe propose un choix de porteur, des séquences de une à trois touches et un fil rouge/bleu risqué après le passage de chacun. Réflexe, Mémoire et Rythme ont chacun six variantes mécaniques ; le Blind Test joue ses six motifs originaux dans quatre tonalités. [La simulation actualisée](docs/SIMULATION_EXPERIENCE_500.md) estime encore **81 s** par manche à six sur un téléphone en Vote : la cadence et les six défis solo restent à améliorer avec des joueurs réels.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -35,14 +37,14 @@ Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel a
 | --- | --- | --- |
 | 01 | **Culture G** | Un QCM tordu ; répondre vite rapporte un bonus. |
 | 02 | **Positions à la con** | Une pose absurde à défendre devant le jury des amis. |
-| 03 | **Blind Test** | Reconnaître un motif sonore original hors ligne (montée, descente, alternance, échos…). |
-| 04 | **Réflexe néon** | Dix cibles à attraper avant la fin du chrono, même sur un téléphone invité. |
-| 05 | **Roulette Royale** | Six gobelets, des pièges révélés après votre choix et une mise qui augmente le risque. |
+| 03 | **Blind Test** | Reconnaître un des six motifs originaux hors ligne, joué dans quatre tonalités. |
+| 04 | **Réflexe néon** | Attraper 8 à 12 cibles selon la manche avant la fin du chrono, même sur un téléphone invité. |
+| 05 | **Roulette Royale** | Six gobelets, six dispositions de pièges révélées après votre choix et une mise qui augmente le risque. |
 | 06 | **Dessin maudit** | Dessiner un concept impossible puis passer au devineur. |
-| 07 | **Mémoire flash** | Rejouer une séquence de plus en plus longue. |
-| 08 | **Rythme ou rien** | Quatre frappes validées sur l’horloge de la manche par l’hôte. |
+| 07 | **Mémoire flash** | Rejouer une séquence croissante parmi six familles de motifs. |
+| 08 | **Rythme ou rien** | Quatre frappes dans l'un de six rythmes, validées sur l’horloge de la manche par l’hôte. |
 | 09 | **Bluff royal** | Raconter une anecdote vraie ou inventée ; le jury devine, le conteur marque s’il trompe la majorité. |
-| 10 | **Bombe à bulles** | Deux touches par joueur en relais, jusqu’à huit touches minimum, avant l’explosion. |
+| 10 | **Bombe à bulles** | Une à trois touches par porteur, choix du suivant, puis fil risqué ou relais prudent. |
 
 <table>
 <tr><td><img src="docs/screenshots/games/trivia.png" alt="Culture G" width="180"></td><td><img src="docs/screenshots/games/poses.png" alt="Positions à la con" width="180"></td><td><img src="docs/screenshots/games/blind-test.png" alt="Blind Test" width="180"></td><td><img src="docs/screenshots/games/reflex.png" alt="Réflexe néon" width="180"></td><td><img src="docs/screenshots/games/roulette.png" alt="Roulette Royale" width="180"></td></tr>
@@ -50,6 +52,8 @@ Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel a
 <tr><td><img src="docs/screenshots/games/drawing.png" alt="Dessin maudit" width="180"></td><td><img src="docs/screenshots/games/memory.png" alt="Mémoire flash" width="180"></td><td><img src="docs/screenshots/games/rhythm.png" alt="Rythme ou rien" width="180"></td><td><img src="docs/screenshots/games/bluff.png" alt="Bluff royal" width="180"></td><td><img src="docs/screenshots/games/bomb.png" alt="Bombe à bulles" width="180"></td></tr>
 <tr><td>Dessin</td><td>Mémoire</td><td>Rythme</td><td>Bluff</td><td>Bombe</td></tr>
 </table>
+
+![Choix du porteur et des fils de la bombe](docs/screenshots/games/bomb-choice.png)
 
 ## Les secrets de la salle 🐈
 
@@ -112,4 +116,4 @@ Illustrations originales dans [`art/source`](art/source), décors des mini-jeux 
 
 ---
 
-**English:** Apéro Royale 1.4.2 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. Ten games have distinct scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The mature new visual direction adds an illustrated lounge home and a redesigned music menu. Choose original music, silence or a shortcut to Spotify, Deezer, Apple Music or Amazon Music. External playback stays in the chosen music app; the sound game remains original and offline. See the [ten-game redesign plan](docs/REFONTE_DIX_MINI_JEUX.md). The signed APK is linked above.
+**English:** Apéro Royale 1.4.3 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. The bomb now lets each holder choose the next player or risk cutting a wire after everyone has held it. Ten games have distinct scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The mature new visual direction adds an illustrated lounge home and a redesigned music menu. Choose original music, silence or a shortcut to Spotify, Deezer, Apple Music or Amazon Music. External playback stays in the chosen music app; the sound game remains original and offline. See the [ten-game redesign plan](docs/REFONTE_DIX_MINI_JEUX.md). The signed APK is linked above.

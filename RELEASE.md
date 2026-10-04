@@ -1,3 +1,27 @@
+# Apéro Royale 1.4.3 — Le relais prend vie
+
+- [APK Android signé 1.4.3](releases/AperoRoyale-v1.4.3.apk) · `com.aperoroyale` · versionCode `10` · Android 8.0+ (API 26)
+- SHA-256 : `b2452689c4eeef6b2b8c9355aad35b729920aa3a78ad388921120a727d6ceae9`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.2
+
+## Changements
+
+- Après deux défis où toute la salle n'a pas agi, Vote et Turbo proposent une manche de Poses, Bluff ou Bombe. Ces trois défis démarrent directement après la mise : le jury ou le relais remplace le prono générique.
+- La bombe impose le passage par chaque ami, laisse le porteur choisir le suivant et varie de une à trois touches par porteur. Une fois tout le monde passé, le porteur peut couper un fil rouge ou bleu : réussite anticipée et +100 points pour l'acteur, ou défaite. Le passage d'un téléphone à l'autre suspend son chrono. Les commandes Wi-Fi de passage et de coupe sont traitées par l'hôte.
+- Réflexe varie le nombre et la taille des cibles ; Mémoire propose six formes de séquence ; Rythme six phrases de quatre frappes ; Roulette six dispositions de pièges révélées après le choix. Les six motifs sonores originaux du Blind Test sont joués dans quatre tonalités, soit 24 variantes de tirage.
+- [L'audit de rythme actualisé](docs/SIMULATION_EXPERIENCE_500.md) compare l'état 1.4.2 et 1.4.3. À six sur un téléphone en Vote, la moyenne **modélisée** passe de 87,3 à 81,0 s ; la plus longue série sans action propre au défi passe de cinq à deux manches. Les six jeux principalement solo restent à revoir.
+
+## Vérifications
+
+- `./gradlew testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite. Le test de robustesse traverse 500 soirées, 7 990 manches et 39 726 restaurations d'état ; l'audit de rythme traverse 500 soirées et 7 990 manches supplémentaires avec hypothèses de temps explicites. Des tests ciblés couvrent les variantes, l'ordre du relais, les deux issues du fil et leur sauvegarde.
+- Émulateur Android 16 : les dix mini-jeux terminés à deux profils locaux, chacun son tour ; passages privés, Turbo et règle secrète vérifiés.
+- Deux émulateurs reliés en Wi-Fi : l'invité reçoit la bombe sur son appareil, agit, coupe un fil et l'hôte synchronise le résultat.
+- APK signée vérifiée par `apksigner` en signature v2 ; `aapt` confirme versionCode 10 et minSdk 26. Mise à niveau de l'APK signée 1.4.2 vers 1.4.3 installée et lancée sur émulateur Android 8.0.
+
+**Limites.** Aucune simulation ne prouve qu'un jeu est viral. Les durées ne sont pas mesurées sur des humains ; à six sur un téléphone, Vote reste long, et six jeux gardent un cœur solo. Pas de mesure de latence Bluetooth/Internet ni de session sur vrais téléphones pour cette version.
+
+---
+
 # Apéro Royale 1.4.2 — Le rythme sous la loupe
 
 - [APK Android signé 1.4.2](releases/AperoRoyale-v1.4.2.apk) · `com.aperoroyale` · versionCode `9` · Android 8.0+ (API 26)

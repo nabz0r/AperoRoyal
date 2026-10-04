@@ -67,6 +67,10 @@ public final class ArcadeView extends View {
 
     void bombTap();
 
+    void bombPass(int targetPlayer);
+
+    void bombCut(int wire);
+
     boolean passPending();
 
     void confirmPass();
@@ -590,7 +594,10 @@ public final class ArcadeView extends View {
     GameEngine.Player actor = g.current();
     text(c, vt("TOUR ", "TURN ") + (g.turn + 1) + "  •  "
         + (actor == null ? "?" : actor.name.toUpperCase(Locale.ROOT)), 200, 157, 18, YELLOW, true);
-    text(c, vt("CHOISIS LE PROCHAIN DÉFI", "PICK THE NEXT CHALLENGE"), 200, 182, 15, WHITE, true);
+    text(c, g.passiveStreak >= 2
+        ? vt("RETOUR DE LA SALLE EN SCÈNE", "THE WHOLE ROOM IS BACK IN")
+        : vt("CHOISIS LE PROCHAIN DÉFI", "PICK THE NEXT CHALLENGE"),
+        200, 182, 15, WHITE, true);
     if (voter != null) {
       avatar(c, voter, 53, 218, .36f);
       text(c, voter.name + vt(" vote", " votes"), 83, 223, 18, CYAN, false);
@@ -816,20 +823,20 @@ public final class ArcadeView extends View {
       "Strike the silly pose on screen and hold it. The group decides if you pulled it off."},
     {"Écoute le motif original : montée, descente, sauts ou silences ? Choisis vite la bonne forme.",
       "Hear the original pattern: rising, falling, jumps or pauses? Pick its shape quickly."},
-    {"Frappe dix cibles néon avant la fin du chrono. Les cibles changent de place à chaque touche.",
-      "Hit ten neon targets before the clock runs out. Targets jump after each hit."},
-    {"Choisis un des six gobelets. Le nombre de gobelets piégés égale ta mise : gros pari, gros risque.",
-      "Pick one of six cups. The number of cursed cups equals your wager: higher stakes, higher risk."},
+    {"Atteins le nombre de cibles indiqué avant la fin. Chaque manche change la taille et le nombre de cibles.",
+      "Hit the displayed target count before time runs out. Target size and count change each round."},
+    {"Choisis un des six gobelets. Ta mise fixe le nombre de pièges ; leur disposition change et se révèle après ton choix.",
+      "Pick one of six cups. Your wager sets the trap count; the layout changes and is revealed after your choice."},
     {"Dessine le mot secret sur l'écran, puis passe le téléphone au devineur. Il choisit la réponse.",
       "Draw the secret prompt, then pass the phone to a guesser. They pick the answer."},
-    {"Regarde la séquence de couleurs et rejoue-la dans le même ordre avant la fin du temps.",
-      "Watch the color sequence and replay it in order before time runs out."},
-    {"Tape au centre du beat quatre fois. Le timing compte plus que la vitesse.",
-      "Tap near the center of the beat four times. Timing matters more than speed."},
+    {"Observe la séquence, repère son motif (miroir, paires, alternance…) et rejoue-la dans l'ordre.",
+      "Watch the sequence, spot its pattern (mirror, pairs, alternation…) and replay it in order."},
+    {"Suis les quatre temps dorés de la mesure. Ignore les temps gris et frappe au centre du beat.",
+      "Follow the four golden beats in the bar. Skip gray beats and tap near the beat center."},
     {"Raconte une anecdote vraie ou inventée, puis verrouille ton secret. Si la majorité du jury se trompe, tu gagnes.",
       "Tell a true or made-up story, then lock your secret. Fool the jury majority to win."},
-    {"Désamorce la bombe en relais : deux touches par personne, puis passe le téléphone ou la main. Le groupe doit agir avant l'explosion.",
-      "Defuse the bomb together: two taps per person, then hand over the phone or control. Beat the explosion."}
+    {"Touche la bombe le nombre de fois affiché, puis choisis à qui la passer. Quand chacun l'a tenue, coupe un fil au risque de perdre, ou continue le relais.",
+      "Tap the bomb the displayed number of times, then choose who gets it. Once everyone held it, risk cutting a wire or keep passing."}
   };
 
   private static final String[][] GUIDE_TIPS = {
@@ -998,6 +1005,9 @@ public final class ArcadeView extends View {
     text(c, player.name.toUpperCase(Locale.ROOT), 200, H * .44f + 142, 28, WHITE, true);
     text(c, "→ " + title(g.game), 200, H * .44f + 179, 19, CYAN, true);
     text(c, "✦ " + bonusName(), 200, H * .44f + 204, 13, YELLOW, true);
+    if (g.game == 1 || g.game == 8 || g.game == 9)
+      text(c, g.t("TOUTE LA SALLE JOUE", "EVERYONE JOINS THIS ROUND"),
+          200, H * .44f + 226, 14, WHITE, true);
     if (g.voteWinner >= 0 && g.offers.length == 3) {
       text(c, g.voteCount() + " / " + g.players.size() + " " + g.t("VOTES", "VOTES"),
           200, H * .44f + 252, 16, MUTED, true);
@@ -1056,6 +1066,10 @@ public final class ArcadeView extends View {
     }
     if (g.game == 5 && g.drawingReady && actions.passPending()) {
       passScreen(c, ((MainActivity) getContext()).localGuesser());
+      return;
+    }
+    if (g.game == 9 && actions.passPending()) {
+      passScreen(c, ((MainActivity) getContext()).localBomber());
       return;
     }
     header(c, title(g.game));
@@ -1191,19 +1205,22 @@ public final class ArcadeView extends View {
     int shown = actions.client() ? Math.max(g.taps, predictedReflex) : g.taps;
     block(
         c,
-        g.t("Tape 10 cibles avant la fin !", "Hit 10 targets before time runs out!"),
+        g.t("Tape " + g.reflexGoal() + " cibles avant la fin !",
+            "Hit " + g.reflexGoal() + " targets before time runs out!"),
         200,
         257,
         310,
         21,
         WHITE,
         true);
-    text(c, g.t("CIBLES", "HITS") + " " + shown + " / 10", 200, 321, 23, YELLOW, true);
+    text(c, g.t("CIBLES", "HITS") + " " + shown + " / " + g.reflexGoal(),
+        200, 321, 23, YELLOW, true);
     float x = g.reflexX(shown), y = g.reflexY(shown);
+    float radius = g.reflexHitRadius();
     p.setColor(PINK);
-    c.drawCircle(x, y, 52, p);
+    c.drawCircle(x, y, radius, p);
     p.setColor(YELLOW);
-    c.drawCircle(x, y, 38, p);
+    c.drawCircle(x, y, radius - 14, p);
     p.setColor(BG);
     c.drawCircle(x, y, 13, p);
   }
@@ -1219,6 +1236,11 @@ public final class ArcadeView extends View {
         21,
         WHITE,
         true);
+    String[] layoutFr = {"LIGNE", "ALTERNE", "CROIX", "RETOUR", "SERPENT", "COINS"};
+    String[] layoutEn = {"LINE", "ALTERNATE", "CROSS", "REVERSE", "SNAKE", "CORNERS"};
+    text(c, g.t("MOTIF : ", "LAYOUT: ")
+        + (g.english() ? layoutEn : layoutFr)[Math.floorMod(g.variant, 6)],
+        200, 317, 15, CYAN, true);
     for (int i = 0; i < 6; i++) {
       float x = 42 + (i % 3) * 107, y = 348 + (i / 3) * 132;
       panel(c, x, y, 91, 108, g.chosenCup == i ? YELLOW : PANEL,
@@ -1312,6 +1334,10 @@ public final class ArcadeView extends View {
     long reveal = g.sequence.length * 720L + 750;
     block(
         c, g.t("Retiens la séquence !", "Remember the sequence!"), 200, 246, 310, 21, WHITE, true);
+    String[] patternFr = {"CHAOS", "MIROIR", "ALTERNE", "SANS DOUBLON", "ROUE", "PAIRES"};
+    String[] patternEn = {"CHAOS", "MIRROR", "ALTERNATE", "NO REPEAT", "WHEEL", "PAIRS"};
+    text(c, (g.english() ? patternEn : patternFr)[Math.floorMod(g.variant, 6)],
+        200, 272, 14, CYAN, true);
     if (elapsed < reveal) {
       int n = (int) Math.min(g.sequence.length - 1, elapsed / 720);
       text(c, g.t("REGARDE…", "WATCH…"), 200, 297, 18, YELLOW, true);
@@ -1334,14 +1360,20 @@ public final class ArcadeView extends View {
   private void rhythm(Canvas c) {
     block(
         c,
-        g.t("Tape sur le beat. 4 coups parfaits !", "Tap on the beat. 4 clean hits!"),
+        g.t("Frappe seulement les temps dorés !", "Hit only the golden beats!"),
         200,
         247,
         315,
         21,
         WHITE,
         true);
-    int phase = RhythmClock.phase(g.started, ((MainActivity) getContext()).hostNow());
+    long now = ((MainActivity) getContext()).hostNow();
+    int phase = RhythmClock.phase(g.started, now);
+    int currentBeat = RhythmClock.beat(g.started, now);
+    int nextBeat = g.rhythmPattern()[Math.min(3, g.rhythmHits)];
+    for (int i = 0; i < 8; i++)
+      text(c, String.valueOf(i + 1), 61 + i * 40, 317, 18,
+          i == nextBeat ? YELLOW : i == Math.floorMod(currentBeat, 8) ? CYAN : MUTED, true);
     float pulse = phase < 0 ? 0 : phase < RhythmClock.TARGET_MS
         ? phase / (float) RhythmClock.TARGET_MS
         : (RhythmClock.PERIOD_MS - phase) / (float) RhythmClock.TARGET_MS;
@@ -1355,7 +1387,9 @@ public final class ArcadeView extends View {
     text(c, "TAP", 200, 452, 30, WHITE, true);
     hits.add(new Hit("beat", new RectF(90, 330, 310, 550),
         g.t("Frapper sur le temps", "Tap on the beat")));
-    text(c, g.rhythmHits + " / 4", 200, 611, 24, CYAN, true);
+    text(c, g.t("PROCHAIN TEMPS : ", "NEXT BEAT: ") + (nextBeat + 1),
+        200, 603, 17, YELLOW, true);
+    text(c, g.rhythmHits + " / 4", 200, 639, 24, CYAN, true);
   }
 
   private void bluff(Canvas c) {
@@ -1379,26 +1413,51 @@ public final class ArcadeView extends View {
   }
 
   private void bomb(Canvas c) {
-    block(
-        c,
-        g.t("Deux taps chacun, puis passe la bombe !", "Two taps each, then pass the bomb!"),
-        200,
-        261,
-        310,
-        20,
-        WHITE,
-        true);
-    float f = Math.max(.1f, 1 - (((MainActivity) getContext()).hostNow() - g.started) / 30000f);
+    MainActivity app = (MainActivity) getContext();
+    GameEngine.Player holder = app.localBomber();
+    if (g.bombAwaitingPass) {
+      block(c, vt("À qui passes-tu la bombe ?", "Who gets the bomb next?"),
+          200, 260, 320, 22, YELLOW, true);
+      if (holder == null) {
+        block(c, vt("Le porteur choisit sa prochaine victime…",
+            "The holder is choosing the next victim…"), 200, 464, 300, 20, WHITE, true);
+      } else {
+        int row = 0;
+        for (int i = 0; i < g.players.size(); i++) {
+          if (!g.canPassBombTo(i)) continue;
+          button(c, "bombPass:" + i, g.players.get(i).name.toUpperCase(Locale.ROOT),
+              27 + (row % 2) * 176, 306 + (row / 2) * 64, 166, 55,
+              row % 2 == 0 ? CYAN : PINK);
+          row++;
+        }
+        if (g.canDefuseBomb()) {
+          text(c, vt("OU COUPE • +100 PTS POUR L'ACTEUR",
+              "OR CUT • +100 PTS FOR THE ACTOR"), 200, 535, 14, YELLOW, true);
+          button(c, "bombCutRed", vt("FIL ROUGE", "RED WIRE"),
+              27, 552, 166, 59, PINK);
+          button(c, "bombCutBlue", vt("FIL BLEU", "BLUE WIRE"),
+              203, 552, 166, 59, CYAN);
+        }
+      }
+      text(c, g.taps + " / " + g.bombGoal(), 200, 657, 24, CYAN, true);
+      return;
+    }
+    block(c, vt(g.bombTapsPerHolder() + " touches, puis choisis à qui passer !",
+        g.bombTapsPerHolder() + " taps, then choose who gets it!"),
+        200, 261, 310, 20, WHITE, true);
+    float duration = Math.max(1, g.deadline - g.started);
+    float f = Math.max(.1f, Math.min(1f,
+        (g.deadline - ((MainActivity) getContext()).hostNow()) / duration));
     p.setColor(PINK);
     c.drawCircle(200, 443, 71 + 20 * f, p);
     p.setColor(YELLOW);
     c.drawCircle(200, 443, 56, p);
     text(c, "TAP!", 200, 453, 26, BG, true);
-    hits.add(new Hit("bomb", new RectF(105, 350, 295, 540),
-        g.t("Toucher la bombe", "Tap the bomb")));
+    if (holder != null) hits.add(new Hit("bomb", new RectF(105, 350, 295, 540),
+        vt("Toucher la bombe", "Tap the bomb")));
     text(c, g.taps + " / " + g.bombGoal(), 200, 603, 25, CYAN, true);
     if (g.bombNext < g.players.size())
-      text(c, g.t("À TOI : ", "YOUR TAP: ") + g.players.get(g.bombNext).name,
+      text(c, vt("À TOI : ", "YOUR TAP: ") + g.players.get(g.bombNext).name,
           200, 645, 18, YELLOW, true);
   }
 
@@ -1418,7 +1477,8 @@ public final class ArcadeView extends View {
     GameSprites.icon(c, p, g.game, 315, 292, 2.8f, g.lastWon ? 9 : 0,
         System.currentTimeMillis());
     text(c, a.name, 200, 385, 25, WHITE, true);
-    glass(
+    if (g.game == 4) rouletteReveal(c);
+    else glass(
         c,
         200,
         478,
@@ -1431,11 +1491,16 @@ public final class ArcadeView extends View {
     for (int i = 0; i < g.predictions.length; i++) if (i != g.active && g.predictions[i] >= 0) {
       if ((g.predictions[i] == 1) == g.lastWon) right++; else wrong++;
     }
-    text(c, g.game == 8 ? (g.bluffTruth == 1
-        ? g.t("L'HISTOIRE ÉTAIT VRAIE", "THE STORY WAS TRUE")
-        : g.t("L'HISTOIRE ÉTAIT INVENTÉE", "THE STORY WAS MADE UP"))
-        : g.t("PRONOS : ", "PREDICTIONS: ") + right + g.t(" JUSTES", " RIGHT")
-            + "  •  " + wrong + g.t(" RATÉS", " WRONG"),
+    String reveal = switch (g.game) {
+      case 1 -> g.t("LE JURY A TRANCHÉ", "THE JURY HAS SPOKEN");
+      case 8 -> g.bluffTruth == 1
+          ? g.t("L'HISTOIRE ÉTAIT VRAIE", "THE STORY WAS TRUE")
+          : g.t("L'HISTOIRE ÉTAIT INVENTÉE", "THE STORY WAS MADE UP");
+      case 9 -> g.t("RELAIS DE BOMBE TERMINÉ", "BOMB RELAY COMPLETE");
+      default -> g.t("PRONOS : ", "PREDICTIONS: ") + right + g.t(" JUSTES", " RIGHT")
+          + "  •  " + wrong + g.t(" RATÉS", " WRONG");
+    };
+    text(c, reveal,
         200, 632, 14, CYAN, true);
     if (g.secretId == g.game + 1 && g.ruleId < 0)
       text(c, g.t("★ SECRET DÉBLOQUÉ ★", "★ SECRET UNLOCKED ★"),
@@ -1446,6 +1511,22 @@ public final class ArcadeView extends View {
     button(
         c, "next", g.t("AU TOUR DE ", "NEXT: ") + nextPlayer.name.toUpperCase(Locale.ROOT),
         35, H - 110, 330, 62, g.lastWon ? CYAN : PINK);
+  }
+
+  private void rouletteReveal(Canvas c) {
+    for (int cup = 0; cup < 6; cup++) {
+      float x = 107 + (cup % 3) * 93, y = 445 + (cup / 3) * 62;
+      p.setColor(g.cupIsCursed(cup) ? PINK : CYAN);
+      c.drawCircle(x, y, 25, p);
+      text(c, g.cupIsCursed(cup) ? "×" : "✓", x, y + 8, 25, BG, true);
+      if (cup == g.chosenCup) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(4);
+        p.setColor(YELLOW);
+        c.drawCircle(x, y, 31, p);
+        p.setStyle(Paint.Style.FILL);
+      }
+    }
   }
 
   private void glass(Canvas c, float x, float y, float level) {
@@ -1689,7 +1770,7 @@ public final class ArcadeView extends View {
       if (kind == 0) handle(x, y, kind);
       return true;
     }
-    if ("GAME".equals(g.screen) && actions.client() && g.game == 8) {
+    if ("GAME".equals(g.screen) && actions.client() && (g.game == 8 || g.game == 9)) {
       if (kind == 0) handle(x, y, kind);
       return true;
     }
@@ -1715,7 +1796,8 @@ public final class ArcadeView extends View {
     if (current == null || !current.name.equals(app.network.localName)) return;
     if (predictedTurn != g.turn) { predictedTurn = g.turn; predictedReflex = g.taps; }
     int step = Math.max(g.taps, predictedReflex);
-    if (step >= 10 || Math.hypot(x - g.reflexX(step), y - g.reflexY(step)) > 55) return;
+    if (step >= g.reflexGoal()
+        || Math.hypot(x - g.reflexX(step), y - g.reflexY(step)) > g.reflexHitRadius()) return;
     predictedReflex = step + 1;
     lastPredictionAt = System.currentTimeMillis();
     actions.reflexTap(step);
@@ -1749,7 +1831,7 @@ public final class ArcadeView extends View {
     if ("GAME".equals(g.screen)) {
       if (g.game == 3) {
         double d = Math.hypot(x - g.targetX, y - g.targetY);
-        if (d <= 55) {
+        if (d <= g.reflexHitRadius()) {
           actions.click();
           actions.reflexTap(g.taps);
         }
@@ -1839,7 +1921,13 @@ public final class ArcadeView extends View {
           actions.rhythmTap(beat);
       }
       case "bomb" -> actions.bombTap();
+      case "bombCutRed" -> actions.bombCut(0);
+      case "bombCutBlue" -> actions.bombCut(1);
       default -> {
+        if (id.startsWith("bombPass:")) {
+          actions.bombPass(Integer.parseInt(id.substring(9)));
+          return;
+        }
         if (id.startsWith("vote:")) { actions.vote(Integer.parseInt(id.substring(5))); return; }
         if (id.startsWith("bet:")) { actions.placeBet(Integer.parseInt(id.substring(4))); return; }
         if (id.startsWith("rule:")) { actions.chooseRule(Integer.parseInt(id.substring(5))); return; }

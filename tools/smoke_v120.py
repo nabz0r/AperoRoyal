@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise ten games, explicit two-player handoffs and spectator predictions.
+"""Exercise ten games, explicit two-player handoffs and the wager flow.
 
 Usage: ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 The target emulator uses a 1080-pixel-wide immersive display and `run-as`.
@@ -26,7 +26,9 @@ def adb(*args):
 def state():
     for _ in range(10):
         try:
-            return json.loads(adb("shell", f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT data FROM session;"'))
+            return json.loads(subprocess.check_output([ADB, "-s", SERIAL, "shell",
+                f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT data FROM session;"'],
+                text=True, stderr=subprocess.DEVNULL).strip())
         except (subprocess.CalledProcessError, json.JSONDecodeError):
             time.sleep(.08)
     raise AssertionError("session database stayed locked")
@@ -81,6 +83,14 @@ def add_player(name):
     time.sleep(.35)
 
 
+def start_from_bet():
+    tap(200, 492)
+    if state()["screen"] == "PREDICT":
+        tap(200, HEIGHT - 91)
+        tap(200, 561)
+    return wait_screen("GAME")
+
+
 def play(game, s):
     if game == 0:
         tap(200, 379 + s["target"] * 66)
@@ -126,8 +136,23 @@ def play(game, s):
         tap(200, HEIGHT - 91)
         tap(200, 665)
     elif game == 9:
-        for _ in range(8):
-            tap(200, 443)
+        goal = max(8, (1 + s["variant"] % 3) * len(s["players"]))
+        while state()["screen"] == "GAME" and state()["taps"] < goal:
+            current = state()
+            if current["bombAwaitingPass"]:
+                if current["bombVisitedMask"] == (1 << len(current["players"])) - 1:
+                    shots = Path("docs/screenshots/games")
+                    with (shots / "bomb-choice.png").open("wb") as f:
+                        f.write(subprocess.check_output([ADB, "-s", SERIAL,
+                            "exec-out", "screencap", "-p"]))
+                    tap(110, 581)  # Choose a wire once everybody has held the bomb.
+                    assert state()["screen"] == "RESULT", "wire cut did not end the round"
+                    break
+                tap(110, 332)  # Only one eligible friend with two local players.
+                assert not state()["bombAwaitingPass"]
+                tap(200, HEIGHT - 91)  # Private handoff to the chosen holder.
+            else:
+                tap(200, 443)
 
 
 def main():
@@ -160,11 +185,7 @@ def main():
         assert state()["players"][state()["active"]]["name"] == ["Pixel", "Nova"][game % 2]
         tap(200, HEIGHT - 78)
         wait_screen("BET")
-        tap(200, 492)
-        wait_screen("PREDICT")
-        tap(200, HEIGHT - 91)
-        tap(200, 561)
-        s = wait_screen("GAME")
+        s = start_from_bet()
         with (shots / (slugs[game] + ".png")).open("wb") as f:
             f.write(subprocess.check_output([ADB, "-s", SERIAL, "exec-out", "screencap", "-p"]))
         play(game, s)
@@ -177,7 +198,7 @@ def main():
     stats = adb("shell", f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT COUNT(*) FROM history;"')
     assert int(stats) >= 10, stats
     predictions = adb("shell", f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT COUNT(*) FROM history WHERE role=\'PREDICTION\';"')
-    assert int(predictions) >= 10, predictions
+    assert int(predictions) >= 7, predictions
     print("PASS: ten mini-games, visible local handoffs, alternating actors, wagers, predictions, history and screenshots")
 
 

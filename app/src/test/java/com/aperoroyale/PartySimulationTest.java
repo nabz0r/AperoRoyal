@@ -11,7 +11,8 @@ public final class PartySimulationTest {
   @Test public void fiveHundredPartiesFinishWithoutBrokenTurnOrScore() throws Exception {
     int[] seen = new int[GameEngine.TYPES.length];
     int rounds = 0, wins = 0, losses = 0, timeouts = 0, rulePicks = 0,
-        turboRulePicks = 0, juryTimeouts = 0, restores = 0, ruleReports = 0;
+        turboRulePicks = 0, juryTimeouts = 0, restores = 0, ruleReports = 0,
+        bombCuts = 0, bombCutWins = 0;
     for (int party = 0; party < 500; party++) {
       Random choices = new Random(0xA9E2026L + party);
       GameEngine room = new GameEngine(0xB0A4D2026L + party);
@@ -92,15 +93,19 @@ public final class PartySimulationTest {
         room = restored(room);
         restores++;
         assertTrue(room.placeBet(1 + choices.nextInt(3)));
-        assertEquals("PREDICT", room.screen);
-        if (round % 3 == 1) { room = restored(room); restores++; }
-        if (choices.nextInt(8) == 0) {
-          room.deadline = System.currentTimeMillis() - 1;
-          assertTrue(room.predictionTimedOut());
-          timeouts++;
+        if (room.game == 1 || room.game == 8 || room.game == 9) {
+          assertEquals("GAME", room.screen);
         } else {
-          for (int i = 0; i < people; i++)
-            if (i != actor) assertTrue(room.predict("P" + i, choices.nextBoolean()));
+          assertEquals("PREDICT", room.screen);
+          if (round % 3 == 1) { room = restored(room); restores++; }
+          if (choices.nextInt(8) == 0) {
+            room.deadline = System.currentTimeMillis() - 1;
+            assertTrue(room.predictionTimedOut());
+            timeouts++;
+          } else {
+            for (int i = 0; i < people; i++)
+              if (i != actor) assertTrue(room.predict("P" + i, choices.nextBoolean()));
+          }
         }
         assertEquals("GAME", room.screen);
         if (round % 3 == 2) { room = restored(room); restores++; }
@@ -123,7 +128,7 @@ public final class PartySimulationTest {
             juryTimeout = choices.nextInt(4) == 0;
           }
           case 3 -> {
-            if (won) for (int tap = 0; tap < 10; tap++)
+            if (won) for (int tap = 0; tap < room.reflexGoal(); tap++)
               assertTrue(room.reflexTap("P" + actor, tap));
           }
           case 4 -> {
@@ -143,8 +148,28 @@ public final class PartySimulationTest {
             juryTimeout = choices.nextInt(4) == 0;
           }
           case 9 -> {
-            if (won) while (room.taps < room.bombGoal())
-              assertTrue(room.bombTap(room.players.get(room.bombNext).name));
+            if (won) while (room.taps < room.bombGoal()) {
+              if (room.bombAwaitingPass) {
+                if (room.canDefuseBomb() && choices.nextInt(3) == 0) {
+                  room = restored(room);
+                  restores++;
+                  int outcome = room.bombCut(room.players.get(room.bombNext).name,
+                      choices.nextInt(2));
+                  assertTrue(outcome >= 0);
+                  assertEquals(-1, room.bombCut(room.players.get(room.bombNext).name, 1));
+                  won = outcome == 1;
+                  bombCuts++;
+                  if (won) bombCutWins++;
+                  break;
+                }
+                int target = -1;
+                for (int p = 0; p < people; p++) if (room.canPassBombTo(p)) {
+                  target = p; break;
+                }
+                assertTrue(target >= 0);
+                assertTrue(room.bombPass(room.players.get(room.bombNext).name, target));
+              } else assertTrue(room.bombTap(room.players.get(room.bombNext).name));
+            }
           }
           default -> { }
         }
@@ -181,9 +206,10 @@ public final class PartySimulationTest {
     assertTrue(turboRulePicks > 0);
     assertTrue(juryTimeouts > 0);
     assertTrue(ruleReports > 0);
-    System.out.printf("SIMULATION: 500 parties, %d rounds, %d wins, %d losses, %d prediction timeouts, %d jury timeouts, %d rule picks (%d turbo), %d rule reports, %d restores%n",
+    assertTrue(bombCuts > 0 && bombCutWins > 0 && bombCutWins < bombCuts);
+    System.out.printf("SIMULATION: 500 parties, %d rounds, %d wins, %d losses, %d prediction timeouts, %d jury timeouts, %d rule picks (%d turbo), %d rule reports, %d bomb cuts (%d wins), %d restores%n",
         rounds, wins, losses, timeouts, juryTimeouts, rulePicks, turboRulePicks, ruleReports,
-        restores);
+        bombCuts, bombCutWins, restores);
   }
 
   private static int totalGames(GameEngine room) {
@@ -206,6 +232,12 @@ public final class PartySimulationTest {
     assertEquals(source.ruleId, copy.ruleId);
     assertEquals(source.deadline, copy.deadline);
     assertEquals(source.ruleOwner, copy.ruleOwner);
+    assertEquals(source.passiveStreak, copy.passiveStreak);
+    assertEquals(source.bombNext, copy.bombNext);
+    assertEquals(source.bombVisitedMask, copy.bombVisitedMask);
+    assertEquals(source.bombAwaitingPass, copy.bombAwaitingPass);
+    assertEquals(source.bombCutAttempted, copy.bombCutAttempted);
+    assertEquals(source.bombCutWire, copy.bombCutWire);
     assertArrayEquals(source.offers, copy.offers);
     assertArrayEquals(source.votes, copy.votes);
     assertArrayEquals(source.predictions, copy.predictions);

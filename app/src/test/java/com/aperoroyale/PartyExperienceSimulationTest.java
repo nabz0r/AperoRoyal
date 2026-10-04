@@ -9,12 +9,13 @@ import org.junit.Test;
 public final class PartyExperienceSimulationTest {
   private static final String[] MODES = {"VOTE", "FREE", "TURBO"};
   private static final int[] AUTHORED = {GameEngine.QUIZ_FR.length, GameEngine.POSES.length,
-      GameEngine.TUNES.length, 0, 0, GameEngine.DRAW.length, 0, 0,
-      GameEngine.BLUFF.length, 0};
+      GameEngine.TUNES.length * 4, 6, 6, GameEngine.DRAW.length, 6, 6,
+      GameEngine.BLUFF.length, 6};
 
   private static final class Cohort {
     int parties, rounds, soloRounds, over45, repeatedGame, repeatedCard;
     int longestPassiveRun, longestPassiveSeconds, maxRoundSeconds;
+    int bombCuts, bombCutWins, bombFullRelays;
     long totalSeconds, setupSeconds, totalCoreActions;
   }
 
@@ -83,14 +84,16 @@ public final class PartyExperienceSimulationTest {
         room.enterGame();
         room.readyTurn();
         assertTrue(room.placeBet(1 + input.nextInt(3)));
-        setup += sharedPhone ? 5 * (people - 1) : 5;
-        for (int p = 0; p < people; p++)
-          if (p != actor) assertTrue(room.predict("P" + p, input.nextBoolean()));
+        if (game != 1 && game != 8 && game != 9) {
+          setup += sharedPhone ? 5 * (people - 1) : 5;
+          for (int p = 0; p < people; p++)
+            if (p != actor) assertTrue(room.predict("P" + p, input.nextBoolean()));
+        }
         assertEquals("GAME", room.screen);
 
         boolean[] coreAction = new boolean[people];
         coreAction[actor] = true;
-        int duration = expectedActionSeconds(room, sharedPhone, people);
+        boolean roundWon = input.nextBoolean();
         if (game == 1 || game == 8) {
           if (game == 1) assertTrue(room.beginJury());
           else assertTrue(room.chooseBluffTruth("P" + actor, input.nextBoolean()));
@@ -102,12 +105,36 @@ public final class PartyExperienceSimulationTest {
           coreAction[(actor + 1) % people] = true;
           room.drawingReady = true;
         } else if (game == 9) {
-          while (room.taps < room.bombGoal())
-            assertTrue(room.bombTap(room.players.get(room.bombNext).name));
+          while (room.taps < room.bombGoal()) {
+            if (room.bombAwaitingPass) {
+              if (room.canDefuseBomb() && input.nextInt(3) == 0) {
+                int outcome = room.bombCut(room.players.get(room.bombNext).name,
+                    input.nextInt(2));
+                assertTrue(outcome >= 0);
+                cohort.bombCuts++;
+                if (outcome == 1) cohort.bombCutWins++;
+                roundWon = outcome == 1;
+                break;
+              }
+              int target = -1;
+              for (int p = 0; p < people; p++) if (room.canPassBombTo(p)) {
+                target = p; break;
+              }
+              assertTrue(target >= 0);
+              assertTrue(room.bombPass(room.players.get(room.bombNext).name, target));
+            } else assertTrue(room.bombTap(room.players.get(room.bombNext).name));
+          }
+          if (!room.bombCutAttempted) {
+            assertEquals(room.bombGoal(), room.taps);
+            cohort.bombFullRelays++;
+            roundWon = true;
+          }
           for (int p = 0; p < people; p++) coreAction[p] = true;
         } else if (game == 4) {
           assertTrue(room.selectCup(input.nextInt(6)));
+          roundWon = room.cupIsSafe();
         }
+        int duration = expectedActionSeconds(room, sharedPhone, people);
         int seconds = setup + duration;
         int actions = 0;
         for (int p = 0; p < people; p++) {
@@ -130,26 +157,27 @@ public final class PartyExperienceSimulationTest {
         if (seconds > 45) cohort.over45++;
         cohort.rounds++;
         totalRounds++;
-        room.finish(input.nextBoolean());
+        room.finish(roundWon);
         room.advance();
       }
     }
     assertEquals(7990, totalRounds);
     for (int count : selected) assertTrue("unseen game", count > 0);
     System.out.println("EXPERIENCE MODEL: 500 seeded parties / 7,990 rounds; seconds are assumptions, not measured human time");
-    System.out.println("players,phones,mode,parties,rounds,mean_s,setup_pct,over_45_pct,solo_game_pct,core_actions_per_player,max_passive_rounds,max_passive_s,repeated_game,early_authored_repeat,max_round_s");
+    System.out.println("players,phones,mode,parties,rounds,mean_s,setup_pct,over_45_pct,solo_game_pct,core_actions_per_player,max_passive_rounds,max_passive_s,repeated_game,early_variant_repeat,max_round_s,bomb_cuts,bomb_cut_wins,bomb_full_relays");
     for (int people = 2; people <= 6; people++) for (int device = 0; device < 2; device++)
       for (int mode = 0; mode < 3; mode++) {
         Cohort c = cohorts[people - 2][device][mode];
         assertTrue(c.rounds > 0);
         System.out.printf(java.util.Locale.ROOT,
-            "%d,%s,%s,%d,%d,%.1f,%.1f,%.1f,%.1f,%.2f,%d,%d,%d,%d,%d%n",
+            "%d,%s,%s,%d,%d,%.1f,%.1f,%.1f,%.1f,%.2f,%d,%d,%d,%d,%d,%d,%d,%d%n",
             people, device == 0 ? "shared" : "individual", MODES[mode], c.parties,
             c.rounds, c.totalSeconds / (double) c.rounds,
             100.0 * c.setupSeconds / c.totalSeconds, 100.0 * c.over45 / c.rounds,
             100.0 * c.soloRounds / c.rounds,
             c.totalCoreActions / (double) (c.rounds * people), c.longestPassiveRun,
-            c.longestPassiveSeconds, c.repeatedGame, c.repeatedCard, c.maxRoundSeconds);
+            c.longestPassiveSeconds, c.repeatedGame, c.repeatedCard, c.maxRoundSeconds,
+            c.bombCuts, c.bombCutWins, c.bombFullRelays);
         assertEquals("authored content repeated before its pack was exhausted", 0, c.repeatedCard);
       }
     System.out.println("game,rounds,solo_game_pct,mean_action_s,authored_variants");
@@ -157,6 +185,16 @@ public final class PartyExperienceSimulationTest {
       System.out.printf(java.util.Locale.ROOT, "%s,%d,%.1f,%.1f,%d%n",
           GameEngine.TYPES[game], selected[game], 100.0 * gameSolo[game] / selected[game],
           gameSeconds[game] / (double) selected[game], AUTHORED[game]);
+    int cuts = 0, cutWins = 0, fullRelays = 0;
+    for (Cohort[][] byDevice : cohorts) for (Cohort[] byMode : byDevice)
+      for (Cohort c : byMode) {
+        cuts += c.bombCuts;
+        cutWins += c.bombCutWins;
+        fullRelays += c.bombFullRelays;
+      }
+    assertTrue(cuts > 0 && cutWins > 0 && fullRelays > 0);
+    System.out.printf("bomb_cuts=%d bomb_cut_wins=%d bomb_full_relays=%d%n",
+        cuts, cutWins, fullRelays);
   }
 
   private static int expectedActionSeconds(GameEngine room, boolean shared, int people) {
@@ -172,13 +210,17 @@ public final class PartyExperienceSimulationTest {
       case 6 -> 13; // reveal + replay
       case 7 -> 10; // four beats
       case 8 -> 16; // tell a story and choose truth
-      default -> 2 * people; // two taps per person
+      default -> room.taps; // one modeled second per tap performed before the cut or completion
     };
     int seconds = Math.min(actorSeconds, cap);
     if (room.game == 1 || room.game == 8)
       seconds += shared ? 5 * (people - 1) : 5; // jury decisions and local handoffs
     if (room.game == 5) seconds += shared ? 8 : 5; // handoff and guess
-    if (room.game == 9 && shared) seconds += 2 * (people - 1);
+    if (room.game == 9) {
+      int handoffs = (room.taps - 1) / room.bombTapsPerHolder();
+      seconds += (shared ? 4 : 2) * handoffs; // choose a person, then physical/network handoff
+      if (room.bombCutAttempted) seconds += 2; // one final risk decision
+    }
     return seconds;
   }
 }

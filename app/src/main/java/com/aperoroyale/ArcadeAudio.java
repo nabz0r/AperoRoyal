@@ -202,9 +202,11 @@ public final class ArcadeAudio {
   public void tune(int index) {
     duck(3000);
     effects.execute(() -> {
+      int[] keys = {0, 3, 5, 7};
+      int key = keys[Math.floorMod(index / MELODIES.length, keys.length)];
       for (int n : MELODIES[Math.floorMod(index, MELODIES.length)]) {
         if (n == 0) sleep(270);
-        else playNote(n, 270, 0.18f);
+        else playNote(n + key, 270, 0.18f);
       }
     });
   }

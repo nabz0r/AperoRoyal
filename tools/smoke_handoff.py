@@ -21,20 +21,26 @@ def fresh_party(mode):
     tap(200, HEIGHT - 96)
 
 
-def ready_to_predict():
+def ready_to_bet():
     wait_screen("TRANSITION")
     tap(200, HEIGHT - 78)
     wait_screen("HANDOFF")
     tap(200, HEIGHT - 78)
     wait_screen("BET")
+
+
+def ready_to_predict():
+    ready_to_bet()
     tap(200, 492)
     wait_screen("PREDICT")
 
 
 def main():
-    fresh_party("TURBO")
+    fresh_party("FREE")
+    wait_screen("LIBRARY")
+    tap(110, 375)  # Roulette: it still uses spectator predictions.
     ready_to_predict()
-    time.sleep(6.2)  # Longer than Turbo's original five-second prediction clock.
+    time.sleep(13.2)  # Longer than the normal twelve-second prediction clock.
     assert state()["screen"] == "PREDICT", "prediction expired during phone handoff"
     tap(200, HEIGHT - 91)
     assert state()["screen"] == "PREDICT"
@@ -44,9 +50,8 @@ def main():
     fresh_party("FREE")
     wait_screen("LIBRARY")
     tap(290, 219)  # Silly Poses, the first row's right card.
-    ready_to_predict()
-    tap(200, HEIGHT - 91)
-    tap(200, 561)
+    ready_to_bet()
+    tap(200, 492)
     wait_screen("GAME")
     tap(200, HEIGHT - 145)
     assert state()["juryPhase"]
@@ -56,7 +61,9 @@ def main():
     tap(200, 585)
     wait_screen("RESULT")
 
-    fresh_party("TURBO")
+    fresh_party("FREE")
+    wait_screen("LIBRARY")
+    tap(110, 219)  # Quiz: prediction and resume path.
     ready_to_predict()
     adb("shell", "am", "force-stop", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
@@ -64,11 +71,11 @@ def main():
     assert state()["screen"] == "PREDICT", "saved game was replaced by home screen"
     tap(110, HEIGHT - 215)  # Resume button is the left half of the Home row.
     wait_screen("PREDICT")
-    time.sleep(6.2)
+    time.sleep(13.2)
     assert state()["screen"] == "PREDICT", "resumed handoff expired"
     tap(200, HEIGHT - 91)
     adb("shell", "input", "keyevent", "3")  # Android Home, while prediction is active.
-    time.sleep(6.2)
+    time.sleep(13.2)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(.6)
     assert state()["screen"] == "PREDICT", "backgrounded round expired"

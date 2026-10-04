@@ -1,6 +1,23 @@
 # Les dix défis qui donnent envie de relancer une manche
 
-**Diagnostic et spécification de jeu, 4 octobre 2026.** Analyse initiale sur Apéro Royale 1.3.0 (`6e6893b`), mise à jour pour 1.4.2. Les refontes collectives décrites ci-dessous restent à prototyper ; la suppression du quiz Spotify, le menu musical multi-services et la nouvelle direction de l'accueil sont déjà livrés. [L'audit automatisé de rythme de 1.4.2](SIMULATION_EXPERIENCE_500.md) confirme le risque d'attente sur un téléphone partagé et la faible participation dans six défis. Les paquets sans répétition et les chronos du dessin/de la roulette sont livrés. Aucun test avec un groupe réel n'a encore mesuré le plaisir, la compréhension ou le partage.
+**Diagnostic et spécification de jeu, 4 octobre 2026.** Analyse initiale sur Apéro Royale 1.3.0 (`6e6893b`), suivie jusqu'à 1.4.3. Les propositions collectives ci-dessous restent pour la plupart à prototyper ; la suppression du quiz Spotify, le menu musical multi-services et la direction nocturne de l'accueil sont livrés. [Les deux audits automatisés de rythme](SIMULATION_EXPERIENCE_500.md) confirment le risque d'attente sur un téléphone partagé et la faible participation dans six défis. Les paquets sans répétition, les chronos finis, les variantes mécaniques et le relais de bombe sont livrés. Aucun test avec un groupe réel n'a encore mesuré le plaisir, la compréhension ou le partage.
+
+## État livré en 1.4.3
+
+| Jeu | Ce qui a changé depuis le diagnostic initial | Le travail qui compte encore |
+| --- | --- | --- |
+| Culture G | 17 cartes sans retour avant épuisement | Réponses et alliances de tous ; explications factuelles revues |
+| Positions | 18 cartes sans retour ; jury direct après la mise | Variation choisie par un ami ; accessibilité des poses |
+| Blind Test | 6 motifs originaux × 4 tonalités, tirés sans retour immédiat | Davantage de créations sonores distinctes ; réponse de chaque ami |
+| Réflexe | 6 objectifs de 8 à 12 cibles et rayons différents | Vrai duel ; mesure de la latence par téléphone |
+| Roulette | 6 dispositions de pièges et révélation complète | Indices/leurres déposés par les amis, issue vérifiable |
+| Dessin | 17 consignes sans retour, 30 s de dessin et 12 s pour deviner | Faux titres et vote de toute la salle |
+| Mémoire | 6 structures de séquence, longueurs croissantes | Construction ou sabotage lisible par les amis |
+| Rythme | 6 phrases de quatre temps sur une grille de huit | Duel en aller-retour et calibration audio |
+| Bluff | 17 amorces sans retour ; vérité verrouillée et jury direct | Questions courtes et mode fiction objectivement arbitré |
+| Bombe | Choix du prochain porteur, 1 à 3 touches, fil risqué après le passage de tous ; relais Wi-Fi testé sur deux émulateurs | Choix plus riches, reprise réseau et mesure de latence |
+
+Les descriptions « diagnostic initial » ci-dessous documentent la situation qui a motivé les prototypes. Le tableau ci-dessus est l'état livré le plus récent. Aucune ligne ne certifie la viralité d'un mini-jeu.
 
 ## L'objectif produit
 
@@ -14,7 +31,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 01 · Culture G — « Suis-moi si tu oses »
 
-**Aujourd'hui.** Dix-sept QCM FR/EN, quatre réponses, un acteur et 16 secondes ; une erreur clôt la manche. Les autres ont déjà choisi de le couvrir ou de le défier, mais n'interviennent plus dans la question. Les questions visibles mêlent faits évidents et formulations à vérifier (« neuf cerveaux », « pluie de diamants ») ; les leurres ont souvent une vraisemblance inégale. Voir [contenu](../app/src/main/java/com/aperoroyale/GameEngine.java#L876), [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1051) et [score](../app/src/main/java/com/aperoroyale/GameEngine.java#L485).
+**Diagnostic initial.** Dix-sept QCM FR/EN, quatre réponses, un acteur et 16 secondes ; une erreur clôt la manche. Les autres ont déjà choisi de le couvrir ou de le défier, mais n'interviennent plus dans la question. Les questions visibles mêlent faits évidents et formulations à vérifier (« neuf cerveaux », « pluie de diamants ») ; les leurres ont souvent une vraisemblance inégale. Voir [contenu](../app/src/main/java/com/aperoroyale/GameEngine.java#L876), [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1051) et [score](../app/src/main/java/com/aperoroyale/GameEngine.java#L485).
 
 **Refonte.** Afficher une question et trois réponses plausibles, avec une micro-explication sourcée à la révélation. Chaque ami verrouille une réponse. L'acteur peut conserver la sienne ou « suivre » une personne sans voir son choix : il crée ainsi une alliance à risque. À deux sur un téléphone, l'acteur verrouille d'abord, passe l'appareil, puis l'autre choisit ; le choix « suivre » est décidé avant la révélation. Sur plusieurs appareils, tout le monde répond en parallèle. Un bon choix rapporte aux répondants ; l'acteur obtient un bonus seulement si son pari social réussit. Éviter qu'une mauvaise réponse impose une pénalité à toute l'équipe sans accord.
 
@@ -22,7 +39,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 02 · Positions à la con — « Casting catastrophe »
 
-**Aujourd'hui.** Dix-huit défis de pose, puis un jury « validé / raté ». Le joueur lance lui-même le jury ; celui-ci vote pendant 20 secondes. Une partie des cartes implique contact, déplacement ou équilibre, alors qu'aucune préférence d'accessibilité ni d'espace n'est demandée. À deux, un seul ami juge et décide seul de l'enjeu. Voir [cartes](../app/src/main/java/com/aperoroyale/GameEngine.java#L930), [pose/jury](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1064) et [verdict](../app/src/main/java/com/aperoroyale/GameEngine.java#L476).
+**Diagnostic initial.** Dix-huit défis de pose, puis un jury « validé / raté ». Le joueur lance lui-même le jury ; celui-ci vote pendant 20 secondes. Une partie des cartes implique contact, déplacement ou équilibre, alors qu'aucune préférence d'accessibilité ni d'espace n'est demandée. À deux, un seul ami juge et décide seul de l'enjeu. Voir [cartes](../app/src/main/java/com/aperoroyale/GameEngine.java#L930), [pose/jury](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1064) et [verdict](../app/src/main/java/com/aperoroyale/GameEngine.java#L476).
 
 **Refonte.** Au début, la salle règle « assis », « debout » ou « sans contact ». Une carte combine personnage, situation et contrainte comique : le réalisateur parmi les amis choisit une variation, l'acteur la joue pendant 10–15 s, puis les autres attribuent un titre ou un vote d'applaudissement. À deux, remplacer le jury binaire par un duel de deux poses courtes : chaque joueur joue et l'application donne le même temps aux deux ; le groupe choisit le moment préféré sans sanction automatique pour le perdant. Un bouton **passer sans boire** remplace les défis incompatibles avec l'espace ou la mobilité.
 
@@ -30,7 +47,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 03 · Blind Test — « Studio des bruits »
 
-**Aujourd'hui.** Six motifs synthétiques hors ligne correspondent à six étiquettes (« montée », « descente »…). Le mode Spotify de 1.3.0 a été retiré dans 1.4.0. Le catalogue original est court et s'épuise vite. Sur des appareils éloignés, l'acteur peut ne pas entendre le son joué sur l'hôte. Voir [motifs](../app/src/main/java/com/aperoroyale/ArcadeAudio.java), [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java) et [raccourcis musicaux](../app/src/main/java/com/aperoroyale/MusicLinks.java).
+**Diagnostic initial.** Six motifs synthétiques hors ligne correspondent à six étiquettes (« montée », « descente »…). Le mode Spotify de 1.3.0 a été retiré dans 1.4.0. Le catalogue original est court et s'épuise vite. Sur des appareils éloignés, l'acteur peut ne pas entendre le son joué sur l'hôte. Voir [motifs](../app/src/main/java/com/aperoroyale/ArcadeAudio.java), [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java) et [raccourcis musicaux](../app/src/main/java/com/aperoroyale/MusicLinks.java).
 
 **Refonte.** Deux modes entièrement originaux. **Studio** (même pièce) : une carte demande d'imiter un son de soirée sans micro obligatoire ; les autres devinent parmi trois scènes absurdes et votent ensuite pour la meilleure interprétation. **Arcade sonore** (en ligne) : l'application génère localement une phrase courte à partir de banques de timbres et rythmes originaux ; chaque appareil joue la même graine, puis tous identifient un élément ou reproduisent le motif. À deux sur un téléphone, l'acteur découvre la carte puis passe le téléphone au devineur après l'imitation. Sur plusieurs appareils, réponses simultanées. Un mode silencieux utilise une visualisation de rythme et des vibrations.
 
@@ -38,7 +55,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 04 · Réflexe néon — « Duel des pièges »
 
-**Aujourd'hui.** L'acteur touche dix cibles en 15 secondes. Un invité affiche localement la cible suivante avant accusé de l'hôte ; l'hôte refuse une commande si l'indice attendu n'est pas le bon. La difficulté varie donc avec le réseau et les retransmissions. Les autres regardent après leur prono. Voir [validation](../app/src/main/java/com/aperoroyale/GameEngine.java#L411), [affichage](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1133) et [commande](../app/src/main/java/com/aperoroyale/MainActivity.java#L1200).
+**Diagnostic initial.** L'acteur touche dix cibles en 15 secondes. Un invité affiche localement la cible suivante avant accusé de l'hôte ; l'hôte refuse une commande si l'indice attendu n'est pas le bon. La difficulté varie donc avec le réseau et les retransmissions. Les autres regardent après leur prono. Voir [validation](../app/src/main/java/com/aperoroyale/GameEngine.java#L411), [affichage](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1133) et [commande](../app/src/main/java/com/aperoroyale/MainActivity.java#L1200).
 
 **Refonte.** Un ami choisit avant le départ un piège lisible (cibles qui se déplacent, faux signal ou inversion de couleur), l'acteur choisit un contre-pouvoir à usage unique. À deux : deux courses successives sur la **même graine** et le même temps local, puis comparaison. À plusieurs : chacun peut faire une courte tentative sur son appareil, les autres attribuent le piège ; sur un téléphone, relais de tentatives, non simultanéité forcée. Valider localement les coups et envoyer un résultat final avec identifiant de manche, durée monotone et trace des actions. Un client non fiable ne peut pas prouver cryptographiquement ses réflexes : ne pas présenter le classement Internet comme une compétition infalsifiable entre inconnus.
 
@@ -46,7 +63,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 05 · Roulette Royale — « Le gobelet du traître »
 
-**Aujourd'hui.** Six gobelets, de un à trois pièges selon la mise, un choix par l'acteur ; les autres n'ont aucune prise après le prono. La probabilité de perdre est essentiellement 1/6, 2/6 ou 3/6 selon la mise ; la manche raconte surtout un tirage. Voir [tirage et sécurité](../app/src/main/java/com/aperoroyale/GameEngine.java#L435) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1157).
+**Diagnostic initial.** Six gobelets, de un à trois pièges selon la mise, un choix par l'acteur ; les autres n'ont aucune prise après le prono. La probabilité de perdre est essentiellement 1/6, 2/6 ou 3/6 selon la mise ; la manche raconte surtout un tirage. Voir [tirage et sécurité](../app/src/main/java/com/aperoroyale/GameEngine.java#L435) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1157).
 
 **Refonte.** Avant le choix, chaque ami pose secrètement un jeton **indice**, **protection** ou **leurre** sur un gobelet. L'acteur voit le nombre de jetons, pas leur type, puis choisit ou propose un échange. Révélation en deux temps : jetons, puis pièges. À deux sur un téléphone, l'autre pose un seul jeton en privé avant de passer ; à plusieurs appareils, les jetons arrivent simultanément. Le générateur doit afficher clairement les probabilités et garantir que le résultat a été fixé **avant** les choix ; une graine de manche révélée après coup permet de vérifier le tirage.
 
@@ -54,7 +71,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 06 · Dessin maudit — « Les faux titres »
 
-**Aujourd'hui.** Un acteur dessine l'une de 17 consignes. Seul le joueur suivant devine, parmi quatre intitulés fournis par le jeu ; les autres regardent. Les leurres proviennent de consignes voisines du tableau, souvent sans rapport, donc le dessin peut être déchiffré sans échange social. Le dessin n'a pas de durée maximale : il peut bloquer la soirée. Voir [consignes](../app/src/main/java/com/aperoroyale/GameEngine.java#L950), [dessin et réponses](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1183) et [passage au devineur](../app/src/main/java/com/aperoroyale/MainActivity.java#L224).
+**Diagnostic initial.** Un acteur dessine l'une de 17 consignes. Seul le joueur suivant devine, parmi quatre intitulés fournis par le jeu ; les autres regardent. Les leurres proviennent de consignes voisines du tableau, souvent sans rapport, donc le dessin peut être déchiffré sans échange social. Le dessin n'a pas de durée maximale : il peut bloquer la soirée. Voir [consignes](../app/src/main/java/com/aperoroyale/GameEngine.java#L950), [dessin et réponses](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1183) et [passage au devineur](../app/src/main/java/com/aperoroyale/MainActivity.java#L224).
 
 **Refonte.** 25 secondes de dessin, une couleur de base et un outil « gomme » limité ou un deuxième trait spécial. Chaque non-artiste propose un titre leurre très court ; tous devinent ensuite la vraie consigne. Les auteurs des leurres marquent quand quelqu'un les choisit ; l'artiste marque quand le groupe comprend. Sur un téléphone partagé, les titres peuvent être choisis parmi des cartes préécrites pertinentes ou saisis facultativement, avec passage privé ; à deux, le devineur reçoit deux leurres du jeu, puis peut baptiser le dessin après révélation. Sur plusieurs téléphones, titres et votes se font en parallèle. Si quelqu'un ne soumet rien, la manche continue avec un leurre du jeu.
 
@@ -62,7 +79,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 07 · Mémoire flash — « La chaîne impossible »
 
-**Aujourd'hui.** L'acteur regarde 4 à 7 symboles puis les répète avant un délai total de 22 secondes ; personne d'autre ne touche la séquence. Le temps de révélation consomme une partie du chrono. Les symboles sont couleur **et** forme, ce qui aide la lisibilité, mais la courbe de difficulté vient surtout de la longueur. Voir [génération](../app/src/main/java/com/aperoroyale/GameEngine.java#L290), [chrono](../app/src/main/java/com/aperoroyale/GameEngine.java#L352) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1256).
+**Diagnostic initial.** L'acteur regarde 4 à 7 symboles puis les répète avant un délai total de 22 secondes ; personne d'autre ne touche la séquence. Le temps de révélation consomme une partie du chrono. Les symboles sont couleur **et** forme, ce qui aide la lisibilité, mais la courbe de difficulté vient surtout de la longueur. Voir [génération](../app/src/main/java/com/aperoroyale/GameEngine.java#L290), [chrono](../app/src/main/java/com/aperoroyale/GameEngine.java#L352) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1256).
 
 **Refonte.** Chaîne coopérative : une personne rejoue la séquence puis ajoute un symbole ; la suivante recommence, jusqu'à un plafond court (par exemple six symboles) ou une erreur. Le groupe possède une seule « seconde chance » qu'un joueur peut proposer de dépenser ; les autres acceptent ou non. À deux, les deux alternent réellement ; à six, l'interface garde une séquence assez courte pour que personne n'attende une minute. Sur plusieurs appareils, seul le porteur voit et répond, les autres peuvent choisir collectivement la seconde chance. Sur un téléphone, afficher une carte de passage qui cache la séquence et suspend le chrono. Le temps de réponse démarre après la démonstration, pas avant.
 
@@ -70,7 +87,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 08 · Rythme ou rien — « Réponds au beat »
 
-**Aujourd'hui.** L'acteur réussit quatre touches proches du centre d'une période de 600 ms ; les autres n'agissent pas. L'affichage et la validation hôte utilisent désormais la même période, mais le signal sonore passe par un moteur séparé, et la fenêtre réseau de 235 ms reste sensible au délai du téléphone invité. Les touches n'ont pas besoin d'être consécutives. Voir [horloge](../app/src/main/java/com/aperoroyale/RhythmClock.java), [validation](../app/src/main/java/com/aperoroyale/GameEngine.java#L421) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1280).
+**Diagnostic initial.** L'acteur réussit quatre touches proches du centre d'une période de 600 ms ; les autres n'agissent pas. L'affichage et la validation hôte utilisent désormais la même période, mais le signal sonore passe par un moteur séparé, et la fenêtre réseau de 235 ms reste sensible au délai du téléphone invité. Les touches n'ont pas besoin d'être consécutives. Voir [horloge](../app/src/main/java/com/aperoroyale/RhythmClock.java), [validation](../app/src/main/java/com/aperoroyale/GameEngine.java#L421) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1280).
 
 **Refonte.** Un premier joueur crée une phrase de quatre frappes ; un autre la reproduit. Le score mesure les **intervalles relatifs** et montre l'écart de chaque frappe. Le signal sonore et la vague visuelle partent du même horaire local, avec calibration volontaire de la latence audio. Sur un téléphone, les deux jouent successivement. Sur plusieurs appareils, chaque appareil enregistre localement les temps monotones de sa réponse ; l'hôte compare les intervalles reçus, sans utiliser l'heure d'arrivée réseau comme temps de frappe. Une alternative visuelle et haptique reste jouable sans son. Pas de récompense basée sur des morceaux Spotify ou sur l'accès au micro.
 
@@ -78,7 +95,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 09 · Bluff royal — « Interrogatoire minute »
 
-**Aujourd'hui.** L'acteur raconte une anecdote sur l'un des 17 thèmes et choisit ensuite secrètement « vrai » ou « inventé » ; le jury vote. L'idée sociale est forte, mais le jeu ne peut pas vérifier qu'une histoire personnelle est vraie. À deux, le jugement est un unique vote sans relance ni question. Voir [consignes](../app/src/main/java/com/aperoroyale/GameEngine.java#L970), [choix/verdict](../app/src/main/java/com/aperoroyale/GameEngine.java#L455) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1307).
+**Diagnostic initial.** L'acteur raconte une anecdote sur l'un des 17 thèmes et choisit ensuite secrètement « vrai » ou « inventé » ; le jury vote. L'idée sociale est forte, mais le jeu ne peut pas vérifier qu'une histoire personnelle est vraie. À deux, le jugement est un unique vote sans relance ni question. Voir [consignes](../app/src/main/java/com/aperoroyale/GameEngine.java#L970), [choix/verdict](../app/src/main/java/com/aperoroyale/GameEngine.java#L455) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1307).
 
 **Refonte.** Deux formats annoncés clairement. **Alibi** : l'application assigne en secret une carte « vrai » ou « inventé » avec des détails fictifs cohérents ; l'acteur improvise autour d'elle, les amis posent chacun une question courte et votent. Le résultat est objectivement connu du jeu. **Anecdote perso** : l'acteur choisit sa propre vérité, le groupe joue pour le rire et la surprise, sans présenter le vote comme une vérification factuelle ni imposer une gorgée sur cette base. À deux, le juge a une seule question puis un verdict ; à six, limiter l'interrogatoire à deux questions choisies par vote pour éviter les longueurs. Les thèmes intimes ou humiliants sont exclus par défaut.
 
@@ -86,7 +103,7 @@ Une manche réussie doit produire quatre choses : **une décision de chacun**, *
 
 ## 10 · Bombe à bulles — « La mauvaise couleur »
 
-**Aujourd'hui.** Chaque joueur doit faire deux touches avant de passer ; il faut au moins huit touches en 30 secondes, ou douze à six joueurs. Le relais est réel, mais la touche ne comporte aucun choix, et le même téléphone n'affiche pas de passage protégé entre deux personnes pendant que le chrono court. Voir [ordre et objectif](../app/src/main/java/com/aperoroyale/GameEngine.java#L534) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1327).
+**Diagnostic initial.** Chaque joueur doit faire deux touches avant de passer ; il faut au moins huit touches en 30 secondes, ou douze à six joueurs. Le relais est réel, mais la touche ne comporte aucun choix, et le même téléphone n'affiche pas de passage protégé entre deux personnes pendant que le chrono court. Voir [ordre et objectif](../app/src/main/java/com/aperoroyale/GameEngine.java#L534) et [écran](../app/src/main/java/com/aperoroyale/ArcadeView.java#L1327).
 
 **Refonte.** À chaque passage, le porteur choisit l'un de deux « fils » ou outils ; l'un avance la désactivation, l'autre crée une contrainte drôle pour le suivant. Le groupe dispose d'une réserve d'indices et vote une fois sur son usage. Une mauvaise décision raccourcit le temps **de jeu**, pas une obligation de boire plus. Sur un téléphone, le chrono est suspendu pendant « Passe à Nova », puis repart quand Nova confirme ; sur plusieurs appareils, chaque joueur agit sur le sien et l'hôte valide le propriétaire du tour. Des manches courtes avec un seul renversement valent mieux que douze touches sans conséquence.
 

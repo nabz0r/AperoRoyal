@@ -1,6 +1,23 @@
 # Audit de rythme, de répétition et de participation — 500 soirées simulées
 
-**4 octobre 2026, Apéro Royale 1.4.2.** Cet audit complète le [test de robustesse du moteur](SIMULATION_500_PARTIES.md). Le test reproductible [`PartyExperienceSimulationTest`](../app/src/test/java/com/aperoroyale/PartyExperienceSimulationTest.java) traverse **500 soirées et 7 990 manches** avec le vrai tirage, les modes Vote/Libre/Turbo, deux à six profils FR/EN et les transitions du moteur. Il compte les cartes réellement tirées et les rôles qui touchent au mini-jeu. Le temps est un **modèle**, pas un chronométrage humain ni une mesure du réseau.
+**4 octobre 2026, audit initial 1.4.2 et contre-essai 1.4.3.** Cet audit complète le [test de robustesse du moteur](SIMULATION_500_PARTIES.md). Le test reproductible [`PartyExperienceSimulationTest`](../app/src/test/java/com/aperoroyale/PartyExperienceSimulationTest.java) traverse **500 soirées et 7 990 manches par exécution** avec le vrai tirage, les modes Vote/Libre/Turbo, deux à six profils FR/EN et les transitions du moteur. Il compte les variantes réellement tirées et les rôles qui touchent au mini-jeu. Le temps est un **modèle**, pas un chronométrage humain ni une mesure du réseau.
+
+## Contre-essai 1.4.3 — un relais plus vivant, une attente encore longue
+
+La version 1.4.3 enlève le prono générique avant Poses, Bluff et Bombe : les jurys et le relais donnent déjà aux amis une action. En Vote et Turbo, après deux manches où seuls certains participent au défi, la sélection suivante vient de ces trois jeux collectifs. La bombe fait choisir le prochain porteur, oblige tout le monde à la toucher avant de proposer un fil rouge/bleu risqué et suspend son chrono pendant le passage physique. Réflexe, Mémoire et Rythme possèdent six variantes mécaniques ; Roulette six dispositions de pièges ; les six motifs du Blind Test existent dans quatre tonalités. Le tirage de variantes épuise chaque paquet avant de le recommencer.
+
+| Cohorte sur un téléphone | Moyenne modélisée 1.4.2 → 1.4.3 | Manches où seul l'acteur agit 1.4.2 → 1.4.3 | Plus longue attente sans action propre au mini-jeu 1.4.2 → 1.4.3 |
+| --- | ---: | ---: | ---: |
+| 2 joueurs, Vote | 41,7 → **41,3 s** | 59,5 → **52,8 %** | 1 → **1 manche** |
+| 4 joueurs, Vote | 64,8 → **61,1 s** | 59,8 → **50,0 %** | 3 → **2 manches** |
+| 6 joueurs, Vote | 87,3 → **81,0 s** | 60,7 → **50,9 %** | 5 → **2 manches** |
+| 6 joueurs, Turbo | 59,3 → **53,1 s** | 59,7 → **51,4 %** | 5 → **2 manches** |
+
+Le générateur a choisi **330 coupes de fil** dans les 989 manches de bombe de ce contre-essai : 156 réussites, 174 échecs, et 659 relais complets. Les statistiques comptent seulement des règles exécutées par le moteur ; elles n'observent ni plaisanteries, ni revanche volontaire, ni satisfaction. Les deux versions utilisent les mêmes 500 identifiants de soirée et les mêmes hypothèses de temps, mais leurs tirages divergent après les changements de mécanique : ce tableau compare des cohortes simulées, pas des manches appariées une à une. Le rapport actuel imprimé par le test couvre les 30 cohortes et ne répète aucune variante avant épuisement de son paquet.
+
+**Décision : le critère « tous les jeux sont viraux » n'est pas atteint ni mesurable par cette simulation.** Six mini-jeux restent des défis solo au cœur de la manche ; à six sur un téléphone, 81 s modélisées en Vote et jusqu'à deux manches sans action propre au défi sont encore trop longues pour promettre une soirée fluide. Les variantes rendent les manches moins identiques, sans créer à elles seules un choix amusant pour les amis. Le mode Turbo raccourcit la préparation mais ne résout pas la participation. Les prototypes collectifs et les vrais tests de groupe décrits dans [la refonte des dix jeux](REFONTE_DIX_MINI_JEUX.md) restent nécessaires.
+
+Les sections suivantes conservent les hypothèses, mesures et correctifs de l'audit initial **1.4.2** comme point de comparaison.
 
 ## Ce que le modèle suppose
 

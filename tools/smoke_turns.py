@@ -3,7 +3,7 @@
 import time
 import subprocess
 from pathlib import Path
-from smoke_v120 import adb, add_player, play, state, tap, wait_screen, HEIGHT, PACKAGE, ADB, SERIAL
+from smoke_v120 import adb, add_player, play, start_from_bet, state, tap, wait_screen, HEIGHT, PACKAGE, ADB, SERIAL
 
 
 def main():
@@ -34,11 +34,7 @@ def main():
         wait_screen("HANDOFF")
         tap(200, HEIGHT - 78)
         wait_screen("BET")
-        tap(200, 492)
-        wait_screen("PREDICT")
-        tap(200, HEIGHT - 90)
-        tap(200, 561)
-        s = wait_screen("GAME")
+        s = start_from_bet()
         play(s["game"], s)
         s = wait_screen("RESULT", timeout=30)
         assert s["active"] == turn

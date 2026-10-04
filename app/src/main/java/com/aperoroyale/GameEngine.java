@@ -79,6 +79,10 @@ public final class GameEngine {
       rhythmHits = 0;
   public int wager = 1;
   public int bombNext = 0;
+  public int bombVisitedMask = 0;
+  public boolean bombAwaitingPass = false;
+  public boolean bombCutAttempted = false;
+  public int bombCutWire = -1;
   public int roundPoints = 0, roundSips = 0, chosenCup = -1, reflexSeed = 0;
   public long revealUntil = 0, revision = 0;
   public boolean juryPhase = false;
@@ -96,6 +100,8 @@ public final class GameEngine {
   public final ArrayList<float[]> strokes = new ArrayList<>();
   public int loserCup = 0;
   public String mode = "VOTE";
+  /** Consecutive rounds without an action from every player. */
+  public int passiveStreak = 0;
   public int[] offers = {}, votes = {}, catTaps = {};
   public String ruleOwner = "";
   public int ruleId = -1, voteWinner = -1, freePick = 0;
@@ -144,6 +150,7 @@ public final class GameEngine {
     variantDecks.clear();
     java.util.Arrays.fill(lastVariant, -1);
     mode = "VOTE";
+    passiveStreak = 0;
     offers = votes = catTaps = new int[0];
     ruleOwner = "";
     ruleId = voteWinner = -1;
@@ -188,6 +195,12 @@ public final class GameEngine {
     }
     ArrayList<Integer> pool = new ArrayList<>(deck);
     if (turn > 0) pool.remove(Integer.valueOf(game));
+    if (passiveStreak >= 2) {
+      pool.clear();
+      pool.add(1); // poses: everyone judges
+      pool.add(8); // bluff: everyone judges
+      pool.add(9); // bomb: everyone handles it
+    }
     if (pool.size() < 3)
       for (int i = 0; i < TYPES.length; i++)
         if (!pool.contains(i) && (turn == 0 || i != game)) pool.add(i);
@@ -270,6 +283,8 @@ public final class GameEngine {
   public void startNext(int chosen) {
     if (deck.isEmpty()) for (int i = 0; i < TYPES.length; i++) deck.add(i);
     game = chosen;
+    passiveStreak = chosen == 1 || chosen == 8 || chosen == 9
+        || (chosen == 5 && players.size() == 2) ? 0 : passiveStreak + 1;
     deck.remove(Integer.valueOf(chosen));
     int variants = variantCount(chosen);
     while (variantDecks.size() < TYPES.length) variantDecks.add(new ArrayList<>());
@@ -298,6 +313,10 @@ public final class GameEngine {
     predictions = new int[0];
     betPlaced = false;
     bombNext = active;
+    bombVisitedMask = 0;
+    bombAwaitingPass = false;
+    bombCutAttempted = false;
+    bombCutWire = -1;
     drawingReady = false;
     note = "";
     strokes.clear();
@@ -306,8 +325,7 @@ public final class GameEngine {
     targetY = reflexY(0);
     loserCup = random.nextInt(6);
     int count = 4 + Math.min(3, turn / 5);
-    sequence = new int[count];
-    for (int i = 0; i < count; i++) sequence[i] = random.nextInt(4);
+    sequence = chosen == 6 ? memorySequence(random, variant, count) : new int[0];
     screen = "TRANSITION";
     started = System.currentTimeMillis();
     deadline = 0;
@@ -317,11 +335,46 @@ public final class GameEngine {
     return switch (chosen) {
       case 0 -> QUIZ_FR.length;
       case 1 -> POSES.length;
-      case 2 -> TUNES.length;
+      case 2 -> TUNES.length * 4; // Six original contours in four musical keys.
       case 5 -> DRAW.length;
       case 8 -> BLUFF.length;
       default -> 6;
     };
+  }
+
+  static int[] memorySequence(Random rng, int pattern, int count) {
+    int[] result = new int[count];
+    if (count == 0) return result;
+    switch (Math.floorMod(pattern, 6)) {
+      case 1 -> { // mirror
+        for (int i = 0; i < (count + 1) / 2; i++) result[i] = rng.nextInt(4);
+        for (int i = (count + 1) / 2; i < count; i++) result[i] = result[count - 1 - i];
+      }
+      case 2 -> { // alternate two symbols
+        int first = rng.nextInt(4), second = (first + 1 + rng.nextInt(3)) % 4;
+        for (int i = 0; i < count; i++) result[i] = i % 2 == 0 ? first : second;
+      }
+      case 3 -> { // every symbol differs from the previous one
+        result[0] = rng.nextInt(4);
+        for (int i = 1; i < count; i++)
+          result[i] = (result[i - 1] + 1 + rng.nextInt(3)) % 4;
+      }
+      case 4 -> { // color wheel, clockwise or anticlockwise
+        int first = rng.nextInt(4), step = rng.nextBoolean() ? 1 : 3;
+        for (int i = 0; i < count; i++) result[i] = (first + i * step) % 4;
+      }
+      case 5 -> { // pairs of the same symbol
+        int color = rng.nextInt(4);
+        for (int i = 0; i < count; i++) {
+          if (i > 0 && i % 2 == 0) color = (color + 1 + rng.nextInt(3)) % 4;
+          result[i] = color;
+        }
+      }
+      default -> {
+        for (int i = 0; i < count; i++) result[i] = rng.nextInt(4);
+      }
+    }
+    return result;
   }
 
   public void enterGame() {
@@ -343,6 +396,11 @@ public final class GameEngine {
     predictions = new int[players.size()];
     java.util.Arrays.fill(predictions, -1);
     predictions[active] = 2;
+    // Jury and bomb already give every friend a turn; a separate prediction pass stalls the room.
+    if (game == 1 || game == 8 || game == 9) {
+      startGame();
+      return true;
+    }
     screen = "PREDICT";
     deadline = System.currentTimeMillis() + ("TURBO".equals(mode) ? 5000 : 12000);
     return true;
@@ -393,7 +451,7 @@ public final class GameEngine {
           case 6 -> 22;
           case 7 -> 16;
           case 8 -> 24;
-          case 9 -> 30;
+          case 9 -> variant >= 3 ? 24 : 30;
           default -> 0;
         };
     if ("TURBO".equals(mode) && seconds > 0) seconds = Math.max(10, seconds - 4);
@@ -431,6 +489,14 @@ public final class GameEngine {
     return 77 + pattern.nextInt(246);
   }
 
+  public int reflexGoal() {
+    return new int[] {8, 10, 12, 9, 11, 10}[Math.floorMod(variant, 6)];
+  }
+
+  public float reflexHitRadius() {
+    return new int[] {57, 50, 43, 53, 46, 49}[Math.floorMod(variant, 6)];
+  }
+
   public float reflexY(int step) {
     Random pattern = new Random((reflexSeed * 31L) ^ (0x6a09e667L * (step + 1)));
     return 380 + pattern.nextInt(198);
@@ -438,7 +504,7 @@ public final class GameEngine {
 
   public boolean reflexTap(String name, int expectedStep) {
     if (!"GAME".equals(screen) || game != 3 || current() == null
-        || !current().name.equals(name) || expectedStep != taps || taps >= 10
+        || !current().name.equals(name) || expectedStep != taps || taps >= reflexGoal()
         || (deadline > 0 && System.currentTimeMillis() > deadline)) return false;
     taps++;
     targetX = reflexX(taps);
@@ -453,11 +519,20 @@ public final class GameEngine {
   public boolean rhythmTap(String name, int beat, boolean remote) {
     if (!"GAME".equals(screen) || game != 7 || current() == null
         || !current().name.equals(name) || rhythmHits >= 4 || beat <= progress
+        || Math.floorMod(beat, 8) != rhythmPattern()[rhythmHits]
         || !RhythmClock.accepts(started, System.currentTimeMillis(), beat, remote)
         || (deadline > 0 && System.currentTimeMillis() > deadline)) return false;
     progress = beat;
     rhythmHits++;
     return true;
+  }
+
+  public int[] rhythmPattern() {
+    int[][] patterns = {
+        {0, 1, 2, 3}, {0, 2, 4, 6}, {1, 2, 4, 5},
+        {0, 1, 3, 5}, {0, 3, 4, 7}, {1, 3, 5, 7}
+    };
+    return patterns[Math.floorMod(variant, patterns.length)];
   }
 
   public boolean selectCup(int cup) {
@@ -468,7 +543,19 @@ public final class GameEngine {
     return true;
   }
 
-  public boolean cupIsSafe() { return Math.floorMod(chosenCup - loserCup, 6) >= wager; }
+  public boolean cupIsCursed(int cup) {
+    if (cup < 0 || cup >= 6) return false;
+    int[][] layouts = {
+        {0, 1, 2, 3, 4, 5}, {0, 2, 4, 1, 3, 5}, {0, 3, 1, 4, 2, 5},
+        {0, 5, 4, 3, 2, 1}, {0, 1, 2, 5, 4, 3}, {0, 2, 3, 5, 1, 4}
+    };
+    int[] layout = layouts[Math.floorMod(variant, layouts.length)];
+    for (int i = 0; i < Math.min(wager, 6); i++)
+      if ((loserCup + layout[i]) % 6 == cup) return true;
+    return false;
+  }
+
+  public boolean cupIsSafe() { return chosenCup >= 0 && !cupIsCursed(chosenCup); }
 
   public boolean beginJury() {
     if (!"GAME".equals(screen) || (game != 1 && game != 8) || juryPhase
@@ -523,7 +610,7 @@ public final class GameEngine {
       p.wins++;
       int speed = (game == 0 || game == 2) && deadline > 0
           ? Math.min(80, (int) Math.max(0, (deadline - System.currentTimeMillis()) / 1000L) * 5) : 0;
-      roundPoints = winPoints() + speed;
+      roundPoints = winPoints() + speed + (game == 9 && bombCutAttempted ? 100 : 0);
       p.score += roundPoints;
     } else {
       if (lossSips() > 0) {
@@ -545,7 +632,7 @@ public final class GameEngine {
         case 0 -> deadline - System.currentTimeMillis() >= 8000;
         case 1, 8 -> juryPhase && juryComplete() && juryVerdict();
         case 2 -> deadline - System.currentTimeMillis() >= 4000;
-        case 3 -> taps >= 10 && deadline - System.currentTimeMillis() >= 4000;
+        case 3 -> taps >= reflexGoal() && deadline - System.currentTimeMillis() >= 4000;
         case 4 -> wager == 3;
         case 5 -> strokes.size() >= 12;
         case 6 -> sequence.length >= 5;
@@ -562,14 +649,50 @@ public final class GameEngine {
 
   public boolean bombTap(String name) {
     if (!"GAME".equals(screen) || game != 9 || players.isEmpty()
+        || bombAwaitingPass || taps >= bombGoal()
         || !players.get(bombNext).name.equals(name)) return false;
     taps++;
-    if (taps % 2 == 0) bombNext = (bombNext + 1) % players.size();
+    if (taps % bombTapsPerHolder() == 0 && taps < bombGoal()) {
+      bombVisitedMask |= 1 << bombNext;
+      bombAwaitingPass = true;
+    }
     return true;
   }
 
+  public boolean canPassBombTo(int targetPlayer) {
+    if (targetPlayer < 0 || targetPlayer >= players.size() || targetPlayer == bombNext) return false;
+    int all = (1 << players.size()) - 1;
+    return (bombVisitedMask & all) == all || (bombVisitedMask & (1 << targetPlayer)) == 0;
+  }
+
+  public boolean bombPass(String name, int targetPlayer) {
+    if (!"GAME".equals(screen) || game != 9 || !bombAwaitingPass
+        || !players.get(bombNext).name.equals(name) || !canPassBombTo(targetPlayer)) return false;
+    bombNext = targetPlayer;
+    bombAwaitingPass = false;
+    return true;
+  }
+
+  public boolean canDefuseBomb() {
+    return "GAME".equals(screen) && game == 9 && bombAwaitingPass
+        && (bombVisitedMask & ((1 << players.size()) - 1)) == (1 << players.size()) - 1;
+  }
+
+  /** -1 means invalid, 0 is a failed cut and 1 is a successful cut. */
+  public int bombCut(String name, int wire) {
+    if (!canDefuseBomb() || bombCutAttempted || wire < 0 || wire > 1
+        || !players.get(bombNext).name.equals(name)) return -1;
+    bombCutAttempted = true;
+    bombCutWire = wire;
+    return wire == Math.floorMod(loserCup + taps / bombTapsPerHolder(), 2) ? 1 : 0;
+  }
+
   public int bombGoal() {
-    return Math.max(8, 2 * players.size());
+    return Math.max(8, bombTapsPerHolder() * players.size());
+  }
+
+  public int bombTapsPerHolder() {
+    return 1 + Math.floorMod(variant, 3);
   }
 
   public void advance() {
@@ -630,7 +753,7 @@ public final class GameEngine {
   public void checkTimeout() {
     if ("GAME".equals(screen) && deadline > 0 && System.currentTimeMillis() > deadline) {
       if (juryPhase) finish(juryVerdict());
-      else if (game == 3) finish(taps >= 10);
+      else if (game == 3) finish(taps >= reflexGoal());
       else if (game == 7) finish(rhythmHits >= 4);
       else finish(false);
     }
@@ -730,6 +853,10 @@ public final class GameEngine {
       j.put("rhythmHits", rhythmHits);
       j.put("wager", wager);
       j.put("bombNext", bombNext);
+      j.put("bombVisitedMask", bombVisitedMask);
+      j.put("bombAwaitingPass", bombAwaitingPass);
+      j.put("bombCutAttempted", bombCutAttempted);
+      j.put("bombCutWire", bombCutWire);
       j.put("roundPoints", roundPoints);
       j.put("roundSips", roundSips);
       j.put("chosenCup", chosenCup);
@@ -749,6 +876,7 @@ public final class GameEngine {
       j.put("targetY", targetY);
       j.put("loserCup", loserCup);
       j.put("mode", mode);
+      j.put("passiveStreak", passiveStreak);
       j.put("offers", new JSONArray(offers));
       j.put("votes", new JSONArray(votes));
       j.put("catTaps", new JSONArray(catTaps));
@@ -819,6 +947,10 @@ public final class GameEngine {
     rhythmHits = j.optInt("rhythmHits");
     wager = j.optInt("wager", 1);
     bombNext = j.optInt("bombNext", active);
+    bombVisitedMask = j.optInt("bombVisitedMask");
+    bombAwaitingPass = j.optBoolean("bombAwaitingPass");
+    bombCutAttempted = j.optBoolean("bombCutAttempted");
+    bombCutWire = j.optInt("bombCutWire", -1);
     roundPoints = j.optInt("roundPoints");
     roundSips = j.optInt("roundSips");
     chosenCup = j.optInt("chosenCup", -1);
@@ -838,6 +970,7 @@ public final class GameEngine {
     targetY = (float) j.optDouble("targetY", 390);
     loserCup = j.optInt("loserCup");
     mode = j.optString("mode", "VOTE");
+    passiveStreak = Math.max(0, j.optInt("passiveStreak"));
     offers = readInts(j.optJSONArray("offers"));
     votes = readInts(j.optJSONArray("votes"));
     catTaps = readInts(j.optJSONArray("catTaps"));

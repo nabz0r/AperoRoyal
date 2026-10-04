@@ -124,7 +124,8 @@ public final class MainActivity extends Activity
         && game.deadline > 0
         && System.currentTimeMillis() > game.deadline) {
       finishGame(game.juryPhase ? game.juryVerdict()
-          : (game.game == 3 && game.taps >= 10) || (game.game == 7 && game.rhythmHits >= 4));
+          : (game.game == 3 && game.taps >= game.reflexGoal())
+              || (game.game == 7 && game.rhythmHits >= 4));
     }
     view.postDelayed(this::clockTick, 100);
   }
@@ -325,7 +326,7 @@ public final class MainActivity extends Activity
     if (network.connected) { network.command("REFLEX", expectedStep); return; }
     GameEngine.Player player = game.current();
     if (player != null && game.reflexTap(player.name, expectedStep)) {
-      if (game.taps >= 10) finishGame(true);
+      if (game.taps >= game.reflexGoal()) finishGame(true);
       else save();
     }
   }
@@ -436,6 +437,34 @@ public final class MainActivity extends Activity
     else save();
   }
 
+  public GameEngine.Player localBomber() {
+    if (!"GAME".equals(game.screen) || game.game != 9
+        || game.bombNext < 0 || game.bombNext >= game.players.size()) return null;
+    GameEngine.Player holder = game.players.get(game.bombNext);
+    if (network.connected) return holder.name.equals(network.localName) ? holder : null;
+    return network.isRemote(holder.name) ? null : holder;
+  }
+
+  @Override
+  public void bombPass(int targetPlayer) {
+    GameEngine.Player holder = localBomber();
+    if (holder == null || passPending) return;
+    if (network.connected) { network.command("BOMB_PASS", targetPlayer); return; }
+    if (game.bombPass(holder.name, targetPlayer)) {
+      setPassPending(localBomber() != null);
+      save();
+    }
+  }
+
+  @Override
+  public void bombCut(int wire) {
+    GameEngine.Player holder = localBomber();
+    if (holder == null || passPending) return;
+    if (network.connected) { network.command("BOMB_CUT", wire); return; }
+    int outcome = game.bombCut(holder.name, wire);
+    if (outcome >= 0) finishGame(outcome == 1);
+  }
+
   public boolean passPending() { return passPending; }
 
   private void setPassPending(boolean pending) {
@@ -449,8 +478,9 @@ public final class MainActivity extends Activity
     long paused = Math.max(0, System.currentTimeMillis() - passStartedAt);
     if ("PREDICT".equals(game.screen) && game.deadline > 0) game.deadline += paused;
     if ("GAME".equals(game.screen) && (game.juryPhase ||
-        (game.game == 5 && game.drawingReady)) && game.deadline > 0)
+        (game.game == 5 && game.drawingReady) || game.game == 9) && game.deadline > 0)
       game.deadline += paused;
+    if ("GAME".equals(game.screen) && game.game == 9) game.started += paused;
     if ("RULE_VOTE".equals(game.screen) && game.reportDeadline > 0)
       game.reportDeadline += paused;
     setPassPending(false);
@@ -719,7 +749,10 @@ public final class MainActivity extends Activity
           || ("RULE_VOTE".equals(game.screen) && localRuleVoter() != null)
           || ("GAME".equals(game.screen) && game.juryPhase && localJudge() != null)
           || ("GAME".equals(game.screen) && game.game == 5 && game.drawingReady
-              && localGuesser() != null));
+              && localGuesser() != null)
+          || ("GAME".equals(game.screen) && game.game == 9 && game.taps > 0
+              && game.taps % game.bombTapsPerHolder() == 0
+              && !game.bombAwaitingPass && localBomber() != null));
       save();
     } else message("No saved party / Aucune partie");
   }
@@ -1192,7 +1225,7 @@ public final class MainActivity extends Activity
     }
     if ("REFLEX".equals(command)) {
       if (game.reflexTap(name, value)) {
-        if (game.taps >= 10) finishGame(true);
+        if (game.taps >= game.reflexGoal()) finishGame(true);
         else save();
       }
       return;
@@ -1214,6 +1247,18 @@ public final class MainActivity extends Activity
         if (game.taps >= game.bombGoal()) finishGame(true);
         else save();
       }
+      return;
+    }
+    if ("BOMB_PASS".equals(command)) {
+      if (game.bombPass(name, value)) {
+        setPassPending(localBomber() != null);
+        save();
+      }
+      return;
+    }
+    if ("BOMB_CUT".equals(command)) {
+      int outcome = game.bombCut(name, value);
+      if (outcome >= 0) finishGame(outcome == 1);
       return;
     }
     if ("AVATAR".equals(command)) {
