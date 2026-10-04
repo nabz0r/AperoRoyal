@@ -96,6 +96,8 @@ keyPassword=your-password
 
 Illustrations originales dans [`art/source`](art/source), décors des mini-jeux sous [`app/src/main/res/drawable-nodpi`](app/src/main/res/drawable-nodpi) et captures réelles d’émulateur sous [`docs/screenshots`](docs/screenshots). Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
 
+**Pour guider la prochaine version :** [audit produit et feuille de route jeu par jeu](docs/AUDIT_PRODUIT_2026.md), fondés sur le code, les captures et des recherches externes.
+
 ---
 
 **English:** Apéro Royale 1.2.1 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round clearly hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or quick Turbo rounds. Friends predict outcomes, judge social challenges and guess drawings on their own phone or through a private pass screen. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. Retro music starts quietly and mutes in the background; optional photos and Spotify remain configurable. The signed APK is linked above.
