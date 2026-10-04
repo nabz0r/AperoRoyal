@@ -48,6 +48,9 @@ public final class MainActivity extends Activity
   private long settingsPausedAt = 0;
   private String guideOrigin = "HOME";
   private boolean passPending = false, soundEffects = true, haptics = true;
+  private long passStartedAt = 0;
+  private long backgroundAt = 0;
+  private boolean foreground = false;
   private long clockSkew = Long.MAX_VALUE;
   private Runnable pendingBluetooth;
 
@@ -82,24 +85,52 @@ public final class MainActivity extends Activity
   private void clockTick() {
     if (isFinishing()) return;
     audio.setScene(game.screen);
-    if (!network.connected && game.predictionTimedOut()) {
-      passPending = false;
+    boolean timersActive = network.hosting || foreground;
+    if (!network.connected && timersActive && !passPending && game.predictionTimedOut()) {
+      setPassPending(false);
       beginGameAudio();
       save();
     }
-    if (!network.connected && game.ruleVoteTimedOut()) finishRuleVote();
-    if (!network.connected && "GAME".equals(game.screen) && game.game == 4
+    if (!network.connected && timersActive && !passPending && game.ruleVoteTimedOut())
+      finishRuleVote();
+    if (!network.connected && timersActive && "GAME".equals(game.screen) && game.game == 4
         && game.chosenCup >= 0 && System.currentTimeMillis() >= game.revealUntil)
       finishGame(game.cupIsSafe());
-    if (!network.connected
+    if (!network.connected && timersActive && !passPending
         && "GAME".equals(game.screen)
         && game.deadline > 0
         && System.currentTimeMillis() > game.deadline) {
       finishGame(game.juryPhase ? game.juryVerdict()
           : (game.game == 3 && game.taps >= 10) || (game.game == 7 && game.rhythmHits >= 4));
     }
-    view.invalidate();
     view.postDelayed(this::clockTick, 100);
+  }
+
+  @Override
+  protected void onPause() {
+    foreground = false;
+    backgroundAt = System.currentTimeMillis();
+    audio.setSuspended(true);
+    super.onPause();
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    boolean timedScreen = "GAME".equals(game.screen) || "PREDICT".equals(game.screen)
+        || "RULE_VOTE".equals(game.screen);
+    if (backgroundAt > 0 && network != null && !network.hosting && !network.connected
+        && !passPending && timedScreen) {
+      long paused = Math.max(0, System.currentTimeMillis() - backgroundAt);
+      if (game.started > 0) game.started += paused;
+      if (game.deadline > 0) game.deadline += paused;
+      if (game.reportDeadline > 0) game.reportDeadline += paused;
+      if (game.revealUntil > 0) game.revealUntil += paused;
+      if (paused > 0 && view != null) save();
+    }
+    backgroundAt = 0;
+    foreground = true;
+    if (audio != null) audio.setSuspended(false);
   }
 
   @Override
@@ -123,7 +154,7 @@ public final class MainActivity extends Activity
   @Override
   public void finishGame(boolean won) {
     if (!"GAME".equals(game.screen)) return;
-    passPending = false;
+    setPassPending(false);
     GameEngine.Player p = game.current();
     long duration = Math.max(0, System.currentTimeMillis() - game.started);
     game.finish(won);
@@ -171,7 +202,7 @@ public final class MainActivity extends Activity
   public void drawingReady() {
     if (!"GAME".equals(game.screen) || game.game != 5 || game.drawingReady) return;
     game.drawingReady = true;
-    passPending = localGuesser() != null;
+    setPassPending(localGuesser() != null);
     save();
   }
 
@@ -185,7 +216,7 @@ public final class MainActivity extends Activity
   @Override
   public void placeBet(int sips) {
     if (!game.placeBet(sips)) return;
-    passPending = localPredictor() != null;
+    setPassPending(localPredictor() != null);
     save();
   }
 
@@ -210,7 +241,7 @@ public final class MainActivity extends Activity
     if (voter == null || passPending) return;
     if (network.connected) { network.command("PREDICT", win ? 1 : 0); return; }
     if (game.predict(voter.name, win)) {
-      passPending = "PREDICT".equals(game.screen) && localPredictor() != null;
+      setPassPending("PREDICT".equals(game.screen) && localPredictor() != null);
       if ("GAME".equals(game.screen)) beginGameAudio();
       save();
     }
@@ -219,7 +250,7 @@ public final class MainActivity extends Activity
   @Override
   public void beginJury() {
     if (game.beginJury()) {
-      passPending = localJudge() != null;
+      setPassPending(localJudge() != null);
       save();
     }
   }
@@ -247,7 +278,7 @@ public final class MainActivity extends Activity
     if (game.castJury(juror.name, yes)) {
       if (game.juryComplete()) finishGame(game.juryVerdict());
       else {
-        passPending = localJudge() != null;
+        setPassPending(localJudge() != null);
         save();
       }
     }
@@ -297,7 +328,7 @@ public final class MainActivity extends Activity
           int target = indexes.get(which);
           if (network.connected) network.command("REPORT", target);
           else if (game.reportRule(reporter.name, game.players.get(target).name)) {
-            passPending = localRuleVoter() != null;
+            setPassPending(localRuleVoter() != null);
             save();
           }
         })
@@ -326,12 +357,12 @@ public final class MainActivity extends Activity
     if (network.connected) { network.command("RULE_VOTE", yes ? 1 : 0); return; }
     if (game.castRuleVote(voter.name, yes)) {
       if (!"RULE_VOTE".equals(game.screen)) finishRuleVote();
-      else { passPending = localRuleVoter() != null; save(); }
+      else { setPassPending(localRuleVoter() != null); save(); }
     }
   }
 
   private void finishRuleVote() {
-    passPending = false;
+    setPassPending(false);
     boolean penalty = game.rulePenaltyApplied;
     if (penalty) store.recordRulePenalty(game.reportTarget);
     game.rulePenaltyApplied = false;
@@ -389,8 +420,23 @@ public final class MainActivity extends Activity
 
   public boolean passPending() { return passPending; }
 
+  private void setPassPending(boolean pending) {
+    passPending = pending;
+    passStartedAt = pending ? System.currentTimeMillis() : 0;
+  }
+
   @Override
-  public void confirmPass() { passPending = false; view.invalidate(); }
+  public void confirmPass() {
+    if (!passPending) return;
+    long paused = Math.max(0, System.currentTimeMillis() - passStartedAt);
+    if ("PREDICT".equals(game.screen) && game.deadline > 0) game.deadline += paused;
+    if ("GAME".equals(game.screen) && game.juryPhase && game.deadline > 0)
+      game.deadline += paused;
+    if ("RULE_VOTE".equals(game.screen) && game.reportDeadline > 0)
+      game.reportDeadline += paused;
+    setPassPending(false);
+    save();
+  }
 
   @Override
   public void addPlayer() {
@@ -585,7 +631,7 @@ public final class MainActivity extends Activity
       if (passPending) return;
       GameEngine.Player p = localVoter();
       if (p != null && game.castVote(p.name, choice)) {
-        passPending = "VOTE".equals(game.screen) && localVoter() != null;
+        setPassPending("VOTE".equals(game.screen) && localVoter() != null);
         save();
       }
     }
@@ -630,7 +676,7 @@ public final class MainActivity extends Activity
   @Override
   public void newParty() {
     network.close();
-    passPending = false;
+    setPassPending(false);
     clockSkew = Long.MAX_VALUE;
     game.newParty();
     save();
@@ -641,6 +687,16 @@ public final class MainActivity extends Activity
     if (store.load(game)) {
       if ("HOME".equals(game.screen)) game.screen = "LOBBY";
       if ("GAME".equals(game.screen)) game.resumeGame();
+      long now = System.currentTimeMillis();
+      if ("PREDICT".equals(game.screen))
+        game.deadline = now + ("TURBO".equals(game.mode) ? 5000 : 12000);
+      if ("RULE_VOTE".equals(game.screen)) game.reportDeadline = now + 10000;
+      setPassPending(("VOTE".equals(game.screen) && game.voteCount() > 0 && localVoter() != null)
+          || ("PREDICT".equals(game.screen) && localPredictor() != null)
+          || ("RULE_VOTE".equals(game.screen) && localRuleVoter() != null)
+          || ("GAME".equals(game.screen) && game.juryPhase && localJudge() != null)
+          || ("GAME".equals(game.screen) && game.game == 5 && game.drawingReady
+              && localGuesser() != null));
       save();
     } else message("No saved party / Aucune partie");
   }
@@ -940,10 +996,14 @@ public final class MainActivity extends Activity
     game.screen = "STATS".equals(game.screen) ? statsOrigin
         : "SETTINGS".equals(game.screen) ? settingsOrigin
         : "GUIDE".equals(game.screen) ? guideOrigin : "HOME";
-    if (fromSettings && "GAME".equals(game.screen) && !network.connected) {
+    if (fromSettings && !passPending && !network.connected
+        && ("GAME".equals(game.screen) || "PREDICT".equals(game.screen)
+            || "RULE_VOTE".equals(game.screen))) {
       long paused = Math.max(0, System.currentTimeMillis() - settingsPausedAt);
       game.started += paused;
       if (game.deadline > 0) game.deadline += paused;
+      if (game.reportDeadline > 0) game.reportDeadline += paused;
+      if (game.revealUntil > 0) game.revealUntil += paused;
       save();
     }
     view.invalidate();

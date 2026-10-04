@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Check local handoffs pause prediction and jury clocks until the next player is ready."""
+import time
+from smoke_v120 import adb, add_player, state, tap, wait_screen, HEIGHT, PACKAGE
+
+
+def fresh_party(mode):
+    adb("shell", "pm", "clear", PACKAGE)
+    adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
+    time.sleep(1.4)
+    tap(200, HEIGHT - 282)
+    wait_screen("LOBBY")
+    add_player("Pixel")
+    add_player("Nova")
+    if mode == "FREE":
+        tap(200, HEIGHT - 227)
+    elif mode == "TURBO":
+        tap(200, HEIGHT - 227)
+        tap(200, HEIGHT - 227)
+    assert state()["mode"] == mode
+    tap(200, HEIGHT - 96)
+
+
+def ready_to_predict():
+    wait_screen("TRANSITION")
+    tap(200, HEIGHT - 78)
+    wait_screen("HANDOFF")
+    tap(200, HEIGHT - 78)
+    wait_screen("BET")
+    tap(200, 492)
+    wait_screen("PREDICT")
+
+
+def main():
+    fresh_party("TURBO")
+    ready_to_predict()
+    time.sleep(6.2)  # Longer than Turbo's original five-second prediction clock.
+    assert state()["screen"] == "PREDICT", "prediction expired during phone handoff"
+    tap(200, HEIGHT - 91)
+    assert state()["screen"] == "PREDICT"
+    tap(200, 561)
+    wait_screen("GAME")
+
+    fresh_party("FREE")
+    wait_screen("LIBRARY")
+    tap(290, 219)  # Silly Poses, the first row's right card.
+    ready_to_predict()
+    tap(200, HEIGHT - 91)
+    tap(200, 561)
+    wait_screen("GAME")
+    tap(200, HEIGHT - 145)
+    assert state()["juryPhase"]
+    time.sleep(21.2)  # Longer than the jury's original twenty-second clock.
+    assert state()["screen"] == "GAME", "jury expired during phone handoff"
+    tap(200, HEIGHT - 91)
+    tap(200, 585)
+    wait_screen("RESULT")
+
+    fresh_party("TURBO")
+    ready_to_predict()
+    adb("shell", "am", "force-stop", PACKAGE)
+    adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
+    time.sleep(1.3)
+    assert state()["screen"] == "PREDICT", "saved game was replaced by home screen"
+    tap(200, HEIGHT - 215)  # Resume the saved game from Home.
+    wait_screen("PREDICT")
+    time.sleep(6.2)
+    assert state()["screen"] == "PREDICT", "resumed handoff expired"
+    tap(200, HEIGHT - 91)
+    adb("shell", "input", "keyevent", "3")  # Android Home, while prediction is active.
+    time.sleep(6.2)
+    adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
+    time.sleep(.6)
+    assert state()["screen"] == "PREDICT", "backgrounded round expired"
+    tap(200, 561)
+    wait_screen("GAME")
+    print("PASS: local handoffs, saved resume and backgrounded clocks")
+
+
+if __name__ == "__main__":
+    main()

@@ -4,16 +4,18 @@
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.2.0**](releases/AperoRoyale-v1.2.0.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.2.1**](releases/AperoRoyale-v1.2.1.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
 1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites. Une vraie photo peut aussi être importée depuis l’appareil.
 2. **La salle choisit.** En mode Vote, chacun choisit parmi trois défis. En mode Libre, le groupe ouvre le catalogue ; en mode **Turbo**, le jeu enchaîne des défis surprises plus courts.
 3. **Le téléphone passe.** L’écran annonce le numéro de tour, le pseudo et le défi. Le chrono reste arrêté jusqu’à ce que le joueur concerné touche **Je suis prêt** sur le téléphone partagé ou le sien.
-4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis pronostiquent sa victoire ou sa défaite : **+35 points** pour un bon prono, **+1 gorgée virtuelle** pour un mauvais. Sur un téléphone, les pronostics et les jurys ont aussi un écran de passage privé.
+4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis pronostiquent sa victoire ou sa défaite : **+35 points** pour un bon prono, **+1 gorgée virtuelle** pour un mauvais. Sur un téléphone, les pronostics et les jurys ont aussi un écran de passage privé. Leur chrono attend que la personne suivante touche **C’est moi**.
 5. **Tout le monde joue.** Les poses et les bluffs passent devant le jury ; le dessin passe au devineur ; la bombe passe de joueur en joueur. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours.
 6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
+
+**Confort 1.2.1.** Les écrans s’adaptent aussi aux téléphones 16:9. Sur un téléphone partagé, la langue du pronostic ou du jury suit la personne qui tient l’appareil. En jeu local, les chronos reprennent correctement après un passage dans les réglages, en arrière-plan ou après réouverture de la partie. La musique du jeu se tait lorsque l’application passe en arrière-plan.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -96,4 +98,4 @@ Illustrations originales dans [`art/source`](art/source), décors des mini-jeux 
 
 ---
 
-**English:** Apéro Royale 1.2.0 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round clearly hands control to the next player, and the clock starts only after they are ready. Choose group Vote, Free Play or quick Turbo rounds. Friends predict outcomes, judge social challenges and guess drawings on their own phone or through a private pass screen. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. Retro music starts quietly; optional photos and Spotify remain configurable. The signed APK is linked above.
+**English:** Apéro Royale 1.2.1 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round clearly hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or quick Turbo rounds. Friends predict outcomes, judge social challenges and guess drawings on their own phone or through a private pass screen. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. Retro music starts quietly and mutes in the background; optional photos and Spotify remain configurable. The signed APK is linked above.

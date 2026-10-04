@@ -341,6 +341,10 @@ public final class GameEngine {
   public void resumeGame() {
     if (!"GAME".equals(screen)) return;
     started = System.currentTimeMillis();
+    if (juryPhase) {
+      deadline = started + 20000;
+      return;
+    }
     int seconds =
         switch (game) {
           case 0 -> 16;

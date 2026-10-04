@@ -126,7 +126,7 @@ public final class ArcadeView extends View {
   private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final ArrayList<Hit> hits = new ArrayList<>();
   private final Random particle = new Random(19);
-  private float H = 800, scale = 1, strokeX, strokeY;
+  private float H = 820, scale = 1, offsetX = 0, strokeX, strokeY;
   private boolean drawing = false;
   private final ArrayList<float[]> ghostStrokes = new ArrayList<>();
   private boolean ghostDrawing = false;
@@ -184,9 +184,12 @@ public final class ArcadeView extends View {
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    scale = getWidth() / 400f;
+    scale = Math.min(getWidth() / 400f, getHeight() / 820f);
     H = getHeight() / scale;
+    offsetX = (getWidth() - 400 * scale) / 2f;
+    canvas.drawColor(BG);
     canvas.save();
+    canvas.translate(offsetX, 0);
     canvas.scale(scale, scale);
     hits.clear();
     background(canvas);
@@ -208,7 +211,8 @@ public final class ArcadeView extends View {
       default -> home(canvas);
     }
     canvas.restore();
-    postInvalidateDelayed(33);
+    postInvalidateDelayed("GAME".equals(g.screen) || "TRANSITION".equals(g.screen)
+        || "HANDOFF".equals(g.screen) ? 33 : 80);
   }
 
   private void background(Canvas c) {
@@ -448,7 +452,14 @@ public final class ArcadeView extends View {
 
   private boolean viewerEnglish() {
     MainActivity a = (MainActivity) getContext();
-    GameEngine.Player viewer = a.localParticipant();
+    GameEngine.Player viewer = switch (g.screen) {
+      case "PREDICT" -> a.localPredictor();
+      case "RULE_VOTE" -> a.localRuleVoter();
+      case "GAME" -> g.juryPhase ? a.localJudge()
+          : g.game == 5 && g.drawingReady ? a.localGuesser() : g.current();
+      case "HANDOFF", "BET", "RESULT", "TRANSITION" -> g.current();
+      default -> a.localParticipant();
+    };
     return viewer != null ? "EN".equals(viewer.language) : g.english();
   }
 
@@ -524,6 +535,7 @@ public final class ArcadeView extends View {
             : vt("Ton vote reste secret. À toi de choisir !", "Your vote stays secret. Your turn to choose!");
     block(c, instruction,
         200, 510, 338, 18, WHITE, true);
+    text(c, vt("CHRONO EN PAUSE", "TIMER PAUSED"), 200, H - 151, 14, YELLOW, true);
     button(c, "readyVote", vt("C'EST MOI", "THAT'S ME"), 36, H - 124, 328, 68, CYAN);
   }
 
@@ -1393,7 +1405,8 @@ public final class ArcadeView extends View {
             ? 0
             : e.getActionMasked() == MotionEvent.ACTION_MOVE ? 1 : 2;
     if (kind > 2) return true;
-    float x = e.getX() / scale, y = e.getY() / scale;
+    float x = (e.getX() - offsetX) / scale, y = e.getY() / scale;
+    if (x < 0 || x > 400) return true;
     if (kind == 0 && x >= 325 && y <= 89 && !"HOME".equals(g.screen)
         && !"SETTINGS".equals(g.screen) && !"GUIDE".equals(g.screen)
         && !"STATS".equals(g.screen)) {

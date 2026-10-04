@@ -1,3 +1,28 @@
+# Apéro Royale 1.2.1 — Un tour sans chrono perdu
+
+- [APK Android signé 1.2.1](releases/AperoRoyale-v1.2.1.apk) · `com.aperoroyale` · versionCode `5` · Android 8.0+ (API 26)
+- SHA-256 : `6061e22e774cd8868833726b529acc766fc485b6d58ab1ffd033337962624c96`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.2.0
+
+## Changements
+
+- **Passage de téléphone serein.** Le chrono des pronostics, du jury et des votes de règle attend maintenant la confirmation du joueur suivant. L’écran de passage l’indique clairement.
+- **Reprise fiable.** Une partie rouverte restaure le passage privé et redonne un chrono utilisable. Les manches locales ne se terminent pas pendant que l’application est en arrière-plan ; les réglages préservent aussi les chronos des pronostics et votes de règle.
+- **Formats courts et langues.** L’interface garde au moins 820 unités de hauteur virtuelle et centre son contenu sur les écrans 16:9. Les consignes privées suivent la langue du joueur qui prend le téléphone.
+- **Musique plus discrète.** La musique procédurale se tait lorsque l’application est en arrière-plan. Les menus hors défi sont rafraîchis moins souvent pour économiser les ressources.
+
+## Vérifications de 1.2.1
+
+- `./gradlew test assembleDebug assembleRelease lintVitalRelease` : réussite ; Gradle indique `NO-SOURCE` pour les tests unitaires Java, donc les parcours ci-dessous portent la vérification fonctionnelle.
+- `tools/smoke_handoff.py` sur émulateur Android 16 : pronostic Turbo toujours ouvert après 6 secondes de passage, jury toujours ouvert après 21 secondes, reprise après fermeture, puis après passage en arrière-plan.
+- `tools/smoke_turbo.py` : deux défis consécutifs et alternance des joueurs ; `tools/smoke_v120.py` : dix jeux terminés à deux joueurs avec mises, pronostics et historique.
+- Affichage et navigation vérifiés sur émulateur 1080 × 1920 ; format 1080 × 2340 utilisé pour les parcours complets.
+- APK release signé installé en mise à jour et lancé sur émulateur Android 8.0 ; `aapt` confirme versionCode 5 / minSdk 26 et `apksigner verify` valide la signature.
+
+Les limites réseau, Bluetooth et Spotify décrites ci-dessous restent applicables ; aucun nouvel essai sur téléphones physiques ou comptes Spotify réels n’a été effectué pour 1.2.1.
+
+---
+
 # Apéro Royale 1.2.0 — Le tour passe enfin
 
 - [APK Android signé](releases/AperoRoyale-v1.2.0.apk) · `com.aperoroyale` · versionCode `4` · Android 8.0+ (API 26)

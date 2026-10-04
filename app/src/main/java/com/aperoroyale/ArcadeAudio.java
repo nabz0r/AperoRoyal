@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class ArcadeAudio {
   private final AtomicBoolean running = new AtomicBoolean(false);
   private volatile boolean enabled = true;
+  private volatile boolean suspended = false;
   private volatile int scene = 0;
   private volatile int style = 0;
   private volatile float volume = .5f;
@@ -66,7 +67,7 @@ public final class ArcadeAudio {
                 while (running.get()) {
                   int currentScene = scene;
                   short[] pcm = new short[samplesPerStep];
-                  if (enabled) {
+                  if (enabled && !suspended) {
                     int note = SCORE[currentScene][step % 32];
                     double lead = note == 0 ? 0 : frequency(note);
                     int root = BASS[currentScene][(step / 4) % 8];
@@ -134,6 +135,8 @@ public final class ArcadeAudio {
   public void setEnabled(boolean b) {
     enabled = b;
   }
+
+  public void setSuspended(boolean value) { suspended = value; }
 
   public boolean enabled() {
     return enabled;
