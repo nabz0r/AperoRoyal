@@ -4,18 +4,18 @@
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.2.1**](releases/AperoRoyale-v1.2.1.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.3.0**](releases/AperoRoyale-v1.3.0.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
 1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites. Une vraie photo peut aussi être importée depuis l’appareil.
 2. **La salle choisit.** En mode Vote, chacun choisit parmi trois défis. En mode Libre, le groupe ouvre le catalogue ; en mode **Turbo**, le jeu enchaîne des défis surprises plus courts.
 3. **Le téléphone passe.** L’écran annonce le numéro de tour, le pseudo et le défi. Le chrono reste arrêté jusqu’à ce que le joueur concerné touche **Je suis prêt** sur le téléphone partagé ou le sien.
-4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis pronostiquent sa victoire ou sa défaite : **+35 points** pour un bon prono, **+1 gorgée virtuelle** pour un mauvais. Sur un téléphone, les pronostics et les jurys ont aussi un écran de passage privé. Leur chrono attend que la personne suivante touche **C’est moi**.
-5. **Tout le monde joue.** Les poses et les bluffs passent devant le jury ; le dessin passe au devineur ; la bombe passe de joueur en joueur. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours.
+4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis choisissent de **le couvrir** ou **le défier**. Une couverture réussie rapporte 35 points, peut ajouter deux secondes aux jeux chronométrés et retire une gorgée virtuelle en cas d’échec. Un défi réussi rapporte 50 points au pronostiqueur et augmente de 25 points le gain du joueur actif s’il gagne. Un mauvais choix ajoute une gorgée virtuelle. Sur un téléphone, pronostics et jurys ont un passage privé : le chrono attend que la personne suivante touche **C’est moi**.
+5. **Tout le monde joue.** Les poses passent devant le jury ; le bluff oppose la vérité secrète du conteur aux votes des amis ; le dessin passe au devineur ; la bombe demande deux actions par joueur avant de circuler. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours.
 6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
 
-**Confort 1.2.1.** Les écrans s’adaptent aussi aux téléphones 16:9. Sur un téléphone partagé, la langue du pronostic ou du jury suit la personne qui tient l’appareil. En jeu local, les chronos reprennent correctement après un passage dans les réglages, en arrière-plan ou après réouverture de la partie. La musique du jeu se tait lorsque l’application passe en arrière-plan.
+**Confort 1.3.0.** Les écrans s’adaptent aussi aux téléphones 16:9. Sur un téléphone partagé, la langue du pronostic ou du jury suit la personne qui tient l’appareil. En jeu local, les chronos reprennent après un passage dans les réglages, en arrière-plan ou après réouverture. Les boutons, votes et cibles exposent maintenant des actions nommées à l’accessibilité Android. La musique du jeu se tait en arrière-plan ; la Radio Apéro Spotify, lorsqu’elle est activée, remplace la musique synthétique du jeu tout en laissant les effets sonores.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -31,14 +31,14 @@ Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel a
 | --- | --- | --- |
 | 01 | **Culture G** | Un QCM tordu ; répondre vite rapporte un bonus. |
 | 02 | **Positions à la con** | Une pose absurde à défendre devant le jury des amis. |
-| 03 | **Blind Test** | Reconnaître un air original hors ligne ou un titre Spotify configuré. |
+| 03 | **Blind Test** | Reconnaître un motif sonore hors ligne (montée, descente, alternance, échos…) ou un titre Spotify configuré. |
 | 04 | **Réflexe néon** | Dix cibles à attraper avant la fin du chrono, même sur un téléphone invité. |
 | 05 | **Roulette Royale** | Six gobelets, des pièges révélés après votre choix et une mise qui augmente le risque. |
 | 06 | **Dessin maudit** | Dessiner un concept impossible puis passer au devineur. |
 | 07 | **Mémoire flash** | Rejouer une séquence de plus en plus longue. |
-| 08 | **Rythme ou rien** | Quatre frappes au bon moment sur un beat partagé. |
-| 09 | **Bluff royal** | Vendre une histoire loufoque ; le jury tranche. |
-| 10 | **Bombe à bulles** | Huit touches en relais, joueur après joueur, avant l’explosion. |
+| 08 | **Rythme ou rien** | Quatre frappes validées sur l’horloge de la manche par l’hôte. |
+| 09 | **Bluff royal** | Raconter une anecdote vraie ou inventée ; le jury devine, le conteur marque s’il trompe la majorité. |
+| 10 | **Bombe à bulles** | Deux touches par joueur en relais, jusqu’à huit touches minimum, avant l’explosion. |
 
 <table>
 <tr><td><img src="docs/screenshots/games/trivia.png" alt="Culture G" width="180"></td><td><img src="docs/screenshots/games/poses.png" alt="Positions à la con" width="180"></td><td><img src="docs/screenshots/games/blind-test.png" alt="Blind Test" width="180"></td><td><img src="docs/screenshots/games/reflex.png" alt="Réflexe néon" width="180"></td><td><img src="docs/screenshots/games/roulette.png" alt="Roulette Royale" width="180"></td></tr>
@@ -60,13 +60,13 @@ Le chat pixel revient pendant le choix du prochain jeu. Le premier à le toucher
 | **Bluetooth** | Associez les appareils dans Android, puis hébergez/rejoignez avec le PIN. | Salle de proximité via RFCOMM sur appareils compatibles. |
 | **Internet** | L’hôte partage le code de salle à 12 caractères. | Synchronisation via relais MQTT TLS avec messages chiffrés en AES-GCM. |
 
-L’hôte garde la partie ouverte et arbitre les actions. Les invités peuvent voter, pronostiquer, jouer leur tour et participer aux jurys depuis leur appareil. Les portraits restent uniques dans la salle ; les photos facultatives sont réduites localement avant partage. L’interface suit le français ou l’anglais du joueur concerné.
+L’hôte garde la partie ouverte et arbitre les actions. Les invités peuvent voter, pronostiquer, jouer leur tour et participer aux jurys depuis leur appareil. Les réponses, pièges et votes avant révélation sont retirés des instantanés envoyés à chaque rôle. Les portraits restent uniques dans la salle ; les photos facultatives sont réduites localement avant partage. L’interface suit le français ou l’anglais du joueur concerné. Le classement historique est enregistré sur l’hôte ; les profils de même pseudo créés lors de soirées différentes partagent encore leurs statistiques historiques.
 
-Le relais Internet par défaut, [`ssl://broker.emqx.io:8883`](https://www.emqx.com/en/mqtt/public-mqtt5-broker), est un **service public de test**. Son accès et sa disponibilité ne sont pas garantis ; le menu accepte un autre relais MQTT TLS compatible. Le Wi-Fi local ne chiffre pas ses messages : utilisez un réseau de confiance. Le Bluetooth dépend de l’appairage et du support Android.
+Le relais Internet par défaut, [`ssl://broker.emqx.io:8883`](https://www.emqx.com/en/mqtt/public-mqtt5-broker), est un **service public de test**. Son accès et sa disponibilité ne sont pas garantis ; le menu accepte un autre relais MQTT TLS compatible. Le code de salle est partagé entre invités : il ne protège pas les messages d’un participant malveillant qui connaît ce code. Le Wi-Fi local ne chiffre pas ses messages : utilisez un réseau de confiance. Le Bluetooth dépend de l’appairage et du support Android.
 
 ## Une ambiance que vous contrôlez
 
-La musique rétro commence à **30 %**, avec des phrases plus espacées, une basse douce et un signal court lors du passage de tour. Le menu sépare musique, style *Chill / Arcade*, volume, effets sonores et vibrations ; le choix reste mémorisé. La bande son est synthétisée dans l’application, sans téléchargement, et baisse pendant le Blind Test.
+La musique rétro commence à **30 %**, avec quatre variations de phrase, un timbre par jeu, une basse douce et un signal court lors du passage de tour. Le menu sépare musique, style *Chill / Arcade*, volume, effets sonores et vibrations ; le choix reste mémorisé. La bande son est synthétisée dans l’application, sans téléchargement, et baisse pendant le Blind Test et le défi de rythme.
 
 **Spotify est facultatif.** Configurez votre Client ID et une playlist dans **Musique / Spotify**, puis ajoutez `http://127.0.0.1:43868/callback` aux URI de redirection de votre application Spotify Developer. L’intégration OAuth PKCE utilise la Web API et demande un compte Premium et un appareil Spotify actif pour contrôler la lecture. Sans Spotify, le Blind Test utilise six mélodies originales hors ligne.
 
@@ -100,4 +100,4 @@ Illustrations originales dans [`art/source`](art/source), décors des mini-jeux 
 
 ---
 
-**English:** Apéro Royale 1.2.1 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round clearly hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or quick Turbo rounds. Friends predict outcomes, judge social challenges and guess drawings on their own phone or through a private pass screen. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. Retro music starts quietly and mutes in the background; optional photos and Spotify remain configurable. The signed APK is linked above.
+**English:** Apéro Royale 1.3.0 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. Bluff now has a secret truth and the bomb requires two actions per player. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The updated soundtrack has per-game variations and gives way to optional Spotify radio. The signed APK is linked above.

@@ -95,7 +95,13 @@ public final class GameSprites {
     String[] sprite = PIXELS[index];
     int[] palette = COLORS[index];
     float bob = (float) Math.sin(now / 320.0 + index) * Math.max(1, pixel * .65f);
+    float pulse = (float) (0.5 + 0.5 * Math.sin(now / (index == 9 ? 115.0 : 260.0)));
+    p.setColor(withAlpha(palette[0], index == 9 ? (int) (25 + 65 * pulse) : 30));
+    c.drawCircle(cx, cy, pixel * (10 + 1.4f * pulse), p);
     c.save();
+    if (index == 4 || index == 5 || index == 8)
+      c.rotate((float) Math.sin(now / 210.0 + index) * 5, cx, cy);
+    if (index == 7) c.scale(1 + .055f * pulse, 1 + .055f * pulse, cx, cy);
     c.translate(cx - 8 * pixel, cy - 8 * pixel + bob);
     p.setStyle(Paint.Style.FILL);
     p.setAntiAlias(false);
@@ -117,6 +123,40 @@ public final class GameSprites {
           c.drawRect(x * pixel, y * pixel, (x + 1) * pixel, (y + 1) * pixel, p);
         }
       }
+    }
+    p.setColor(palette[2]);
+    switch (index) {
+      case 0 -> c.drawRect(4 * pixel, (3 + (now / 160 % 6)) * pixel,
+          12 * pixel, (4 + (now / 160 % 6)) * pixel, p);
+      case 2 -> {
+        float spin = (float) (now % 700) / 700f * 6.28318f;
+        c.drawCircle((4.5f + (float) Math.cos(spin)) * pixel,
+            (5.5f + (float) Math.sin(spin)) * pixel, pixel * .65f, p);
+        c.drawCircle((11.5f - (float) Math.cos(spin)) * pixel,
+            (5.5f - (float) Math.sin(spin)) * pixel, pixel * .65f, p);
+      }
+      case 3 -> c.drawRect((4 + now / 105 % 7) * pixel, 2 * pixel,
+          (5 + now / 105 % 7) * pixel, 4 * pixel, p);
+      case 5 -> c.drawRect((1 + now / 240 % 4) * pixel, 13 * pixel,
+          (2 + now / 240 % 4) * pixel, 14 * pixel, p);
+      case 6 -> c.drawRect((4 + Math.floorMod(progress, 4) * 2) * pixel, 6 * pixel,
+          (6 + Math.floorMod(progress, 4) * 2) * pixel, 8 * pixel, p);
+      case 7 -> {
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(pixel * .7f);
+        c.drawCircle(4.8f * pixel, 7.5f * pixel, (1 + pulse) * pixel, p);
+        c.drawCircle(11.2f * pixel, 7.5f * pixel, (1 + pulse) * pixel, p);
+        p.setStyle(Paint.Style.FILL);
+      }
+      case 8 -> {
+        if (now / 1200 % 5 == 0) {
+          c.drawRect(4 * pixel, 4 * pixel, 6 * pixel, 5 * pixel, p);
+          c.drawRect(10 * pixel, 4 * pixel, 12 * pixel, 5 * pixel, p);
+        }
+      }
+      case 9 -> c.drawRect(7 * pixel, 2 * pixel, 9 * pixel,
+          (3 + now / 120 % 2) * pixel, p);
+      default -> { }
     }
     p.setAntiAlias(true);
     c.restore();

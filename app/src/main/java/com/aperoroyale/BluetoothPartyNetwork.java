@@ -238,6 +238,19 @@ public final class BluetoothPartyNetwork extends PartyNetwork {
     });
   }
 
+  @Override public void broadcast(GameEngine game) {
+    if (!hosting) return;
+    ArrayList<Peer> current;
+    synchronized (peers) { current = new ArrayList<>(peers); }
+    ArrayList<JSONObject> states = new ArrayList<>();
+    for (Peer peer : current) states.add(game.networkJsonFor(peer.name));
+    writes.execute(() -> {
+      for (int i = 0; i < current.size(); i++)
+        try { current.get(i).write(states.get(i)); }
+        catch (Exception ignored) { current.get(i).close(); }
+    });
+  }
+
   @Override public void close() {
     generation++;
     hosting = connected = false;

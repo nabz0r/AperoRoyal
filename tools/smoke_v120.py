@@ -120,10 +120,11 @@ def play(game, s):
             tap(200, 440)
             time.sleep(.08)
     elif game == 8:
-        tap(200, HEIGHT - 140)
+        tap(110, HEIGHT - 140)
         wait_screen("GAME")
+        assert state()["bluffTruth"] == 1, "the actor's secret truth was not locked"
         tap(200, HEIGHT - 91)
-        tap(200, 585)
+        tap(200, 665)
     elif game == 9:
         for _ in range(8):
             tap(200, 443)

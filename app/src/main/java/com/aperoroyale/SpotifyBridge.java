@@ -210,6 +210,18 @@ public final class SpotifyBridge {
         .start();
   }
 
+  public void pause(Callback callback) {
+    new Thread(() -> {
+      try {
+        ensureToken();
+        api("PUT", "https://api.spotify.com/v1/me/player/pause", null);
+        ui.post(() -> callback.done(null, null));
+      } catch (Exception e) {
+        ui.post(() -> callback.done(e.getMessage(), null));
+      }
+    }, "spotify-pause").start();
+  }
+
   public void replay(String uri, Callback callback) {
     new Thread(
             () -> {

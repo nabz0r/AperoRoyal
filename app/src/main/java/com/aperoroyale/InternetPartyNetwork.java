@@ -36,6 +36,7 @@ public final class InternetPartyNetwork extends PartyNetwork {
   private volatile int generation = 0;
   private volatile boolean hasSnapshot = false;
   private volatile JSONObject lastState;
+  private volatile GameEngine lastGame;
 
   public InternetPartyNetwork(Events events) {
     super(events);
@@ -194,8 +195,8 @@ public final class InternetPartyNetwork extends PartyNetwork {
         if (name.isEmpty() || name.length() > 16) return;
         synchronized (names) {
           if (names.containsKey(from)) {
-            JSONObject state = lastState;
-            if (state != null) broadcast(state);
+            GameEngine current = lastGame;
+            if (current != null) ui.post(() -> sendState(from, current.networkJsonFor(name)));
             return;
           }
           names.put(from, name);
@@ -222,7 +223,7 @@ public final class InternetPartyNetwork extends PartyNetwork {
       } else if ("LEAVE".equals(type)) {
         synchronized (names) { names.remove(from); }
       }
-    } else if ("STATE".equals(type)) {
+    } else if ("STATE".equals(type) && sender.equals(message.optString("to"))) {
       JSONObject state = message.optJSONObject("state");
       if (state != null) {
         hasSnapshot = true;
@@ -292,6 +293,24 @@ public final class InternetPartyNetwork extends PartyNetwork {
     } catch (Exception ignored) { }
   }
 
+  @Override public void broadcast(GameEngine game) {
+    if (!hosting) return;
+    lastGame = game;
+    HashMap<String, String> recipients;
+    synchronized (names) { recipients = new HashMap<>(names); }
+    for (java.util.Map.Entry<String, String> entry : recipients.entrySet())
+      sendState(entry.getKey(), game.networkJsonFor(entry.getValue()));
+  }
+
+  private void sendState(String to, JSONObject state) {
+    try {
+      JSONObject message = base("STATE");
+      message.put("to", to);
+      message.put("state", state);
+      send(message);
+    } catch (Exception ignored) { }
+  }
+
   private void send(JSONObject message) {
     if (!hosting && !connected) return;
     writes.execute(() -> {
@@ -353,6 +372,7 @@ public final class InternetPartyNetwork extends PartyNetwork {
       try { mqtt.close(); } catch (Exception ignored) { }
     }, "party-internet-close").start();
     synchronized (names) { names.clear(); }
+    lastGame = null;
     super.close();
   }
 }

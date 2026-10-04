@@ -297,6 +297,29 @@ public class PartyNetwork {
         });
   }
 
+  /** Send each peer only the state needed for its role in this round. */
+  public void broadcast(GameEngine game) {
+    if (!hosting) return;
+    HashMap<Socket, JSONObject> states = new HashMap<>();
+    synchronized (peers) {
+      synchronized (names) {
+        for (Socket s : peers) {
+          String name = names.get(s);
+          if (name != null) states.put(s, game.networkJsonFor(name));
+        }
+      }
+    }
+    writes.execute(() -> {
+      for (java.util.Map.Entry<Socket, JSONObject> entry : states.entrySet())
+        try {
+          BufferedWriter w = new BufferedWriter(new OutputStreamWriter(entry.getKey().getOutputStream()));
+          w.write(entry.getValue().toString());
+          w.newLine();
+          w.flush();
+        } catch (Exception ignored) { }
+    });
+  }
+
   public void close() {
     hosting = connected = false;
     try {

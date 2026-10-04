@@ -99,7 +99,7 @@ public final class GameStore extends SQLiteOpenHelper {
     }
   }
 
-  public void recordPrediction(GameEngine.Player p, int game, boolean correct, int sips) {
+  public void recordPrediction(GameEngine.Player p, int game, boolean correct, int points, int sips) {
     SQLiteDatabase db = getWritableDatabase();
     db.beginTransaction();
     try {
@@ -109,13 +109,13 @@ public final class GameStore extends SQLiteOpenHelper {
       v.put("game", GameEngine.TYPES[game]);
       v.put("won", correct ? 1 : 0);
       v.put("sips", sips);
-      v.put("points", correct ? 35 : 0);
+      v.put("points", points);
       v.put("role", "PREDICTION");
       db.insert("history", null, v);
       db.execSQL("INSERT OR IGNORE INTO stats(name) VALUES(?)", new Object[] {p.name});
       db.execSQL("UPDATE stats SET predictions=predictions+1,correct_predictions=correct_predictions+?,"
           + "drinks=drinks+?,sips=sips+?,points=points+? WHERE name=?",
-          new Object[] {correct ? 1 : 0, sips > 0 ? 1 : 0, sips, correct ? 35 : 0, p.name});
+          new Object[] {correct ? 1 : 0, sips > 0 ? 1 : 0, sips, points, p.name});
       db.setTransactionSuccessful();
     } finally { db.endTransaction(); }
   }

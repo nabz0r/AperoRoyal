@@ -12,9 +12,14 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.os.Bundle;
 import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityNodeProvider;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
@@ -47,6 +52,8 @@ public final class ArcadeView extends View {
     void predict(boolean win);
 
     void beginJury();
+
+    void bluffTruth(boolean trueStory);
 
     void judge(boolean yes);
 
@@ -159,12 +166,104 @@ public final class ArcadeView extends View {
 
   private static final class Hit {
     final String id;
+    final String label;
     final RectF area;
 
     Hit(String id, RectF area) {
+      this(id, area, id);
+    }
+
+    Hit(String id, RectF area, String label) {
       this.id = id;
       this.area = area;
+      this.label = label;
     }
+  }
+
+  private int hoverHit = -1;
+  private final AccessibilityNodeProvider accessibleControls = new AccessibilityNodeProvider() {
+    @Override public AccessibilityNodeInfo createAccessibilityNodeInfo(int id) {
+      if (id == View.NO_ID) {
+        AccessibilityNodeInfo root = AccessibilityNodeInfo.obtain(ArcadeView.this);
+        onInitializeAccessibilityNodeInfo(root);
+        root.setClassName("android.view.ViewGroup");
+        root.setVisibleToUser(true);
+        root.setImportantForAccessibility(true);
+        for (int i = 0; i < hits.size(); i++) root.addChild(ArcadeView.this, i);
+        return root;
+      }
+      if (id < 0 || id >= hits.size()) return null;
+      Hit hit = hits.get(id);
+      AccessibilityNodeInfo node = AccessibilityNodeInfo.obtain();
+      node.setSource(ArcadeView.this, id);
+      node.setParent(ArcadeView.this);
+      node.setPackageName(getContext().getPackageName());
+      node.setClassName("android.widget.Button");
+      node.setText(hit.label);
+      node.setContentDescription(hit.label);
+      node.setEnabled(true);
+      node.setVisibleToUser(true);
+      node.setImportantForAccessibility(true);
+      node.setFocusable(true);
+      node.setClickable(true);
+      node.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK);
+      Rect relative = new Rect(Math.round(offsetX + hit.area.left * scale),
+          Math.round(hit.area.top * scale), Math.round(offsetX + hit.area.right * scale),
+          Math.round(hit.area.bottom * scale));
+      node.setBoundsInParent(relative);
+      int[] location = new int[2];
+      getLocationOnScreen(location);
+      Rect screenBounds = new Rect(relative);
+      screenBounds.offset(location[0], location[1]);
+      node.setBoundsInScreen(screenBounds);
+      return node;
+    }
+
+    @Override public boolean performAction(int id, int action, Bundle args) {
+      if (id < 0 || id >= hits.size() || action != AccessibilityNodeInfo.ACTION_CLICK) return false;
+      RectF target = new RectF(hits.get(id).area);
+      post(() -> {
+        long now = android.os.SystemClock.uptimeMillis();
+        MotionEvent tap = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN,
+            offsetX + target.centerX() * scale, target.centerY() * scale, 0);
+        onTouchEvent(tap);
+        tap.recycle();
+      });
+      return true;
+    }
+  };
+
+  @Override public AccessibilityNodeProvider getAccessibilityNodeProvider() {
+    return accessibleControls;
+  }
+
+  @Override public boolean dispatchHoverEvent(MotionEvent event) {
+    AccessibilityManager manager = (AccessibilityManager)
+        getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
+    if (manager == null || !manager.isTouchExplorationEnabled()) return super.dispatchHoverEvent(event);
+    int found = -1;
+    float x = (event.getX() - offsetX) / scale, y = event.getY() / scale;
+    for (int i = 0; i < hits.size(); i++) if (hits.get(i).area.contains(x, y)) {
+      found = i;
+      break;
+    }
+    if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT) found = -1;
+    if (found != hoverHit) {
+      if (hoverHit >= 0) announceVirtual(hoverHit, AccessibilityEvent.TYPE_VIEW_HOVER_EXIT);
+      hoverHit = found;
+      if (found >= 0) announceVirtual(found, AccessibilityEvent.TYPE_VIEW_HOVER_ENTER);
+    }
+    return found >= 0;
+  }
+
+  private void announceVirtual(int id, int type) {
+    if (id >= hits.size() || getParent() == null) return;
+    AccessibilityEvent event = AccessibilityEvent.obtain(type);
+    event.setSource(this, id);
+    event.setPackageName(getContext().getPackageName());
+    event.setClassName("android.widget.Button");
+    event.getText().add(hits.get(id).label);
+    getParent().requestSendAccessibilityEvent(this, event);
   }
 
   public ArcadeView(Context context, GameEngine game, Actions actions) {
@@ -175,6 +274,7 @@ public final class ArcadeView extends View {
     avatarSheet = BitmapFactory.decodeResource(getResources(), R.drawable.avatar_sheet);
     sceneAtlas = BitmapFactory.decodeResource(getResources(), R.drawable.game_scene_atlas);
     setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+    setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
   }
 
   public float virtualHeight() {
@@ -330,10 +430,10 @@ public final class ArcadeView extends View {
       p.setTextSize(size);
       if (p.measureText(label) <= w - 16) break;
       size -= 1;
-    } while (size > 10);
+    } while (size > 14);
     display(c, label, x + w / 2, y + h / 2 + size * .34f,
         size + 1, color == PANEL ? WHITE : BG, true);
-    hits.add(new Hit(id, new RectF(x, y, x + w, y + h)));
+    hits.add(new Hit(id, new RectF(x, y, x + w, y + h), label));
   }
 
   private void label(Canvas c, String s, float y) {
@@ -346,7 +446,8 @@ public final class ArcadeView extends View {
     boolean canMenu = !"HOME".equals(g.screen) && !"SETTINGS".equals(g.screen)
         && !"GUIDE".equals(g.screen) && !"STATS".equals(g.screen);
     text(c, canMenu ? "☰" : "✦", 365, 62, 26, CYAN, true);
-    if (canMenu) hits.add(new Hit("settings", new RectF(325, 12, 398, 89)));
+    if (canMenu) hits.add(new Hit("settings", new RectF(325, 12, 398, 89),
+        vt("Réglages", "Settings")));
     p.setColor(PINK);
     c.drawRoundRect(20, 91, 380, 94, 2, 2, p);
     if (sub != null) text(c, sub, 200, 122, 14, MUTED, true);
@@ -385,9 +486,11 @@ public final class ArcadeView extends View {
         true);
     float y = H - 312;
     button(c, "new", g.t("LANCER LA SOIRÉE", "START THE PARTY"), 35, y, 330, 59, YELLOW);
-    if (actions.hasSavedParty())
-      button(c, "resume", g.t("REPRENDRE", "RESUME"), 35, y + 68, 330, 59, CYAN);
-    else button(c, "join", g.t("REJOINDRE UNE SALLE", "JOIN A ROOM"), 35, y + 68, 330, 59, CYAN);
+    if (actions.hasSavedParty()) {
+      button(c, "resume", g.t("REPRENDRE", "RESUME"), 35, y + 68, 155, 59, CYAN);
+      button(c, "join", g.t("REJOINDRE", "JOIN ROOM"), 205, y + 68, 160, 59, CYAN);
+    } else button(c, "join", g.t("REJOINDRE UNE SALLE", "JOIN A ROOM"),
+        35, y + 68, 330, 59, CYAN);
     button(c, "stats", g.t("CLASSEMENT", "LEADERBOARD"), 35, y + 136, 155, 55, YELLOW);
     button(
         c, "settings", g.t("MUSIQUE / SPOTIFY", "MUSIC / SPOTIFY"), 205, y + 136, 160, 55, YELLOW);
@@ -416,7 +519,8 @@ public final class ArcadeView extends View {
           99, y + 47, 9, MUTED, false);
       text(c, a.language, 340, y + 33, 15, YELLOW, true);
       if (!actions.client() || a.name.equals(((MainActivity) getContext()).network.localName))
-        hits.add(new Hit("edit:" + i, new RectF(22, y, 378, y + 57)));
+        hits.add(new Hit("edit:" + i, new RectF(22, y, 378, y + 57),
+            a.name + vt(" : portrait et profil", ": avatar and profile")));
     }
     if (actions.client()) {
       block(
@@ -490,7 +594,8 @@ public final class ArcadeView extends View {
       text(c, "0" + (i + 1), 50, y + 34, 17, TILE[i], false);
       text(c, title(g.offers[i]), 200, y + 43, 19, WHITE, true);
       text(c, vt("VOTER", "VOTE") + "  →", 324, y + 70, 12, TILE[i], true);
-      if (voter != null) hits.add(new Hit("vote:" + i, new RectF(26, y, 374, y + 87)));
+      if (voter != null) hits.add(new Hit("vote:" + i, new RectF(26, y, 374, y + 87),
+          vt("Voter pour ", "Vote for ") + title(g.offers[i])));
     }
     text(c, g.voteCount() + " / " + g.players.size() + " " + vt("VOTES", "VOTES"), 200, 585, 17, CYAN, true);
     bonusCard(c);
@@ -554,7 +659,8 @@ public final class ArcadeView extends View {
           200, y + 29, 20, WHITE, true);
       int points = (g.ruleId == 0 ? 2 : 1) * (100 + 50 * (i - 1) + (g.bonusId == 1 ? 50 : 0));
       text(c, g.t("Victoire +", "Win +") + points + " pts", 200, y + 51, 12, MUTED, true);
-      hits.add(new Hit("bet:" + i, new RectF(35, y, 365, y + 67)));
+      hits.add(new Hit("bet:" + i, new RectF(35, y, 365, y + 67),
+          i + " " + g.t("gorgées", "sips")));
     }
     text(c, g.t("Défaite : ta mise rejoint la jauge.", "Lose: your stake fills the meter."),
         200, H - 48, 13, MUTED, true);
@@ -571,22 +677,29 @@ public final class ArcadeView extends View {
     scene(c, g.game, 25, 170, 350, H - 278);
     GameSprites.icon(c, p, g.game, 200, 270, 5, 0, System.currentTimeMillis());
     text(c, actor.name.toUpperCase(Locale.ROOT), 200, 395, 27, WHITE, true);
-    block(c, vt("Va-t-il réussir ce défi ?", "Will they beat this challenge?"),
+    block(c, vt("Tu le couvres ou tu le défies ?", "Back them or challenge them?"),
         200, 434, 320, 19, YELLOW, true);
     GameEngine.Player voter = ((MainActivity) getContext()).localPredictor();
     if (voter != null) {
       text(c, voter.name + " • " + left + "s", 200, 489, 17, CYAN, true);
-      button(c, "predictYes", vt("OUI  •  +35 PTS", "YES  •  +35 PTS"),
+      button(c, "predictYes", vt("JE LE COUVRE  •  +35 PTS", "I BACK THEM  •  +35 PTS"),
           38, 528, 324, 66, CYAN);
-      button(c, "predictNo", vt("NON  •  +35 PTS", "NO  •  +35 PTS"),
+      button(c, "predictNo", vt("JE LE DÉFIE  •  +50 PTS", "I CHALLENGE  •  +50 PTS"),
           38, 610, 324, 66, PINK);
     } else {
       block(c, vt("Prono envoyé. Le défi commence dans un instant…",
           "Prediction locked. The challenge starts shortly…"), 200, 562, 315, 18, WHITE, true);
       text(c, left + "s", 200, 638, 30, CYAN, true);
     }
-    text(c, vt("Mauvais prono : +1 gorgée virtuelle", "Wrong call: +1 virtual sip"),
-        200, H - 68, 13, MUTED, true);
+    String backingFr = (g.game == 4 || g.game == 5 || g.game == 7)
+        ? "Couverture : -1 gorgée si échec. "
+        : "Couverture : +2 s et -1 gorgée si échec. ";
+    String backingEn = (g.game == 4 || g.game == 5 || g.game == 7)
+        ? "Back: -1 sip on a loss. "
+        : "Back: +2s and -1 sip on a loss. ";
+    block(c, vt(backingFr + "Défi : +25 pts si victoire. Mauvais choix : +1 gorgée virtuelle.",
+        backingEn + "Challenge: +25 pts on a win. Wrong call: +1 virtual sip."),
+        200, H - 80, 346, 12, MUTED, true);
   }
 
   private String bonusName() {
@@ -624,7 +737,8 @@ public final class ArcadeView extends View {
     block(c, g.t("Optionnelle. Le jeu marche sans compte Spotify.",
         "Optional. The game works without Spotify."), 200, y + 436, 310, 12, MUTED, true);
     button(c, "spotify", g.t("CONFIG.", "CONFIG"), 47, y + 467, 145, 43, PINK);
-    button(c, "radio", "RADIO", 207, y + 467, 146, 43, CYAN);
+    button(c, "radio", a.radioActive() ? g.t("STOP RADIO", "STOP RADIO") : "RADIO",
+        207, y + 467, 146, 43, CYAN);
     button(c, "back", g.t("RETOUR", "BACK"), 35, H - 90, 330, 59, PANEL);
   }
 
@@ -633,8 +747,8 @@ public final class ArcadeView extends View {
       "Four answers, sixteen seconds. Speed counts: one mistake or timeout loses the wager."},
     {"Prends la pose absurde affichée et tiens bon. Le groupe décide si le défi est réussi.",
       "Strike the silly pose on screen and hold it. The group decides if you pulled it off."},
-    {"Écoute le morceau et trouve son nom parmi quatre choix. Mélodies originales hors ligne ou Spotify configuré.",
-      "Listen and pick the tune from four choices. Original offline melodies or configured Spotify."},
+    {"Sans Spotify, écoute le motif : montée, descente, sauts ou silences ? Avec Spotify, retrouve le titre.",
+      "Offline, hear the pattern: rising, falling, jumps or pauses? With Spotify, name the song."},
     {"Frappe dix cibles néon avant la fin du chrono. Les cibles changent de place à chaque touche.",
       "Hit ten neon targets before the clock runs out. Targets jump after each hit."},
     {"Choisis un des six gobelets. Le nombre de gobelets piégés égale ta mise : gros pari, gros risque.",
@@ -645,10 +759,10 @@ public final class ArcadeView extends View {
       "Watch the color sequence and replay it in order before time runs out."},
     {"Tape au centre du beat quatre fois. Le timing compte plus que la vitesse.",
       "Tap near the center of the beat four times. Timing matters more than speed."},
-    {"Raconte ton bluff avec aplomb. Les autres joueurs décident s'ils y croient.",
-      "Sell your story with confidence. The other players decide if they believe you."},
-    {"Désamorce la bombe à huit touches. Chaque touche doit venir du joueur suivant, sur ce téléphone ou le sien.",
-      "Defuse with eight taps. Each tap must come from the next player, on this phone or theirs."}
+    {"Raconte une anecdote vraie ou inventée, puis verrouille ton secret. Si la majorité du jury se trompe, tu gagnes.",
+      "Tell a true or made-up story, then lock your secret. Fool the jury majority to win."},
+    {"Désamorce la bombe en relais : deux touches par personne, puis passe le téléphone ou la main. Le groupe doit agir avant l'explosion.",
+      "Defuse the bomb together: two taps per person, then hand over the phone or control. Beat the explosion."}
   };
 
   private static final String[][] GUIDE_TIPS = {
@@ -701,7 +815,8 @@ public final class ArcadeView extends View {
       String name = title(i);
       float size = name.length() > 15 ? 11 : 13;
       text(c, name, x + 110, y + 43, size, WHITE, true);
-      if (!actions.client()) hits.add(new Hit("pick:" + i, new RectF(x, y, x + 172, y + 67)));
+      if (!actions.client()) hits.add(new Hit("pick:" + i, new RectF(x, y, x + 172, y + 67),
+          title(i)));
     }
     bonusCard(c);
     ruleReportButton(c);
@@ -747,7 +862,8 @@ public final class ArcadeView extends View {
       panel(c, 27, y, 346, 72, PANEL, TILE[i]);
       text(c, RULE_NAMES[id][viewerEnglish() ? 1 : 0], 200, y + 29, 18, WHITE, true);
       text(c, RULE_DETAILS[id][viewerEnglish() ? 1 : 0], 200, y + 55, 11, MUTED, true);
-      if (owner) hits.add(new Hit("rule:" + id, new RectF(27, y, 373, y + 72)));
+      if (owner) hits.add(new Hit("rule:" + id, new RectF(27, y, 373, y + 72),
+          ruleName(id)));
     }
   }
 
@@ -765,7 +881,8 @@ public final class ArcadeView extends View {
         + (g.catTaps.length > g.indexOf(viewer.name) ? g.catTaps[g.indexOf(viewer.name)] : 0) + "/20";
     text(c, line, 235, y + 25, 15, YELLOW, true);
     text(c, vt("Un secret pour toute la salle", "A secret for the whole room"), 235, y + 48, 11, MUTED, true);
-    if (viewer != null) hits.add(new Hit("cat", new RectF(30, y - 14, 150, y + 69)));
+    if (viewer != null) hits.add(new Hit("cat", new RectF(30, y - 14, 150, y + 69),
+        vt("Chat secret", "Secret cat")));
   }
 
   private void pixelCat(Canvas c, float cx, float cy, float size) {
@@ -883,13 +1000,19 @@ public final class ArcadeView extends View {
     GameSprites.stage(c, p, g.game, 23, 172, 354, H - 267,
         g.game == 3 || g.game == 9 ? g.taps : g.progress, System.currentTimeMillis());
     scene(c, g.game, 23, 172, 354, H - 267);
-    GameSprites.icon(c, p, g.game, 68, 211, 2.15f,
+    GameSprites.icon(c, p, g.game, 72, 211, 3f,
         g.game == 3 ? g.taps : g.progress, System.currentTimeMillis());
     if (g.deadline > 0) {
       long sec = Math.max(0, (g.deadline - ((MainActivity) getContext()).hostNow() + 999) / 1000);
       text(c, sec + "s", 339, 208, 20, YELLOW, true);
     }
     if (g.juryPhase) { jury(c); buzz(c, a); return; }
+    if (actions.client() && g.game != 9 && g.game != 5
+        && !a.name.equals(((MainActivity) getContext()).network.localName)) {
+      spectator(c, a);
+      buzz(c, a);
+      return;
+    }
     switch (g.game) {
       case 0 -> quiz(c);
       case 1 -> pose(c);
@@ -905,6 +1028,17 @@ public final class ArcadeView extends View {
     buzz(c, a);
   }
 
+  private void spectator(Canvas c, GameEngine.Player actor) {
+    GameSprites.icon(c, p, g.game, 200, 374, 6.2f, g.progress,
+        System.currentTimeMillis());
+    block(c, vt(actor.name + " joue. Tu as déjà influencé ce défi !",
+        actor.name + " is playing. You shaped this challenge!"),
+        200, 535, 312, 20, WHITE, true);
+    block(c, vt("Un soutien donne du temps et protège une gorgée. Un défi augmente le jackpot.",
+        "Backing adds time and shields one sip. A challenge raises the jackpot."),
+        200, 611, 312, 15, YELLOW, true);
+  }
+
   private void buzz(Canvas c, GameEngine.Player a) {
     text(c, g.t("JAUGE DE GORGÉES", "SIP METER"), 22, H - 62, 12, MUTED, false);
     panel(c, 22, H - 50, 263, 21, BG, PINK);
@@ -915,11 +1049,15 @@ public final class ArcadeView extends View {
   }
 
   private void quiz(Canvas c) {
-    String[] q = (g.english() ? GameEngine.QUIZ_EN : GameEngine.QUIZ_FR)[g.variant];
-    block(c, q[0], 200, 257, 295, 21, WHITE, true);
+    String[] q = g.variant < 0 ? null
+        : (g.english() ? GameEngine.QUIZ_EN : GameEngine.QUIZ_FR)[g.variant];
+    String prompt = q == null ? (g.english() ? g.screenPromptEn : g.screenPromptFr) : q[0];
+    String[] choices = g.english() ? g.screenChoicesEn : g.screenChoicesFr;
+    block(c, prompt, 200, 257, 295, 21, WHITE, true);
     for (int i = 0; i < 4; i++) {
       int opt = (i - g.target + 4) % 4;
-      button(c, "answer:" + i, q[opt + 1], 45, 354 + i * 66, 310, 55, i % 2 == 0 ? CYAN : YELLOW);
+      String label = choices.length == 4 ? choices[i] : q[opt + 1];
+      button(c, "answer:" + i, label, 45, 354 + i * 66, 310, 55, i % 2 == 0 ? CYAN : YELLOW);
     }
   }
 
@@ -944,11 +1082,15 @@ public final class ArcadeView extends View {
     text(c, cast + " / " + Math.max(1, g.players.size() - 1) + " "
         + g.t("AVIS", "VOTES"), 200, 464, 18, CYAN, true);
     if (judge != null) {
-      block(c, judge.name + g.t(" : défi validé ?", ": challenge complete?"),
+      block(c, judge.name + (g.game == 8
+          ? vt(" : vrai ou inventé ?", ": true or made up?")
+          : vt(" : défi validé ?", ": challenge complete?")),
           200, 509, 324, 18, YELLOW, true);
-      button(c, "judgeYes", g.t("OUI, ÇA PASSE", "YES, IT COUNTS"),
+      button(c, "judgeYes", g.game == 8 ? vt("C'ÉTAIT VRAI", "IT WAS TRUE")
+          : vt("OUI, ÇA PASSE", "YES, IT COUNTS"),
           39, 550, 322, 66, CYAN);
-      button(c, "judgeNo", g.t("NON, GORGÉE !", "NO, TAKE A SIP!"),
+      button(c, "judgeNo", g.game == 8 ? vt("C'ÉTAIT INVENTÉ", "IT WAS MADE UP")
+          : vt("NON, GORGÉE !", "NO, TAKE A SIP!"),
           39, 631, 322, 66, PINK);
     } else block(c, g.t("Le jury décide…", "The jury is deciding…"),
         200, 555, 320, 21, WHITE, true);
@@ -957,7 +1099,9 @@ public final class ArcadeView extends View {
   private void blind(Canvas c) {
     block(
         c,
-        g.t("Écoute et devine le morceau !", "Listen and name that tune!"),
+        g.note.startsWith("{")
+            ? g.t("Écoute et devine le morceau !", "Listen and name that tune!")
+            : g.t("Écoute : quel motif entends-tu ?", "Listen: which pattern do you hear?"),
         200,
         258,
         300,
@@ -977,7 +1121,9 @@ public final class ArcadeView extends View {
     for (int i = 0; i < 4; i++) {
       int option = (i - g.target + 4) % 4;
       String name =
-          spotifyChoices == null
+          (g.english() ? g.screenChoicesEn : g.screenChoicesFr).length == 4
+              ? (g.english() ? g.screenChoicesEn : g.screenChoicesFr)[i]
+              : spotifyChoices == null
               ? GameEngine.TUNES[(g.variant + option) % 6][g.english() ? 1 : 0]
               : spotifyChoices.optString(option, "?");
       button(c, "answer:" + i, name, 35, 384 + i * 62, 330, 51, i % 2 == 0 ? CYAN : YELLOW);
@@ -1026,7 +1172,8 @@ public final class ArcadeView extends View {
       p.setColor(YELLOW);
       c.drawRoundRect(x + 18, y + 26, x + 73, y + 81, 9, 9, p);
       text(c, g.chosenCup == i ? "!" : "?", x + 45, y + 67, 35, BG, true);
-      if (g.chosenCup < 0) hits.add(new Hit("cup:" + i, new RectF(x, y, x + 91, y + 108)));
+      if (g.chosenCup < 0) hits.add(new Hit("cup:" + i, new RectF(x, y, x + 91, y + 108),
+          g.t("Gobelet ", "Cup ") + (i + 1)));
     }
     if (g.chosenCup >= 0)
       text(c, g.t("LE GOBELET SE RETOURNE…", "THE CUP IS TURNING…"),
@@ -1047,7 +1194,8 @@ public final class ArcadeView extends View {
             "The artist is preparing a masterpiece…"), 200, 548, 305, 19, YELLOW, true);
         return;
       }
-      String[] prompt = GameEngine.DRAW[g.variant];
+      String[] prompt = g.variant < 0
+          ? new String[] {g.screenPromptFr, g.screenPromptEn} : GameEngine.DRAW[g.variant];
       block(
           c,
           g.t("Dessine : ", "Draw: ") + prompt[g.english() ? 1 : 0],
@@ -1088,7 +1236,10 @@ public final class ArcadeView extends View {
       }
       for (int i = 0; i < 4; i++) {
         int opt = (i - g.target + 4) % 4;
-        String[] q = GameEngine.DRAW[(g.variant + opt) % GameEngine.DRAW.length];
+        String[] q = g.variant < 0
+            ? new String[] {g.screenChoicesFr.length == 4 ? g.screenChoicesFr[i] : "?",
+                g.screenChoicesEn.length == 4 ? g.screenChoicesEn[i] : "?"}
+            : GameEngine.DRAW[(g.variant + opt) % GameEngine.DRAW.length];
         button(
             c,
             "answer:" + i,
@@ -1122,7 +1273,8 @@ public final class ArcadeView extends View {
     float x = 45 + (i % 2) * 165, y = 340 + (i / 2) * 130;
     panel(c, x, y, 145, 110, TILE[i], glow ? WHITE : TILE[i]);
     text(c, new String[] {"◆", "●", "▲", "■"}[i], x + 72, y + 68, 54, WHITE, true);
-    if (!glow) hits.add(new Hit("tile:" + i, new RectF(x, y, x + 145, y + 110)));
+    if (!glow) hits.add(new Hit("tile:" + i, new RectF(x, y, x + 145, y + 110),
+        g.t("Couleur ", "Color ") + (i + 1)));
   }
 
   private void rhythm(Canvas c) {
@@ -1135,8 +1287,10 @@ public final class ArcadeView extends View {
         21,
         WHITE,
         true);
-    long phase = (((MainActivity) getContext()).hostNow() - g.started) % 600;
-    float pulse = phase < 300 ? phase / 300f : (600 - phase) / 300f;
+    int phase = RhythmClock.phase(g.started, ((MainActivity) getContext()).hostNow());
+    float pulse = phase < 0 ? 0 : phase < RhythmClock.TARGET_MS
+        ? phase / (float) RhythmClock.TARGET_MS
+        : (RhythmClock.PERIOD_MS - phase) / (float) RhythmClock.TARGET_MS;
     p.setStyle(Paint.Style.STROKE);
     p.setStrokeWidth(5 + 10 * pulse);
     p.setColor(YELLOW);
@@ -1145,7 +1299,8 @@ public final class ArcadeView extends View {
     p.setColor(PINK);
     c.drawCircle(200, 440, 68, p);
     text(c, "TAP", 200, 452, 30, WHITE, true);
-    hits.add(new Hit("beat", new RectF(90, 330, 310, 550)));
+    hits.add(new Hit("beat", new RectF(90, 330, 310, 550),
+        g.t("Frapper sur le temps", "Tap on the beat")));
     text(c, g.rhythmHits + " / 4", 200, 611, 24, CYAN, true);
   }
 
@@ -1155,21 +1310,24 @@ public final class ArcadeView extends View {
     GameSprites.icon(c, p, 8, 200, 500, 5f, g.variant, System.currentTimeMillis());
     block(
         c,
-        g.t("Le groupe juge ta performance.", "The group decides your fate."),
+        g.t("Raconte, puis verrouille ta vérité en secret.",
+            "Tell the story, then lock your truth in secret."),
         200,
         603,
         315,
         15,
         MUTED,
         true);
-    button(c, "juryStart", g.t("PASSER AU JURY", "LET THE JURY VOTE"),
-        38, H - 174, 324, 65, CYAN);
+    button(c, "bluffTrue", g.t("VRAI", "TRUE"),
+        38, H - 174, 152, 65, CYAN);
+    button(c, "bluffFalse", g.t("INVENTÉ", "MADE UP"),
+        210, H - 174, 152, 65, PINK);
   }
 
   private void bomb(Canvas c) {
     block(
         c,
-        g.t("Passe le téléphone et désamorce à 8 taps !", "Pass the phone and defuse with 8 taps!"),
+        g.t("Deux taps chacun, puis passe la bombe !", "Two taps each, then pass the bomb!"),
         200,
         261,
         310,
@@ -1182,8 +1340,9 @@ public final class ArcadeView extends View {
     p.setColor(YELLOW);
     c.drawCircle(200, 443, 56, p);
     text(c, "TAP!", 200, 453, 26, BG, true);
-    hits.add(new Hit("bomb", new RectF(105, 350, 295, 540)));
-    text(c, g.taps + " / 8", 200, 603, 25, CYAN, true);
+    hits.add(new Hit("bomb", new RectF(105, 350, 295, 540),
+        g.t("Toucher la bombe", "Tap the bomb")));
+    text(c, g.taps + " / " + g.bombGoal(), 200, 603, 25, CYAN, true);
     if (g.bombNext < g.players.size())
       text(c, g.t("À TOI : ", "YOUR TAP: ") + g.players.get(g.bombNext).name,
           200, 645, 18, YELLOW, true);
@@ -1218,8 +1377,12 @@ public final class ArcadeView extends View {
     for (int i = 0; i < g.predictions.length; i++) if (i != g.active && g.predictions[i] >= 0) {
       if ((g.predictions[i] == 1) == g.lastWon) right++; else wrong++;
     }
-    text(c, g.t("PRONOS : ", "PREDICTIONS: ") + right + g.t(" JUSTES", " RIGHT")
-        + "  •  " + wrong + g.t(" RATÉS", " WRONG"), 200, 632, 14, CYAN, true);
+    text(c, g.game == 8 ? (g.bluffTruth == 1
+        ? g.t("L'HISTOIRE ÉTAIT VRAIE", "THE STORY WAS TRUE")
+        : g.t("L'HISTOIRE ÉTAIT INVENTÉE", "THE STORY WAS MADE UP"))
+        : g.t("PRONOS : ", "PREDICTIONS: ") + right + g.t(" JUSTES", " RIGHT")
+            + "  •  " + wrong + g.t(" RATÉS", " WRONG"),
+        200, 632, 14, CYAN, true);
     if (g.secretId == g.game + 1 && g.ruleId < 0)
       text(c, g.t("★ SECRET DÉBLOQUÉ ★", "★ SECRET UNLOCKED ★"),
           200, 660, 14, YELLOW, true);
@@ -1472,6 +1635,10 @@ public final class ArcadeView extends View {
       if (kind == 0) handle(x, y, kind);
       return true;
     }
+    if ("GAME".equals(g.screen) && actions.client() && g.game == 8) {
+      if (kind == 0) handle(x, y, kind);
+      return true;
+    }
     if ("VOTE".equals(g.screen) || "LIBRARY".equals(g.screen)) {
       if (kind == 0) handle(x, y, kind);
       return true;
@@ -1576,6 +1743,8 @@ public final class ArcadeView extends View {
       case "ruleYes" -> actions.ruleVote(true);
       case "ruleNo" -> actions.ruleVote(false);
       case "juryStart" -> actions.beginJury();
+      case "bluffTrue" -> actions.bluffTruth(true);
+      case "bluffFalse" -> actions.bluffTruth(false);
       case "judgeYes" -> actions.judge(true);
       case "judgeNo" -> actions.judge(false);
       case "readyVote" -> actions.confirmPass();
@@ -1596,10 +1765,10 @@ public final class ArcadeView extends View {
         actions.drawingReady();
       }
       case "beat" -> {
-        long elapsed = ((MainActivity) getContext()).hostNow() - g.started;
-        int beat = (int) (elapsed / 600);
-        int offset = (int) (elapsed % 600);
-        if (Math.abs(offset - 300) <= 175 && beat > g.progress) actions.rhythmTap(beat);
+        long now = ((MainActivity) getContext()).hostNow();
+        int beat = RhythmClock.beat(g.started, now);
+        if (RhythmClock.accepts(g.started, now, beat, false) && beat > g.progress)
+          actions.rhythmTap(beat);
       }
       case "bomb" -> actions.bombTap();
       default -> {

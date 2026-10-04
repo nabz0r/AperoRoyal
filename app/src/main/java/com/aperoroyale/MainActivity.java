@@ -53,6 +53,8 @@ public final class MainActivity extends Activity
   private boolean foreground = false;
   private long clockSkew = Long.MAX_VALUE;
   private Runnable pendingBluetooth;
+  private int lastBeatCue = -1, lastBeatTurn = -1;
+  private boolean radioActive = false;
 
   @Override
   protected void onCreate(Bundle state) {
@@ -82,9 +84,28 @@ public final class MainActivity extends Activity
     view.postDelayed(this::clockTick, 100);
   }
 
+  @Override
+  public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) getWindow().getDecorView().setSystemUiVisibility(
+        View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+  }
+
   private void clockTick() {
     if (isFinishing()) return;
-    audio.setScene(game.screen);
+    audio.setScene(game.screen, game.game);
+    if ("GAME".equals(game.screen) && game.game == 7 && foreground && soundEffects) {
+      long now = hostNow();
+      int beat = RhythmClock.beat(game.started, now);
+      int phase = RhythmClock.phase(game.started, now);
+      if (lastBeatTurn != game.turn) { lastBeatTurn = game.turn; lastBeatCue = -1; }
+      if (beat >= 0 && beat != lastBeatCue && phase >= RhythmClock.TARGET_MS
+          && phase < RhythmClock.TARGET_MS + 190) {
+        lastBeatCue = beat;
+        audio.beat();
+      }
+    }
     boolean timersActive = network.hosting || foreground;
     if (!network.connected && timersActive && !passPending && game.predictionTimedOut()) {
       setPassPending(false);
@@ -147,7 +168,7 @@ public final class MainActivity extends Activity
     store.save(game);
     savedSession = true;
     if (!("GAME".equals(game.screen) && game.game == 5 && !game.drawingReady
-        && !game.strokes.isEmpty())) network.broadcast(game.networkJson());
+        && !game.strokes.isEmpty())) network.broadcast(game);
     view.invalidate();
   }
 
@@ -164,6 +185,7 @@ public final class MainActivity extends Activity
       if (i == game.active || game.predictions[i] < 0) continue;
       boolean correct = (game.predictions[i] == 1) == won;
       store.recordPrediction(game.players.get(i), game.game, correct,
+          correct ? game.predictions[i] == 0 ? 50 : 35 : 0,
           correct || game.ruleId == 1 ? 0 : 1);
     }
     if (soundEffects) {
@@ -255,6 +277,17 @@ public final class MainActivity extends Activity
     }
   }
 
+  @Override
+  public void bluffTruth(boolean trueStory) {
+    if (network.connected) { network.command("BLUFF_TRUTH", trueStory ? 1 : 0); return; }
+    GameEngine.Player actor = game.current();
+    if (actor == null || network.isRemote(actor.name)) return;
+    if (game.chooseBluffTruth(actor.name, trueStory)) {
+      setPassPending(localJudge() != null);
+      save();
+    }
+  }
+
   public GameEngine.Player localJudge() {
     if (!game.juryPhase || !"GAME".equals(game.screen)) return null;
     if (network.connected) {
@@ -298,7 +331,7 @@ public final class MainActivity extends Activity
   public void rhythmTap(int beat) {
     if (network.connected) { network.command("RHYTHM", beat); return; }
     GameEngine.Player player = game.current();
-    if (player != null && game.rhythmTap(player.name, beat)) {
+    if (player != null && game.rhythmTap(player.name, beat, false)) {
       if (game.rhythmHits >= 4) finishGame(true);
       else save();
     }
@@ -377,7 +410,11 @@ public final class MainActivity extends Activity
 
   private void beginGameAudio() {
     if (!"GAME".equals(game.screen)) return;
-    if (game.game == 2) {
+    if (game.game == 7) {
+      lastBeatTurn = game.turn;
+      lastBeatCue = -1;
+      audio.duck(18000);
+    } else if (game.game == 2) {
       audio.duck(14000);
       if (spotify.ready() && spotify.connected()) {
         game.note = "loading";
@@ -414,7 +451,7 @@ public final class MainActivity extends Activity
     if (game.players.isEmpty() || game.bombNext >= game.players.size()) return;
     String name = game.players.get(game.bombNext).name;
     if (network.isRemote(name) || !game.bombTap(name)) return;
-    if (game.taps >= 8) finishGame(true);
+    if (game.taps >= game.bombGoal()) finishGame(true);
     else save();
   }
 
@@ -687,6 +724,10 @@ public final class MainActivity extends Activity
     if (store.load(game)) {
       if ("HOME".equals(game.screen)) game.screen = "LOBBY";
       if ("GAME".equals(game.screen)) game.resumeGame();
+      if ("GAME".equals(game.screen) && game.game == 7) {
+        lastBeatTurn = game.turn;
+        lastBeatCue = -1;
+      }
       long now = System.currentTimeMillis();
       if ("PREDICT".equals(game.screen))
         game.deadline = now + ("TURBO".equals(game.mode) ? 5000 : 12000);
@@ -973,14 +1014,33 @@ public final class MainActivity extends Activity
   public float musicVolume() { return audio.volume(); }
   public boolean effectsEnabled() { return soundEffects; }
   public boolean hapticsEnabled() { return haptics; }
+  public boolean radioActive() { return radioActive; }
 
   @Override
   public void radio() {
+    if (radioActive) {
+      spotify.pause((error, round) -> {
+        if (error == null) {
+          radioActive = false;
+          audio.setExternalRadio(false);
+          view.invalidate();
+          message(game.t("Radio arrêtée", "Radio stopped"));
+        } else message(error);
+      });
+      return;
+    }
     if (!spotify.ready()) {
       message("Configure Spotify in settings");
       return;
     }
-    spotify.radio((error, round) -> message(error == null ? "Radio Apéro playing" : error));
+    spotify.radio((error, round) -> {
+      if (error == null) {
+        radioActive = true;
+        audio.setExternalRadio(true);
+        view.invalidate();
+        message(game.t("Radio Apéro lancée", "Radio Apéro playing"));
+      } else message(error);
+    });
   }
 
   @Override
@@ -1152,6 +1212,13 @@ public final class MainActivity extends Activity
       }
       return;
     }
+    if ("BLUFF_TRUTH".equals(command)) {
+      if (value >= 0 && value <= 1 && game.chooseBluffTruth(name, value == 1)) {
+        setPassPending(localJudge() != null);
+        save();
+      }
+      return;
+    }
     if ("REFLEX".equals(command)) {
       if (game.reflexTap(name, value)) {
         if (game.taps >= 10) finishGame(true);
@@ -1160,7 +1227,7 @@ public final class MainActivity extends Activity
       return;
     }
     if ("RHYTHM".equals(command)) {
-      if (game.rhythmTap(name, value)) {
+      if (game.rhythmTap(name, value, true)) {
         if (game.rhythmHits >= 4) finishGame(true);
         else save();
       }
@@ -1173,7 +1240,7 @@ public final class MainActivity extends Activity
     }
     if ("BOMB".equals(command)) {
       if (game.bombTap(name)) {
-        if (game.taps >= 8) finishGame(true);
+        if (game.taps >= game.bombGoal()) finishGame(true);
         else save();
       }
       return;

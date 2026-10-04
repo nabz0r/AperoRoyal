@@ -13,7 +13,9 @@ public final class ArcadeAudio {
   private final AtomicBoolean running = new AtomicBoolean(false);
   private volatile boolean enabled = true;
   private volatile boolean suspended = false;
+  private volatile boolean externalRadio = false;
   private volatile int scene = 0;
+  private volatile int gameTheme = 0;
   private volatile int style = 0;
   private volatile float volume = .5f;
   private volatile long duckUntil = 0;
@@ -22,6 +24,7 @@ public final class ArcadeAudio {
   private Thread loop;
   private static final int RATE = 22050;
   private static final int STEP_MS = 250;
+  private static final int[] THEME_SHIFT = {0, 5, -2, 7, -5, 2, 9, 0, 4, -3};
   private static final int[][] SCORE = {
     {0, 0, 64, 0, 0, 67, 0, 0, 71, 0, 67, 0, 0, 0, 62, 0,
      0, 0, 64, 0, 0, 69, 0, 0, 71, 0, 0, 74, 71, 0, 0, 0},
@@ -36,12 +39,12 @@ public final class ArcadeAudio {
     {48, 48, 50, 47, 48, 52, 50, 47}
   };
   private static final int[][] MELODIES = {
-    {64, 67, 71, 76, 71, 67, 64, 59},
-    {60, 64, 67, 72, 67, 64, 60, 55},
-    {57, 60, 64, 69, 72, 69, 64, 60},
-    {62, 65, 69, 74, 69, 65, 62, 57},
-    {59, 62, 66, 71, 74, 71, 66, 62},
-    {65, 69, 72, 77, 72, 69, 65, 60}
+    {60, 62, 64, 65, 67, 69, 71, 72},
+    {76, 74, 72, 71, 69, 67, 65, 64},
+    {60, 72, 60, 72, 62, 74, 62, 74},
+    {67, 0, 67, 0, 72, 0, 72, 0},
+    {60, 60, 0, 65, 65, 0, 67, 67},
+    {64, 0, 67, 69, 0, 72, 69, 64}
   };
 
   public void start() {
@@ -67,10 +70,15 @@ public final class ArcadeAudio {
                 while (running.get()) {
                   int currentScene = scene;
                   short[] pcm = new short[samplesPerStep];
-                  if (enabled && !suspended) {
+                  if (enabled && !suspended && !externalRadio) {
+                    int theme = gameTheme;
+                    int phrase = (step / 32) % 4;
+                    int shift = currentScene == 2 ? THEME_SHIFT[Math.floorMod(theme, 10)] : 0;
                     int note = SCORE[currentScene][step % 32];
+                    if (note != 0) note += shift + (phrase == 1 ? 12 : phrase == 3 ? -5 : 0);
                     double lead = note == 0 ? 0 : frequency(note);
-                    int root = BASS[currentScene][(step / 4) % 8];
+                    int root = BASS[currentScene][(step / 4) % 8] + shift
+                        + (phrase == 2 ? 5 : 0);
                     double bass = frequency(root);
                     boolean kickStep = step % 4 == 0;
                     boolean snareStep = step % 4 == 2;
@@ -101,13 +109,15 @@ public final class ArcadeAudio {
                       double hat = hatStep && within < .07 ? noise * Math.exp(-55 * within) : 0;
                       double duck = System.currentTimeMillis() < duckUntil ? .17 : 1;
                       double activity = currentScene == 2 ? 1 : currentScene == 1 ? .72 : .55;
+                      if (currentScene == 2 && theme == 7) activity = .12;
                       double sample = (bassWave * .07 * Math.exp(-2.4 * within)
                           + pad * (style == 0 ? .012 : .009)
                           + leadWave * leadEnvelope * (style == 0 ? .028 : .052)
                           + arpeggio * (style == 0 ? .010 : .022)
                           + kick * (style == 0 ? .064 : .105) * activity
                           + snare * (style == 0 ? .019 : .044) * activity
-                          + hat * (style == 0 ? .008 : .024) * activity) * duck * volume;
+                          + hat * (style == 0 ? .008 : .024) * activity) * duck * volume
+                          * (currentScene == 2 && theme == 7 ? .16 : 1);
                       pcm[i] = (short) (Math.max(-1, Math.min(1, sample)) * Short.MAX_VALUE);
                     }
                   }
@@ -137,13 +147,15 @@ public final class ArcadeAudio {
   }
 
   public void setSuspended(boolean value) { suspended = value; }
+  public void setExternalRadio(boolean value) { externalRadio = value; }
 
   public boolean enabled() {
     return enabled;
   }
 
-  public void setScene(String screen) {
+  public void setScene(String screen, int game) {
     scene = "GAME".equals(screen) ? 2 : ("VOTE".equals(screen) || "LIBRARY".equals(screen) ? 1 : 0);
+    gameTheme = Math.floorMod(game, 10);
   }
 
   public int style() { return style; }
@@ -171,6 +183,10 @@ public final class ArcadeAudio {
     });
   }
 
+  public void beat() {
+    if (running.get() && !suspended) effects.execute(() -> playNote(82, 55, .22f));
+  }
+
   public void win() {
     effects.execute(() -> {
       for (int n : new int[] {72, 76, 79, 84}) playNote(n, 105, 0.16f);
@@ -186,7 +202,10 @@ public final class ArcadeAudio {
   public void tune(int index) {
     duck(3000);
     effects.execute(() -> {
-      for (int n : MELODIES[Math.floorMod(index, MELODIES.length)]) playNote(n, 270, 0.18f);
+      for (int n : MELODIES[Math.floorMod(index, MELODIES.length)]) {
+        if (n == 0) sleep(270);
+        else playNote(n, 270, 0.18f);
+      }
     });
   }
 
