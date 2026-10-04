@@ -96,6 +96,7 @@ public final class MainActivity extends Activity
 
   private void clockTick() {
     if (isFinishing()) return;
+    audio.setExternalRadio(network.connected || musicProvider != MusicLinks.ORIGINAL);
     audio.setScene(game.screen, game.game);
     if ("GAME".equals(game.screen) && game.game == 7 && foreground && soundEffects) {
       long now = hostNow();
@@ -114,6 +115,11 @@ public final class MainActivity extends Activity
       beginGameAudio();
       save();
     }
+    if (!network.connected && timersActive && !passPending && game.crewTimedOut()) {
+      setPassPending(false);
+      beginGameAudio();
+      save();
+    }
     if (!network.connected && timersActive && !passPending && game.ruleVoteTimedOut())
       finishRuleVote();
     if (!network.connected && timersActive && "GAME".equals(game.screen) && game.game == 4
@@ -124,6 +130,7 @@ public final class MainActivity extends Activity
         && game.deadline > 0
         && System.currentTimeMillis() > game.deadline) {
       finishGame(game.juryPhase ? game.juryVerdict()
+          : game.game == 5 && game.drawingReady ? game.drawWin()
           : (game.game == 3 && game.taps >= game.reflexGoal())
               || (game.game == 7 && game.rhythmHits >= 4));
     }
@@ -142,6 +149,7 @@ public final class MainActivity extends Activity
   protected void onResume() {
     super.onResume();
     boolean timedScreen = "GAME".equals(game.screen) || "PREDICT".equals(game.screen)
+        || "CREW".equals(game.screen)
         || "RULE_VOTE".equals(game.screen);
     if (backgroundAt > 0 && network != null && !network.hosting && !network.connected
         && !passPending && timedScreen) {
@@ -191,6 +199,12 @@ public final class MainActivity extends Activity
           correct ? game.predictions[i] == 0 ? 50 : 35 : 0,
           correct || game.ruleId == 1 ? 0 : 1);
     }
+    for (int i = 0; i < game.players.size() && i < game.crewPoints.length; i++)
+      if (i != game.active && game.crewPoints[i] > 0)
+        store.recordCrew(game.players.get(i), game.game,
+            (game.game == 0 || game.game == 2) && game.crewChoices[i] == game.target
+                || game.game == 5 && game.drawGuesses[i] == game.target,
+            game.crewPoints[i]);
     if (soundEffects) {
       if (won) audio.win();
       else audio.lose();
@@ -218,16 +232,23 @@ public final class MainActivity extends Activity
   public GameEngine.Player localGuesser() {
     if (!"GAME".equals(game.screen) || game.game != 5 || !game.drawingReady
         || game.players.size() < 2) return null;
-    GameEngine.Player guesser = game.players.get((game.active + 1) % game.players.size());
-    return network.connected ? (guesser.name.equals(network.localName) ? guesser : null)
-        : (network.isRemote(guesser.name) ? null : guesser);
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i >= 0 && i != game.active && i < game.drawGuesses.length
+          && game.drawGuesses[i] < 0 ? game.players.get(i) : null;
+    }
+    for (int step = 1; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
+      if (i < game.drawGuesses.length && game.drawGuesses[i] < 0
+          && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    }
+    return null;
   }
 
   @Override
   public void drawingReady() {
     if (!"GAME".equals(game.screen) || game.game != 5 || game.drawingReady) return;
-    game.drawingReady = true;
-    game.resumeGame();
+    if (!game.beginDrawGuess()) return;
     setPassPending(localGuesser() != null);
     save();
   }
@@ -235,15 +256,44 @@ public final class MainActivity extends Activity
   @Override
   public void drawGuess(int choice) {
     if (network.connected) { network.command("DRAW_GUESS", choice); return; }
-    if (passPending || localGuesser() == null || choice < 0 || choice > 3) return;
-    finishGame(choice == game.target);
+    GameEngine.Player guesser = localGuesser();
+    if (passPending || guesser == null || !game.drawGuess(guesser.name, choice)) return;
+    if (game.drawGuessComplete()) finishGame(game.drawWin());
+    else { setPassPending(localGuesser() != null); save(); }
   }
 
   @Override
   public void placeBet(int sips) {
     if (!game.placeBet(sips)) return;
-    setPassPending(localPredictor() != null);
+    setPassPending(localCrew() != null || localPredictor() != null);
     save();
+  }
+
+  public GameEngine.Player localCrew() {
+    if (!"CREW".equals(game.screen)) return null;
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i >= 0 && i != game.active && i < game.crewChoices.length
+          && game.crewChoices[i] < 0 ? game.players.get(i) : null;
+    }
+    for (int step = 1; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
+      if (i < game.crewChoices.length && game.crewChoices[i] < 0
+          && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    }
+    return null;
+  }
+
+  @Override
+  public void crewPick(int choice) {
+    GameEngine.Player voter = localCrew();
+    if (voter == null || passPending) return;
+    if (network.connected) { network.command("CREW_PICK", choice); return; }
+    if (game.crewPick(voter.name, choice)) {
+      setPassPending("CREW".equals(game.screen) && localCrew() != null);
+      if ("GAME".equals(game.screen)) beginGameAudio();
+      save();
+    }
   }
 
   public GameEngine.Player localPredictor() {
@@ -414,6 +464,7 @@ public final class MainActivity extends Activity
 
   private void beginGameAudio() {
     if (!"GAME".equals(game.screen)) return;
+    if (soundEffects && game.crewCount() > 0 && game.game != 2) audio.turn();
     if (game.game == 7) {
       lastBeatTurn = game.turn;
       lastBeatCue = -1;
@@ -476,7 +527,8 @@ public final class MainActivity extends Activity
   public void confirmPass() {
     if (!passPending) return;
     long paused = Math.max(0, System.currentTimeMillis() - passStartedAt);
-    if ("PREDICT".equals(game.screen) && game.deadline > 0) game.deadline += paused;
+    if (("PREDICT".equals(game.screen) || "CREW".equals(game.screen)) && game.deadline > 0)
+      game.deadline += paused;
     if ("GAME".equals(game.screen) && (game.juryPhase ||
         (game.game == 5 && game.drawingReady) || game.game == 9) && game.deadline > 0)
       game.deadline += paused;
@@ -741,11 +793,12 @@ public final class MainActivity extends Activity
         lastBeatCue = -1;
       }
       long now = System.currentTimeMillis();
-      if ("PREDICT".equals(game.screen))
+      if ("PREDICT".equals(game.screen) || "CREW".equals(game.screen))
         game.deadline = now + ("TURBO".equals(game.mode) ? 5000 : 12000);
       if ("RULE_VOTE".equals(game.screen)) game.reportDeadline = now + 10000;
       setPassPending(("VOTE".equals(game.screen) && game.voteCount() > 0 && localVoter() != null)
           || ("PREDICT".equals(game.screen) && localPredictor() != null)
+          || ("CREW".equals(game.screen) && localCrew() != null)
           || ("RULE_VOTE".equals(game.screen) && localRuleVoter() != null)
           || ("GAME".equals(game.screen) && game.juryPhase && localJudge() != null)
           || ("GAME".equals(game.screen) && game.game == 5 && game.drawingReady
@@ -1074,6 +1127,7 @@ public final class MainActivity extends Activity
         : "GUIDE".equals(game.screen) ? guideOrigin : "HOME";
     if (fromSettings && !passPending && !network.connected
         && ("GAME".equals(game.screen) || "PREDICT".equals(game.screen)
+            || "CREW".equals(game.screen)
             || "RULE_VOTE".equals(game.screen))) {
       long paused = Math.max(0, System.currentTimeMillis() - settingsPausedAt);
       game.started += paused;
@@ -1150,7 +1204,7 @@ public final class MainActivity extends Activity
 
   @Override
   public void action(String name, float x, float y, int kind, float height) {
-    if ("GAME".equals(game.screen) && game.game == 9) return;
+    if ("GAME".equals(game.screen) && (game.game == 9 || game.game == 5 && game.drawingReady)) return;
     GameEngine.Player p = game.current();
     boolean drawingGuesser = "GAME".equals(game.screen) && game.game == 5
         && game.drawingReady && game.players.size() > 1
@@ -1176,10 +1230,17 @@ public final class MainActivity extends Activity
   @Override
   public void command(String name, String command, int value) {
     if ("DRAW_GUESS".equals(command)) {
-      if ("GAME".equals(game.screen) && game.game == 5 && game.drawingReady
-          && game.players.size() > 1 && value >= 0 && value < 4
-          && name.equals(game.players.get((game.active + 1) % game.players.size()).name))
-        finishGame(value == game.target);
+      if (game.drawGuess(name, value)) {
+        if (game.drawGuessComplete()) finishGame(game.drawWin());
+        else save();
+      }
+      return;
+    }
+    if ("CREW_PICK".equals(command)) {
+      if (game.crewPick(name, value)) {
+        if ("GAME".equals(game.screen)) beginGameAudio();
+        save();
+      }
       return;
     }
     if ("READY".equals(command)) {
@@ -1300,9 +1361,11 @@ public final class MainActivity extends Activity
   public void snapshot(JSONObject state) {
     long incoming = state.optLong("revision", 0);
     if (incoming < game.revision) return;
+    String before = game.screen;
     long sample = System.currentTimeMillis() - state.optLong("sentAt", System.currentTimeMillis());
     if (clockSkew == Long.MAX_VALUE || sample < clockSkew) clockSkew = sample;
     game.restore(state);
+    if ("CREW".equals(before) && "GAME".equals(game.screen)) beginGameAudio();
     view.invalidate();
   }
 

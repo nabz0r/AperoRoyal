@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check local handoffs pause prediction and jury clocks until the next player is ready."""
+"""Check local handoffs pause crew and jury clocks until the next player is ready."""
 import time
 from smoke_v120 import adb, add_player, state, tap, wait_screen, HEIGHT, PACKAGE
 
@@ -29,22 +29,22 @@ def ready_to_bet():
     wait_screen("BET")
 
 
-def ready_to_predict():
+def ready_to_crew():
     ready_to_bet()
     tap(200, 492)
-    wait_screen("PREDICT")
+    wait_screen("CREW")
 
 
 def main():
     fresh_party("FREE")
     wait_screen("LIBRARY")
-    tap(110, 375)  # Roulette: it still uses spectator predictions.
-    ready_to_predict()
-    time.sleep(13.2)  # Longer than the normal twelve-second prediction clock.
-    assert state()["screen"] == "PREDICT", "prediction expired during phone handoff"
+    tap(110, 375)  # Roulette: friends now shield a cup.
+    ready_to_crew()
+    time.sleep(13.2)  # Longer than the normal twelve-second crew clock.
+    assert state()["screen"] == "CREW", "crew action expired during phone handoff"
     tap(200, HEIGHT - 91)
-    assert state()["screen"] == "PREDICT"
-    tap(200, 561)
+    assert state()["screen"] == "CREW"
+    tap(83, 420)
     wait_screen("GAME")
 
     fresh_party("FREE")
@@ -63,23 +63,23 @@ def main():
 
     fresh_party("FREE")
     wait_screen("LIBRARY")
-    tap(110, 219)  # Quiz: prediction and resume path.
-    ready_to_predict()
+    tap(110, 219)  # Quiz: crew action and resume path.
+    ready_to_crew()
     adb("shell", "am", "force-stop", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.3)
-    assert state()["screen"] == "PREDICT", "saved game was replaced by home screen"
+    assert state()["screen"] == "CREW", "saved game was replaced by home screen"
     tap(110, HEIGHT - 215)  # Resume button is the left half of the Home row.
-    wait_screen("PREDICT")
+    wait_screen("CREW")
     time.sleep(13.2)
-    assert state()["screen"] == "PREDICT", "resumed handoff expired"
+    assert state()["screen"] == "CREW", "resumed handoff expired"
     tap(200, HEIGHT - 91)
     adb("shell", "input", "keyevent", "3")  # Android Home, while prediction is active.
     time.sleep(13.2)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(.6)
-    assert state()["screen"] == "PREDICT", "backgrounded round expired"
-    tap(200, 561)
+    assert state()["screen"] == "CREW", "backgrounded round expired"
+    tap(200, 392)
     wait_screen("GAME")
     print("PASS: local handoffs, saved resume and backgrounded clocks")
 

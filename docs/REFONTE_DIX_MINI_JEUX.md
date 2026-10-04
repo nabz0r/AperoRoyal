@@ -1,5 +1,11 @@
 # Les dix défis qui donnent envie de relancer une manche
 
+## État livré en 1.4.4
+
+Les dix défis demandent désormais une action propre à chaque joueur. Avant Culture G et Blind Test, les amis répondent ; avant Réflexe, ils placent les premières cibles ; avant Roulette, ils protègent des gobelets ; avant Mémoire, ils construisent le début de la chaîne ; avant Rythme, ils élisent des temps. Tous les autres devinent le dessin et leurs réponses décident de la victoire de l'artiste. Poses et Bluff utilisent le jury, Bombe un relais physique ou réseau. Sur un téléphone, le passage privé attend la confirmation du joueur suivant. Sur plusieurs, chaque choix est envoyé à l'hôte et l'état est diffusé à la salle.
+
+Les pistes détaillées plus bas restent des idées de versions futures, dont des faux titres écrits par les joueurs et des duels musicaux. [L'audit 1.4.4](SIMULATION_EXPERIENCE_500.md) constate 0 manche avec un seul participant dans son modèle de 7 990 manches, mais le mode Vote à six sur un téléphone reste long et aucun vrai groupe n'a encore évalué le plaisir ou la compréhension.
+
 **Diagnostic et spécification de jeu, 4 octobre 2026.** Analyse initiale sur Apéro Royale 1.3.0 (`6e6893b`), suivie jusqu'à 1.4.3. Les propositions collectives ci-dessous restent pour la plupart à prototyper ; la suppression du quiz Spotify, le menu musical multi-services et la direction nocturne de l'accueil sont livrés. [Les deux audits automatisés de rythme](SIMULATION_EXPERIENCE_500.md) confirment le risque d'attente sur un téléphone partagé et la faible participation dans six défis. Les paquets sans répétition, les chronos finis, les variantes mécaniques et le relais de bombe sont livrés. Aucun test avec un groupe réel n'a encore mesuré le plaisir, la compréhension ou le partage.
 
 ## État livré en 1.4.3

@@ -154,7 +154,8 @@ public final class ArcadeAudio {
   }
 
   public void setScene(String screen, int game) {
-    scene = "GAME".equals(screen) ? 2 : ("VOTE".equals(screen) || "LIBRARY".equals(screen) ? 1 : 0);
+    scene = "GAME".equals(screen) ? 2
+        : ("VOTE".equals(screen) || "LIBRARY".equals(screen) || "CREW".equals(screen) ? 1 : 0);
     gameTheme = Math.floorMod(game, 10);
   }
 

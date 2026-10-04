@@ -84,15 +84,18 @@ public final class PartyExperienceSimulationTest {
         room.enterGame();
         room.readyTurn();
         assertTrue(room.placeBet(1 + input.nextInt(3)));
-        if (game != 1 && game != 8 && game != 9) {
-          setup += sharedPhone ? 5 * (people - 1) : 5;
+        boolean crewGame = game != 1 && game != 5 && game != 8 && game != 9;
+        if (crewGame) {
+          setup += sharedPhone ? 4 * (people - 1) : 4;
           for (int p = 0; p < people; p++)
-            if (p != actor) assertTrue(room.predict("P" + p, input.nextBoolean()));
+            if (p != actor) assertTrue(room.crewPick("P" + p,
+                input.nextInt(room.crewOptionCount())));
         }
         assertEquals("GAME", room.screen);
 
         boolean[] coreAction = new boolean[people];
         coreAction[actor] = true;
+        if (crewGame) for (int p = 0; p < people; p++) coreAction[p] = true;
         boolean roundWon = input.nextBoolean();
         if (game == 1 || game == 8) {
           if (game == 1) assertTrue(room.beginJury());
@@ -102,8 +105,12 @@ public final class PartyExperienceSimulationTest {
             assertTrue(room.castJury("P" + p, input.nextBoolean()));
           }
         } else if (game == 5) {
-          coreAction[(actor + 1) % people] = true;
-          room.drawingReady = true;
+          assertTrue(room.beginDrawGuess());
+          for (int p = 0; p < people; p++) if (p != actor) {
+            coreAction[p] = true;
+            assertTrue(room.drawGuess("P" + p, input.nextInt(4)));
+          }
+          roundWon = room.drawWin();
         } else if (game == 9) {
           while (room.taps < room.bombGoal()) {
             if (room.bombAwaitingPass) {
@@ -215,7 +222,7 @@ public final class PartyExperienceSimulationTest {
     int seconds = Math.min(actorSeconds, cap);
     if (room.game == 1 || room.game == 8)
       seconds += shared ? 5 * (people - 1) : 5; // jury decisions and local handoffs
-    if (room.game == 5) seconds += shared ? 8 : 5; // handoff and guess
+    if (room.game == 5) seconds += shared ? 5 * (people - 1) : 6;
     if (room.game == 9) {
       int handoffs = (room.taps - 1) / room.bombTapsPerHolder();
       seconds += (shared ? 4 : 2) * handoffs; // choose a person, then physical/network handoff

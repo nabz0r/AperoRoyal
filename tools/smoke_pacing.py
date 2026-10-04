@@ -2,7 +2,7 @@
 """Check the timed drawing handoff and a roulette choice timeout on Android."""
 import time
 
-from smoke_handoff import fresh_party, ready_to_predict
+from smoke_handoff import fresh_party, ready_to_bet
 from smoke_v120 import adb, state, tap, wait_screen, HEIGHT, SCALE
 
 
@@ -10,9 +10,11 @@ def open_free_game(index):
     fresh_party("FREE")
     wait_screen("LIBRARY")
     tap(110 + (index % 2) * 180, 219 + (index // 2) * 78)
-    ready_to_predict()
-    tap(200, HEIGHT - 91)
-    tap(200, 561)  # The other player challenges, so no support time is added.
+    ready_to_bet()
+    tap(200, 492)
+    if index == 4:
+        tap(200, HEIGHT - 91)
+        tap(83, 420)
     current = wait_screen("GAME")
     assert current["game"] == index
     return current

@@ -1,5 +1,21 @@
 # Audit de rythme, de répétition et de participation — 500 soirées simulées
 
+## 1.4.4 — chaque joueur a une action propre au défi
+
+Le contre-essai 1.4.4 exécute **500 soirées et 7 990 manches** avec les six nouveaux choix collectifs, un vote de chaque non-artiste sur le dessin et les jurys/relais déjà présents. Chaque joueur a une action dans les dix mini-jeux quand il répond à temps. Les 500 soirées de robustesse séparées couvrent aussi les expirations et 40 041 restaurations d'état. Les durées ci-dessous sont des **hypothèses de modèle**, sans observation humaine ni mesure de latence.
+
+| Configuration | Durée moyenne modélisée | Manches avec un seul joueur actif | Actions propres au défi par joueur |
+| --- | ---: | ---: | ---: |
+| 2 joueurs, 1 téléphone, Vote | 39,0 s | 0 % | 1,00 |
+| 4 joueurs, 1 téléphone, Vote | 58,2 s | 0 % | 1,00 |
+| 6 joueurs, 1 téléphone, Vote | **77,3 s** | 0 % | 1,00 |
+| 6 joueurs, 1 téléphone, Turbo | **49,4 s** | 0 % | 1,00 |
+| 6 joueurs, téléphones séparés, Vote | 35,5 s | 0 % | 1,00 |
+
+Culture G et Blind Test font répondre chacun ; Réflexe utilise les coins choisis ; Roulette affiche les protections ; Mémoire commence par les symboles des amis ; Rythme retient quatre temps élus ; tous les non-artistes devinent le dessin. Le choix privé local suspend le chrono durant le passage. Le modèle suppose quatre secondes par ami sur un téléphone partagé et quatre secondes simultanées sur plusieurs appareils ; ces valeurs doivent être chronométrées avec des groupes réels. À six sur un téléphone, le scrutin de chaque manche explique encore la longueur du mode Vote. **Ce test confirme les transitions et la participation codée, pas le plaisir, la viralité ou la qualité du réseau réel.**
+
+Les sections suivantes conservent les audits historiques 1.4.2–1.4.3 et leurs diagnostics antérieurs à cette refonte.
+
 **4 octobre 2026, audit initial 1.4.2 et contre-essai 1.4.3.** Cet audit complète le [test de robustesse du moteur](SIMULATION_500_PARTIES.md). Le test reproductible [`PartyExperienceSimulationTest`](../app/src/test/java/com/aperoroyale/PartyExperienceSimulationTest.java) traverse **500 soirées et 7 990 manches par exécution** avec le vrai tirage, les modes Vote/Libre/Turbo, deux à six profils FR/EN et les transitions du moteur. Il compte les variantes réellement tirées et les rôles qui touchent au mini-jeu. Le temps est un **modèle**, pas un chronométrage humain ni une mesure du réseau.
 
 ## Contre-essai 1.4.3 — un relais plus vivant, une attente encore longue

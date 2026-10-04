@@ -83,11 +83,22 @@ def add_player(name):
     time.sleep(.35)
 
 
-def start_from_bet():
+def start_from_bet(game, shots):
     tap(200, 492)
-    if state()["screen"] == "PREDICT":
+    if state()["screen"] == "CREW":
         tap(200, HEIGHT - 91)
-        tap(200, 561)
+        time.sleep(.12)
+        with (shots / f"crew-{game}.png").open("wb") as f:
+            f.write(subprocess.check_output([ADB, "-s", SERIAL,
+                "exec-out", "screencap", "-p"]))
+        s = state()
+        choice = s["target"] if game in (0, 2) else 0
+        if game == 0: tap(200, 392 + choice * 65)
+        elif game == 2: tap(200, 427 + choice * 65)
+        elif game == 3: tap(110, 410)
+        elif game == 4: tap(83, 420)
+        elif game == 6: tap(117, 422)
+        elif game == 7: tap(66, 442)
     return wait_screen("GAME")
 
 
@@ -185,7 +196,7 @@ def main():
         assert state()["players"][state()["active"]]["name"] == ["Pixel", "Nova"][game % 2]
         tap(200, HEIGHT - 78)
         wait_screen("BET")
-        s = start_from_bet()
+        s = start_from_bet(game, shots)
         with (shots / (slugs[game] + ".png")).open("wb") as f:
             f.write(subprocess.check_output([ADB, "-s", SERIAL, "exec-out", "screencap", "-p"]))
         play(game, s)
@@ -197,9 +208,9 @@ def main():
     assert state()["turn"] == 10
     stats = adb("shell", f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT COUNT(*) FROM history;"')
     assert int(stats) >= 10, stats
-    predictions = adb("shell", f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT COUNT(*) FROM history WHERE role=\'PREDICTION\';"')
-    assert int(predictions) >= 7, predictions
-    print("PASS: ten mini-games, visible local handoffs, alternating actors, wagers, predictions, history and screenshots")
+    crew = adb("shell", f'run-as {PACKAGE} sqlite3 databases/apero_royale.db "SELECT COUNT(*) FROM history WHERE role=\'CREW\';"')
+    assert int(crew) >= 7, crew
+    print("PASS: ten multiplayer mini-games, visible local handoffs, alternating actors, wagers, crew actions, history and screenshots")
 
 
 if __name__ == "__main__":

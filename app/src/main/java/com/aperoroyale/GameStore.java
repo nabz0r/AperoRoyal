@@ -120,6 +120,29 @@ public final class GameStore extends SQLiteOpenHelper {
     } finally { db.endTransaction(); }
   }
 
+  public void recordCrew(GameEngine.Player p, int game, boolean correct, int points) {
+    SQLiteDatabase db = getWritableDatabase();
+    db.beginTransaction();
+    try {
+      ContentValues v = new ContentValues();
+      v.put("ts", System.currentTimeMillis());
+      v.put("player", p.name);
+      v.put("game", GameEngine.TYPES[game]);
+      v.put("won", correct ? 1 : 0);
+      v.put("sips", 0);
+      v.put("points", points);
+      v.put("role", "CREW");
+      db.insert("history", null, v);
+      db.execSQL("INSERT OR IGNORE INTO stats(name) VALUES(?)", new Object[] {p.name});
+      db.execSQL("UPDATE stats SET points=points+? WHERE name=?", new Object[] {points, p.name});
+      db.execSQL("INSERT OR IGNORE INTO game_stats(name,game) VALUES(?,?)",
+          new Object[] {p.name, GameEngine.TYPES[game]});
+      db.execSQL("UPDATE game_stats SET points=points+? WHERE name=? AND game=?",
+          new Object[] {points, p.name, GameEngine.TYPES[game]});
+      db.setTransactionSuccessful();
+    } finally { db.endTransaction(); }
+  }
+
   public void recordRulePenalty(String name) {
     SQLiteDatabase db = getWritableDatabase();
     db.beginTransaction();

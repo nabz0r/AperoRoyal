@@ -34,7 +34,7 @@ def main():
         wait_screen("HANDOFF")
         tap(200, HEIGHT - 78)
         wait_screen("BET")
-        s = start_from_bet()
+        s = start_from_bet(s["game"], Path("docs/screenshots/games"))
         play(s["game"], s)
         s = wait_screen("RESULT", timeout=30)
         assert s["active"] == turn

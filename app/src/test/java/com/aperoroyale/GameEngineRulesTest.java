@@ -12,31 +12,70 @@ public final class GameEngineRulesTest {
     return game;
   }
 
-  @Test public void backingChangesTheActualRiskAndTime() {
+  @Test public void triviaGivesTheOtherPlayerARealAnswerAndPoints() {
     GameEngine game = room();
     game.startNext(0);
     game.screen = "BET";
     assertTrue(game.placeBet(2));
-    assertTrue(game.predict("B", true));
+    assertEquals("CREW", game.screen);
+    assertFalse(game.crewPick("A", game.target));
+    assertTrue(game.crewPick("B", game.target));
     assertEquals("GAME", game.screen);
-    assertEquals(1, game.supportCount());
-    assertEquals(1, game.lossSips());
-    assertEquals(18_000, game.deadline - game.started);
+    assertEquals(game.target, game.crewLead());
+    assertEquals(1, game.crewCount());
+    game.finish(true);
+    assertEquals(35, game.crewPoints[1]);
+    assertEquals(35, game.players.get(1).score);
   }
 
-  @Test public void challengeRaisesTheActorJackpotAndOwnReward() {
+  @Test public void rouletteShieldChangesRiskAndRewardsBothPlayers() {
     GameEngine game = room();
     game.startNext(4);
     game.screen = "BET";
-    assertTrue(game.placeBet(1));
-    assertTrue(game.predict("B", false));
-    assertEquals(1, game.challengeCount());
-    assertEquals(125 + (game.bonusId == 1 ? 50 : 0), game.winPoints());
-    game.ruleId = 0;
-    assertEquals(225 + (game.bonusId == 1 ? 100 : 0), game.winPoints());
-    game.ruleId = 2;
+    assertTrue(game.placeBet(2));
+    int cursed = -1;
+    for (int cup = 0; cup < 6; cup++) if (game.cupIsCursed(cup)) { cursed = cup; break; }
+    assertTrue(game.crewPick("B", cursed));
+    assertTrue(game.selectCup(cursed));
+    assertEquals(1, game.lossSips());
     game.finish(false);
-    assertEquals(50, game.players.get(1).score);
+    assertEquals(10, game.players.get(1).score);
+  }
+
+  @Test public void friendsBuildTheActualMemoryCourseAndBeatPattern() {
+    GameEngine game = room();
+    assertTrue(game.addPlayer("C", "FR", 2));
+    game.startNext(6);
+    game.screen = "BET";
+    assertTrue(game.placeBet(1));
+    assertTrue(game.crewPick("B", 3));
+    assertTrue(game.crewPick("C", 1));
+    assertEquals("GAME", game.screen);
+    assertEquals(3, game.sequence[0]);
+    assertEquals(1, game.sequence[1]);
+
+    game.startNext(7);
+    game.screen = "BET";
+    assertTrue(game.placeBet(1));
+    assertTrue(game.crewPick("B", 7));
+    assertTrue(game.crewPick("C", 5));
+    assertEquals("GAME", game.screen);
+    assertTrue(java.util.Arrays.stream(game.rhythmPattern()).anyMatch(n -> n == 7));
+    assertTrue(java.util.Arrays.stream(game.rhythmPattern()).anyMatch(n -> n == 5));
+  }
+
+  @Test public void privateCrewSnapshotHidesAnswersUntilGameStarts() throws Exception {
+    GameEngine game = room();
+    game.startNext(0);
+    game.screen = "BET";
+    assertTrue(game.placeBet(1));
+    org.json.JSONObject recipient = game.networkJsonFor("B");
+    assertEquals(-1, recipient.optInt("target"));
+    assertEquals(-1, recipient.optInt("variant"));
+    assertEquals(4, recipient.getJSONArray("screenChoicesEn").length());
+    assertTrue(game.crewPick("B", game.target));
+    assertEquals("GAME", game.screen);
+    assertEquals(-1, game.networkJsonFor("B").optInt("target"));
   }
 
   @Test public void bluffRewardsFoolingTheJurorAndKeepsTheClaimFixed() {
@@ -210,35 +249,35 @@ public final class GameEngineRulesTest {
     game.resumeGame();
     long drawLimit = game.deadline - game.started;
     assertTrue(drawLimit >= 30_000 && drawLimit <= 41_000);
-    game.drawingReady = true;
-    game.resumeGame();
+    assertTrue(game.beginDrawGuess());
     long guessLimit = game.deadline - game.started;
     assertTrue(guessLimit >= 12_000 && guessLimit <= 23_000);
     assertTrue(guessLimit < drawLimit);
   }
 
-  @Test public void voteAndTurboBreakUpLongPassiveRuns() {
+  @Test public void everyChallengeIncludesTheWholeRoom() {
     for (String mode : new String[] {"VOTE", "TURBO"}) {
       GameEngine game = room();
       for (int p = 2; p < 6; p++) assertTrue(game.addPlayer("P" + p, "FR", p));
       game.mode = mode;
-      game.startNext(0);
-      game.startNext(2);
-      assertEquals(2, game.passiveStreak);
-      game.startSelection();
-      if ("VOTE".equals(mode)) {
-        assertEquals("VOTE", game.screen);
-        for (int offered : game.offers) assertTrue(offered == 1 || offered == 8 || offered == 9);
-        for (int p = 0; p < game.players.size(); p++)
-          assertTrue(game.castVote(game.players.get(p).name, 0));
-      } else assertEquals("TRANSITION", game.screen);
-      assertTrue(game.game == 1 || game.game == 8 || game.game == 9);
-      assertEquals(0, game.passiveStreak);
+      for (int id : new int[] {0, 2, 3, 4, 6, 7}) {
+        game.startNext(id);
+        game.screen = "BET";
+        assertTrue(game.placeBet(1));
+        assertEquals("CREW", game.screen);
+        for (int p = 1; p < game.players.size(); p++) {
+          String name = game.players.get(p).name;
+          assertTrue(game.crewPick(name, p % game.crewOptionCount()));
+          assertFalse(game.crewPick(name, 0));
+        }
+        assertEquals("GAME", game.screen);
+        assertEquals(game.players.size() - 1, game.crewCount());
+      }
     }
   }
 
   @Test public void groupGamesGoStraightFromWagerToTheirSharedAction() {
-    for (int id : new int[] {1, 8, 9}) {
+    for (int id : new int[] {1, 5, 8, 9}) {
       GameEngine game = room();
       game.startNext(id);
       game.screen = "BET";

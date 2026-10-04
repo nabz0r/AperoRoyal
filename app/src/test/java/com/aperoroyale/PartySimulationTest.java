@@ -93,18 +93,23 @@ public final class PartySimulationTest {
         room = restored(room);
         restores++;
         assertTrue(room.placeBet(1 + choices.nextInt(3)));
-        if (room.game == 1 || room.game == 8 || room.game == 9) {
+        if (room.game == 1 || room.game == 5 || room.game == 8 || room.game == 9) {
           assertEquals("GAME", room.screen);
         } else {
-          assertEquals("PREDICT", room.screen);
+          assertEquals("CREW", room.screen);
           if (round % 3 == 1) { room = restored(room); restores++; }
           if (choices.nextInt(8) == 0) {
+            int absent = (actor + 1) % people;
+            for (int i = 0; i < people; i++)
+              if (i != actor && i != absent && choices.nextBoolean())
+                assertTrue(room.crewPick("P" + i, choices.nextInt(room.crewOptionCount())));
             room.deadline = System.currentTimeMillis() - 1;
-            assertTrue(room.predictionTimedOut());
+            assertTrue(room.crewTimedOut());
             timeouts++;
           } else {
             for (int i = 0; i < people; i++)
-              if (i != actor) assertTrue(room.predict("P" + i, choices.nextBoolean()));
+              if (i != actor) assertTrue(room.crewPick("P" + i,
+                  choices.nextInt(room.crewOptionCount())));
           }
         }
         assertEquals("GAME", room.screen);
@@ -136,6 +141,17 @@ public final class PartySimulationTest {
             assertTrue(room.selectCup(cup));
             assertFalse(room.selectCup((cup + 1) % 6));
             won = room.cupIsSafe();
+          }
+          case 5 -> {
+            assertTrue(room.beginDrawGuess());
+            room = restored(room);
+            restores++;
+            for (int i = 0; i < people; i++) if (i != actor) {
+              assertTrue(room.drawGuess("P" + i, choices.nextInt(4)));
+              assertFalse(room.drawGuess("P" + i, choices.nextInt(4)));
+            }
+            assertTrue(room.drawGuessComplete());
+            won = room.drawWin();
           }
           case 8 -> {
             assertTrue(room.chooseBluffTruth("P" + actor, choices.nextBoolean()));
@@ -241,6 +257,9 @@ public final class PartySimulationTest {
     assertArrayEquals(source.offers, copy.offers);
     assertArrayEquals(source.votes, copy.votes);
     assertArrayEquals(source.predictions, copy.predictions);
+    assertArrayEquals(source.crewChoices, copy.crewChoices);
+    assertArrayEquals(source.crewPoints, copy.crewPoints);
+    assertArrayEquals(source.drawGuesses, copy.drawGuesses);
     assertArrayEquals(source.juryVotes, copy.juryVotes);
     for (int i = 0; i < source.players.size(); i++) {
       GameEngine.Player a = source.players.get(i), b = copy.players.get(i);

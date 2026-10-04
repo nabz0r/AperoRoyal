@@ -1,3 +1,27 @@
+# Apéro Royale 1.4.4 — Toute la salle joue
+
+- [APK Android signé 1.4.4](releases/AperoRoyale-v1.4.4.apk) · `com.aperoroyale` · versionCode `11` · Android 8.0+ (API 26)
+- SHA-256 : `572e250370086f510add6809256a4393b057d37f41fe300e452b0d33153d5029`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.3
+
+## Changements
+
+- Les six jeux qui laissaient les amis spectateurs ont chacun une action propre : réponses et tendance de salle pour Culture G et Blind Test, placement des premières cibles pour Réflexe, protection des gobelets pour Roulette, construction de la chaîne Mémoire, vote des temps pour Rythme. Les choix se font en privé sur un téléphone partagé, ou sur chaque appareil invité.
+- Tous les non-artistes devinent désormais le dessin ; l'artiste gagne si au moins la moitié des réponses reçues sont correctes. Les passages locaux suspendent le chrono et sa durée croît avec la taille de la galerie.
+- Les contributions des amis rapportent des points et figurent dans l'historique et le classement. L'hôte masque les réponses avant la révélation, arbitre les commandes réseau et diffuse les résultats. Dans une salle à plusieurs appareils, la musique d'ambiance joue sur l'hôte et les invités conservent leurs effets locaux, pour éviter des boucles décalées.
+- Guides FR/EN, captures des dix jeux et documentation du rythme actualisés. Les scènes et sprites dédiés de chaque jeu restent en place ; les nouveaux écrans collectifs utilisent leur décor propre.
+
+## Vérifications
+
+- `testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite. 500 soirées de robustesse, 7 990 manches et 40 041 restaurations ; 500 autres soirées modélisent la participation et le rythme, avec **0 manche solo** quand chacun répond. Le modèle estime 77,3 s par manche en Vote à six sur un téléphone, 49,4 s en Turbo et 35,5 s en Vote sur appareils séparés.
+- Émulateur Android 16 : dix jeux terminés avec deux profils locaux, alternance des tours, actions collectives, mises et historique ; reprise, arrière-plan, délais de dessin, jury et Turbo vérifiés. Une manche de dessin à trois joueurs a enregistré la réponse de chaque non-artiste avant le verdict.
+- Deux émulateurs Android 16 et Android 8.0 via Wi-Fi local simulé : invité anglophone dessinant sur son appareil, hôte devinant, résultat reçu sur les deux ; choix de symbole Mémoire envoyé par l'invité et retrouvé en tête de la séquence arbitrée par l'hôte.
+- APK signée vérifiée par `apksigner` avec certificat identique à 1.4.3 ; `aapt` confirme versionCode 11 / minSdk 26. Mise à niveau de l'APK signée 1.4.3 vers 1.4.4 installée et lancée sur Android 8.0.
+
+**Limites mesurées.** Une simulation ne démontre ni plaisir ni viralité. À six sur un téléphone, le vote à chaque manche reste lent dans le modèle. Les services Bluetooth et Internet sont implémentés mais cette release n'inclut pas de mesure de latence de bout en bout sur téléphones physiques.
+
+---
+
 # Apéro Royale 1.4.3 — Le relais prend vie
 
 - [APK Android signé 1.4.3](releases/AperoRoyale-v1.4.3.apk) · `com.aperoroyale` · versionCode `10` · Android 8.0+ (API 26)

@@ -2,6 +2,7 @@
 """Exercise the Turbo secret-rule screen on a shared Android emulator."""
 
 import time
+from pathlib import Path
 from smoke_v120 import adb, add_player, play, start_from_bet, state, tap, wait_screen, HEIGHT, PACKAGE
 
 
@@ -24,7 +25,7 @@ def main():
         wait_screen("HANDOFF")
         tap(200, HEIGHT - 78)
         wait_screen("BET")
-        s = start_from_bet()
+        s = start_from_bet(s["game"], Path("docs/screenshots/games"))
         play(s["game"], s)
         wait_screen("RESULT", timeout=30)
         tap(200, HEIGHT - 78)

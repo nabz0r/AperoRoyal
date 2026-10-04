@@ -89,6 +89,8 @@ public final class GameEngine {
   public int bluffTruth = -1;
   public int[] juryVotes = {};
   public int[] predictions = {};
+  /** Private one-tap contribution from every non-actor in the six arcade challenges. */
+  public int[] crewChoices = {}, crewPoints = {}, drawGuesses = {};
   public boolean betPlaced = false;
   public long deadline = 0, started = 0;
   public boolean lastWon = false, drawingReady = false;
@@ -165,7 +167,7 @@ public final class GameEngine {
     deadline = 0;
     juryPhase = false;
     bluffTruth = -1;
-    juryVotes = predictions = new int[0];
+    juryVotes = predictions = crewChoices = crewPoints = drawGuesses = new int[0];
     revision = 0;
   }
 
@@ -195,12 +197,6 @@ public final class GameEngine {
     }
     ArrayList<Integer> pool = new ArrayList<>(deck);
     if (turn > 0) pool.remove(Integer.valueOf(game));
-    if (passiveStreak >= 2) {
-      pool.clear();
-      pool.add(1); // poses: everyone judges
-      pool.add(8); // bluff: everyone judges
-      pool.add(9); // bomb: everyone handles it
-    }
     if (pool.size() < 3)
       for (int i = 0; i < TYPES.length; i++)
         if (!pool.contains(i) && (turn == 0 || i != game)) pool.add(i);
@@ -283,8 +279,7 @@ public final class GameEngine {
   public void startNext(int chosen) {
     if (deck.isEmpty()) for (int i = 0; i < TYPES.length; i++) deck.add(i);
     game = chosen;
-    passiveStreak = chosen == 1 || chosen == 8 || chosen == 9
-        || (chosen == 5 && players.size() == 2) ? 0 : passiveStreak + 1;
+    passiveStreak = 0; // Every challenge now gives each friend a game action.
     deck.remove(Integer.valueOf(chosen));
     int variants = variantCount(chosen);
     while (variantDecks.size() < TYPES.length) variantDecks.add(new ArrayList<>());
@@ -311,6 +306,7 @@ public final class GameEngine {
     bluffTruth = -1;
     juryVotes = new int[0];
     predictions = new int[0];
+    crewChoices = crewPoints = drawGuesses = new int[0];
     betPlaced = false;
     bombNext = active;
     bombVisitedMask = 0;
@@ -396,14 +392,64 @@ public final class GameEngine {
     predictions = new int[players.size()];
     java.util.Arrays.fill(predictions, -1);
     predictions[active] = 2;
-    // Jury and bomb already give every friend a turn; a separate prediction pass stalls the room.
-    if (game == 1 || game == 8 || game == 9) {
+    // The jury, drawing gallery and bomb have their own group interaction.
+    if (game == 1 || game == 5 || game == 8 || game == 9) {
       startGame();
       return true;
     }
-    screen = "PREDICT";
+    crewChoices = new int[players.size()];
+    java.util.Arrays.fill(crewChoices, -1);
+    crewChoices[active] = 2;
+    screen = "CREW";
     deadline = System.currentTimeMillis() + ("TURBO".equals(mode) ? 5000 : 12000);
     return true;
+  }
+
+  public int crewOptionCount() { return game == 4 ? 6 : game == 7 ? 8 : 4; }
+
+  public boolean crewPick(String name, int choice) {
+    int i = indexOf(name);
+    if (!"CREW".equals(screen) || i < 0 || i == active || i >= crewChoices.length
+        || crewChoices[i] >= 0 || choice < 0 || choice >= crewOptionCount()) return false;
+    crewChoices[i] = choice;
+    if (crewReady()) startGame();
+    return true;
+  }
+
+  public int crewCount() {
+    int count = 0;
+    for (int i = 0; i < crewChoices.length; i++)
+      if (i != active && crewChoices[i] >= 0) count++;
+    return count;
+  }
+
+  public boolean crewReady() {
+    if (!"CREW".equals(screen)) return false;
+    return crewCount() == players.size() - 1;
+  }
+
+  public boolean crewTimedOut() {
+    if (!"CREW".equals(screen) || System.currentTimeMillis() < deadline) return false;
+    startGame();
+    return true;
+  }
+
+  public int crewChoiceCount(int choice) {
+    int count = 0;
+    for (int i = 0; i < crewChoices.length; i++)
+      if (i != active && crewChoices[i] == choice) count++;
+    return count;
+  }
+
+  /** A strict lead gives the actor a useful, understandable crowd option. */
+  public int crewLead() {
+    int best = -1, votes = 0;
+    for (int choice = 0; choice < crewOptionCount(); choice++) {
+      int n = crewChoiceCount(choice);
+      if (n > votes) { best = choice; votes = n; }
+      else if (n == votes && n > 0) best = -1;
+    }
+    return best;
   }
 
   public boolean predict(String name, boolean win) {
@@ -429,6 +475,23 @@ public final class GameEngine {
   }
 
   private void startGame() {
+    if ("CREW".equals(screen)) {
+      if (game == 6) {
+        int length = Math.max(players.size() - 1, 4 + Math.min(3, turn / 5));
+        int[] original = sequence;
+        sequence = new int[length];
+        int placed = 0;
+        for (int step = 1; step < players.size(); step++) {
+          int choice = crewChoices[(active + step) % players.size()];
+          if (choice >= 0) sequence[placed++] = choice;
+        }
+        for (int i = placed; i < length; i++) sequence[i] = original[i % original.length];
+      }
+      if (game == 3) {
+        targetX = reflexX(0);
+        targetY = reflexY(0);
+      }
+    }
     screen = "GAME";
     resumeGame();
   }
@@ -447,7 +510,7 @@ public final class GameEngine {
           case 2 -> 18;
           case 3 -> 15;
           case 4 -> 10;
-          case 5 -> drawingReady ? 12 : 30;
+          case 5 -> drawingReady ? 12 + 8 * Math.max(0, players.size() - 2) : 30;
           case 6 -> 22;
           case 7 -> 16;
           case 8 -> 24;
@@ -476,17 +539,31 @@ public final class GameEngine {
 
   public int winPoints() {
     return (ruleId == 0 ? 2 : 1) * (100 + 50 * (wager - 1)
-        + (bonusId == 1 ? 50 : 0)) + challengeCount() * 25;
+        + (bonusId == 1 ? 50 : 0)) + challengeCount() * 25
+        + (game == 4 ? 10 * crewChoiceCount(chosenCup) : 0);
   }
 
   public int lossSips() {
     return ruleId == 1 ? 0 : Math.max(0, wager - (bonusId == 2 ? 1 : 0)
-        - (supportCount() > 0 ? 1 : 0));
+        - (supportCount() > 0 ? 1 : 0)
+        - (game == 4 && chosenCup >= 0 && crewChoiceCount(chosenCup) > 0 ? 1 : 0));
   }
 
   public float reflexX(int step) {
     Random pattern = new Random(reflexSeed ^ (0x9e3779b9L * (step + 1)));
+    int quadrant = reflexCrewQuadrant(step);
+    if (quadrant >= 0) return (quadrant % 2 == 0 ? 77 : 208) + pattern.nextInt(115);
     return 77 + pattern.nextInt(246);
+  }
+
+  private int reflexCrewQuadrant(int step) {
+    int found = 0;
+    for (int offset = 1; offset < players.size(); offset++) {
+      int i = (active + offset) % players.size();
+      if (i >= crewChoices.length || crewChoices[i] < 0) continue;
+      if (found++ == step) return crewChoices[i];
+    }
+    return -1;
   }
 
   public int reflexGoal() {
@@ -499,6 +576,8 @@ public final class GameEngine {
 
   public float reflexY(int step) {
     Random pattern = new Random((reflexSeed * 31L) ^ (0x6a09e667L * (step + 1)));
+    int quadrant = reflexCrewQuadrant(step);
+    if (quadrant >= 0) return (quadrant < 2 ? 380 : 481) + pattern.nextInt(97);
     return 380 + pattern.nextInt(198);
   }
 
@@ -528,6 +607,20 @@ public final class GameEngine {
   }
 
   public int[] rhythmPattern() {
+    if (crewCount() > 0) {
+      int[] beats = new int[8];
+      for (int i = 0; i < 8; i++) beats[i] = i;
+      for (int i = 0; i < beats.length; i++)
+        for (int j = i + 1; j < beats.length; j++)
+          if (crewChoiceCount(beats[j]) > crewChoiceCount(beats[i])
+              || (crewChoiceCount(beats[j]) == crewChoiceCount(beats[i])
+                  && Math.floorMod(beats[j] - variant, 8) < Math.floorMod(beats[i] - variant, 8))) {
+            int swap = beats[i]; beats[i] = beats[j]; beats[j] = swap;
+          }
+      int[] result = java.util.Arrays.copyOf(beats, 4);
+      java.util.Arrays.sort(result);
+      return result;
+    }
     int[][] patterns = {
         {0, 1, 2, 3}, {0, 2, 4, 6}, {1, 2, 4, 5},
         {0, 1, 3, 5}, {0, 3, 4, 7}, {1, 3, 5, 7}
@@ -598,6 +691,44 @@ public final class GameEngine {
     return yes > (players.size() - 1) / 2;
   }
 
+  public boolean beginDrawGuess() {
+    if (!"GAME".equals(screen) || game != 5 || drawingReady) return false;
+    drawingReady = true;
+    drawGuesses = new int[players.size()];
+    java.util.Arrays.fill(drawGuesses, -1);
+    drawGuesses[active] = 2;
+    resumeGame();
+    return true;
+  }
+
+  public boolean drawGuess(String name, int choice) {
+    int i = indexOf(name);
+    if (!"GAME".equals(screen) || game != 5 || !drawingReady || i < 0 || i == active
+        || i >= drawGuesses.length || drawGuesses[i] >= 0 || choice < 0 || choice > 3) return false;
+    drawGuesses[i] = choice;
+    return true;
+  }
+
+  public int drawAnsweredCount() {
+    int count = 0;
+    for (int i = 0; i < drawGuesses.length; i++)
+      if (i != active && drawGuesses[i] >= 0) count++;
+    return count;
+  }
+
+  public boolean drawGuessComplete() { return drawAnsweredCount() >= players.size() - 1; }
+
+  public int drawCorrectCount() {
+    int count = 0;
+    for (int i = 0; i < drawGuesses.length; i++)
+      if (i != active && drawGuesses[i] == target) count++;
+    return count;
+  }
+
+  public boolean drawWin() {
+    return drawCorrectCount() > 0 && drawCorrectCount() * 2 >= players.size() - 1;
+  }
+
   public void finish(boolean won) {
     if (!"GAME".equals(screen)) return;
     lastWon = won;
@@ -626,6 +757,17 @@ public final class GameEngine {
       Player spectator = players.get(i);
       if ((predictions[i] == 1) == won) spectator.score += predictions[i] == 0 ? 50 : 35;
       else if (ruleId != 1) { spectator.drinks++; spectator.sips++; }
+    }
+    crewPoints = new int[players.size()];
+    for (int i = 0; i < players.size(); i++) {
+      if (i == active) continue;
+      boolean chose = i < crewChoices.length && crewChoices[i] >= 0;
+      boolean guessed = i < drawGuesses.length && drawGuesses[i] >= 0;
+      if (!chose && !guessed) continue;
+      boolean correct = (game == 0 || game == 2) && crewChoices[i] == target
+          || game == 5 && drawGuesses[i] == target;
+      crewPoints[i] = correct ? 35 : won ? 20 : 10;
+      players.get(i).score += crewPoints[i];
     }
     if (won) {
       boolean secret = switch (game) {
@@ -755,7 +897,7 @@ public final class GameEngine {
       if (juryPhase) finish(juryVerdict());
       else if (game == 3) finish(taps >= reflexGoal());
       else if (game == 7) finish(rhythmHits >= 4);
-      else finish(false);
+      else finish(game == 5 && drawingReady && drawWin());
     }
   }
 
@@ -782,10 +924,13 @@ public final class GameEngine {
         if ("VOTE".equals(screen)) j.put("votes", masked(votes));
         if ("PREDICT".equals(screen) || "GAME".equals(screen))
           j.put("predictions", masked(predictions));
+        if ("CREW".equals(screen)) j.put("crewChoices", masked(crewChoices));
+        if (game == 5 && drawingReady) j.put("drawGuesses", masked(drawGuesses));
         if (juryPhase) j.put("juryVotes", masked(juryVotes));
         if (!actor && game == 8) j.put("bluffTruth", -1);
         if ("RULE_VOTE".equals(screen)) j.put("reportVotes", masked(reportVotes));
-        if ("GAME".equals(screen) && (game == 0 || game == 2 || game == 5)) {
+        if (("GAME".equals(screen) || "CREW".equals(screen))
+            && (game == 0 || game == 2 || game == 5)) {
           String[] fr = new String[4], en = new String[4];
           if (game == 0) {
             j.put("screenPromptFr", QUIZ_FR[variant][0]);
@@ -818,8 +963,8 @@ public final class GameEngine {
         }
         if (("GAME".equals(screen) || "TRANSITION".equals(screen)
             || "HANDOFF".equals(screen) || "BET".equals(screen)
-            || "PREDICT".equals(screen)) && !actor && game != 9) {
-          if (!drawGuesser) {
+            || "PREDICT".equals(screen) || "CREW".equals(screen)) && !actor && game != 9) {
+          if (!drawGuesser && game != 2) {
             j.put("variant", -1);
           }
           if (game == 6) j.put("sequence", new JSONArray());
@@ -866,6 +1011,9 @@ public final class GameEngine {
       j.put("bluffTruth", bluffTruth);
       j.put("juryVotes", new JSONArray(juryVotes));
       j.put("predictions", new JSONArray(predictions));
+      j.put("crewChoices", new JSONArray(crewChoices));
+      j.put("crewPoints", new JSONArray(crewPoints));
+      j.put("drawGuesses", new JSONArray(drawGuesses));
       j.put("betPlaced", betPlaced);
       j.put("deadline", deadline);
       j.put("started", started);
@@ -960,6 +1108,9 @@ public final class GameEngine {
     bluffTruth = j.optInt("bluffTruth", -1);
     juryVotes = readInts(j.optJSONArray("juryVotes"));
     predictions = readInts(j.optJSONArray("predictions"));
+    crewChoices = readInts(j.optJSONArray("crewChoices"));
+    crewPoints = readInts(j.optJSONArray("crewPoints"));
+    drawGuesses = readInts(j.optJSONArray("drawGuesses"));
     betPlaced = j.optBoolean("betPlaced");
     deadline = j.optLong("deadline");
     started = j.optLong("started");
