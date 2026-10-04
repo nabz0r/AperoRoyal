@@ -1,3 +1,27 @@
+# Apéro Royale 1.4.6 — La table se retrouve
+
+- [Télécharger l'APK Android signé 1.4.6](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.6.apk) · `com.aperoroyale` · versionCode `13` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `6949aed727751ae7bc24558fbfe3ce29220da775f9251c3e3b12a29cde3fdf7b`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.5
+
+## Nouveautés
+
+- Les profils locaux persistent entre les soirées : pseudo, langue, sprite et photo. L'accueil reconnaît l'équipe, un profil peut être corrigé ou retiré, et le salon peut être vidé sans supprimer le classement. Le renommage transporte les statistiques et l'historique vers le nouveau pseudo.
+- ☰ ouvre un vrai menu pendant une partie sur un téléphone : pause, annulation du défi courant sans résultat, retour au salon ou accueil avec reprise ultérieure. Le chrono reste suspendu pendant le choix ; le résultat d'une manche déjà terminée est conservé.
+- Accueil recomposé autour d'une scène panoramique, d'une action principale, d'une carte de l'équipe et de quatre accès compacts. Les écrans de choix musical deviennent une grille lisible.
+- La Radio Apéro dispose d'un panneau sombre dédié : sélection directe d'une plateforme et ouverture de sa playlist, bande originale ou silence, commandes Android play/pause/suivant pour le lecteur actif. Aucun compte de streaming n'est lu par le jeu.
+- [Décisions de conception, références Play Store et limites](docs/RELEASE_146_DESIGN.md) ; captures de [l'accueil](docs/screenshots/home.png), de [la radio](docs/screenshots/radio-dock.png) et des [sources](docs/screenshots/settings-sources.png).
+
+## Vérifications
+
+- `testDebugUnitTest assembleRelease lintVitalRelease --offline` : réussite, y compris les tests de règles et simulations existants.
+- Parcours sur émulateur Android 16 : deux profils retrouvés après nouvelle soirée et fermeture ; renommage avec score et historique préservés ; pause de 13 secondes pendant une préparation de 12 secondes ; annulation sans ligne d'historique ; retour au salon ; changement de groupe ; sélection musicale persistée. Script : `tools/smoke_release_146.py`.
+- Mise à niveau de l'APK signée 1.4.5 vers 1.4.6 sur émulateur Android 8.0 : installation, lancement, création et réutilisation d'un profil après redémarrage. `apksigner` valide la signature ; `aapt` confirme versionCode 13 et minSdk 26.
+
+**Limites vérifiables.** Aucun compte Spotify, Deezer, Apple Music ou Amazon Music réel, aucun lecteur externe actif et aucun groupe de téléphones physiques n'ont été testés pour cette release. Les commandes Android peuvent être ignorées si aucune session média n'est active ; les plateformes jouent dans leur propre application. Les simulations de manche ne mesurent ni plaisir ni viralité.
+
+---
+
 # Apéro Royale 1.4.5 — Les secrets de la ruelle
 
 - [APK Android signé 1.4.5](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.5.apk) · `com.aperoroyale` · versionCode `12` · Android 8.0+ (API 26)

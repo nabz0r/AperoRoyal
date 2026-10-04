@@ -6,17 +6,19 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import java.util.ArrayList;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /** SQLite persistence for resumable sessions, lifetime scores and an auditable turn log. */
 public final class GameStore extends SQLiteOpenHelper {
   public GameStore(Context context) {
-    super(context, "apero_royale.db", null, 3);
+    super(context, "apero_royale.db", null, 4);
   }
 
   @Override
   public void onCreate(SQLiteDatabase db) {
     db.execSQL("CREATE TABLE session(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
+    db.execSQL("CREATE TABLE roster(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
     db.execSQL(
         "CREATE TABLE stats(name TEXT PRIMARY KEY COLLATE NOCASE, wins INTEGER NOT NULL DEFAULT 0,"
             + " games INTEGER NOT NULL DEFAULT 0, drinks INTEGER NOT NULL DEFAULT 0, sips INTEGER NOT NULL DEFAULT 0,"
@@ -49,6 +51,8 @@ public final class GameStore extends SQLiteOpenHelper {
           + " games INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, sips INTEGER NOT NULL DEFAULT 0,"
           + " points INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(name,game))");
     }
+    if (oldVersion < 4)
+      db.execSQL("CREATE TABLE roster(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
   }
 
   public void save(GameEngine engine) {
@@ -66,6 +70,56 @@ public final class GameStore extends SQLiteOpenHelper {
     } catch (Exception e) {
       return false;
     }
+  }
+
+  /** The local table survives a fresh party; scores and turn state do not. */
+  public void saveRoster(GameEngine engine) {
+    JSONArray players = new JSONArray();
+    for (GameEngine.Player player : engine.players) players.put(player.json(true));
+    ContentValues values = new ContentValues();
+    values.put("id", 2);
+    values.put("data", players.toString());
+    getWritableDatabase().insertWithOnConflict("roster", null, values,
+        SQLiteDatabase.CONFLICT_REPLACE);
+  }
+
+  public int loadRoster(GameEngine engine) {
+    try (Cursor cursor = getReadableDatabase().rawQuery(
+        "SELECT data FROM roster WHERE id=2", null)) {
+      if (!cursor.moveToFirst()) return 0;
+      JSONArray players = new JSONArray(cursor.getString(0));
+      for (int i = 0; i < players.length() && i < 6; i++) {
+        GameEngine.Player saved = GameEngine.Player.from(players.getJSONObject(i));
+        if (engine.addPlayer(saved.name, saved.language, saved.avatar))
+          engine.players.get(engine.players.size() - 1).photo = saved.photo;
+      }
+      return engine.players.size();
+    } catch (Exception ignored) { return 0; }
+  }
+
+  public void clearRoster() {
+    getWritableDatabase().delete("roster", "id=2", null);
+  }
+
+  /** Keep lifetime results attached to a renamed local profile. */
+  public boolean renameProfile(String previous, String next) {
+    SQLiteDatabase db = getWritableDatabase();
+    db.beginTransaction();
+    try {
+      try (Cursor existing = db.rawQuery(
+          "SELECT name FROM stats WHERE name=? COLLATE NOCASE", new String[] {next})) {
+        if (existing.moveToFirst() && !existing.getString(0).equalsIgnoreCase(previous))
+          return false;
+      }
+      db.execSQL("UPDATE stats SET name=? WHERE name=? COLLATE NOCASE",
+          new Object[] {next, previous});
+      db.execSQL("UPDATE game_stats SET name=? WHERE name=? COLLATE NOCASE",
+          new Object[] {next, previous});
+      db.execSQL("UPDATE history SET player=? WHERE player=? COLLATE NOCASE",
+          new Object[] {next, previous});
+      db.setTransactionSuccessful();
+      return true;
+    } finally { db.endTransaction(); }
   }
 
   public void record(GameEngine.Player p, int game, boolean won, int points, int drinks, int sips,

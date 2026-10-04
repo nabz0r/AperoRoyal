@@ -11,6 +11,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -18,12 +21,16 @@ import android.util.Base64;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.view.View;
+import android.view.KeyEvent;
+import android.view.Gravity;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -54,6 +61,8 @@ public final class MainActivity extends Activity
   private Runnable pendingBluetooth;
   private int lastBeatCue = -1, lastBeatTurn = -1;
   private int musicProvider = MusicLinks.ORIGINAL;
+  private int localDialogDepth = 0;
+  private long localDialogStartedAt = 0;
 
   @Override
   protected void onCreate(Bundle state) {
@@ -68,6 +77,10 @@ public final class MainActivity extends Activity
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     store = new GameStore(this);
     savedSession = store.load(game);
+    if (savedSession && !game.players.isEmpty()) {
+      GameEngine retained = new GameEngine();
+      if (store.loadRoster(retained) == 0) store.saveRoster(game);
+    }
     if (savedSession) game.screen = "HOME";
     audio = new ArcadeAudio();
     audio.setEnabled(getPreferences(MODE_PRIVATE).getBoolean("music", true));
@@ -109,7 +122,7 @@ public final class MainActivity extends Activity
         audio.beat();
       }
     }
-    boolean timersActive = network.hosting || foreground;
+    boolean timersActive = (network.hosting || foreground) && localDialogDepth == 0;
     if (!network.connected && timersActive && !passPending && game.predictionTimedOut()) {
       setPassPending(false);
       beginGameAudio();
@@ -151,7 +164,7 @@ public final class MainActivity extends Activity
     boolean timedScreen = "GAME".equals(game.screen) || "PREDICT".equals(game.screen)
         || "CREW".equals(game.screen)
         || "RULE_VOTE".equals(game.screen);
-    if (backgroundAt > 0 && network != null && !network.hosting && !network.connected
+    if (backgroundAt > 0 && localDialogDepth == 0 && network != null && !network.hosting && !network.connected
         && !passPending && timedScreen) {
       long paused = Math.max(0, System.currentTimeMillis() - backgroundAt);
       if (game.started > 0) game.started += paused;
@@ -573,6 +586,7 @@ public final class MainActivity extends Activity
       message(game.t("Pseudo indisponible", "Name unavailable"));
       return;
     }
+    if (!network.connected && !network.hosting) store.saveRoster(game);
     save();
     if (photo) openPhotoPicker(game.players.size() - 1);
   }
@@ -620,7 +634,7 @@ public final class MainActivity extends Activity
         game.players.get(index).avatar = chosen;
         game.players.get(index).photo = "";
         if (network.connected) network.command("AVATAR", chosen);
-        else save();
+        else { if (!network.hosting) store.saveRoster(game); save(); }
         dialog.dismiss();
       });
     }
@@ -632,22 +646,77 @@ public final class MainActivity extends Activity
     if (index < 0 || index >= game.players.size()) return;
     GameEngine.Player player = game.players.get(index);
     if (network.connected && !player.name.equals(network.localName)) return;
+    boolean localLobby = "LOBBY".equals(game.screen) && !network.connected && !network.hosting;
+    String[] choices = localLobby ? new String[] {
+        game.t("Modifier pseudo et langue", "Edit name and language"),
+        game.t("Importer une photo", "Import a photo"),
+        game.t("Changer de sprite", "Change sprite"),
+        game.t("Supprimer la photo", "Remove photo"),
+        game.t("Retirer de la table", "Remove from table")
+    } : new String[] {
+        game.t("Importer une photo", "Import a photo"),
+        game.t("Changer de sprite", "Change sprite"),
+        game.t("Supprimer la photo", "Remove photo")
+    };
     new AlertDialog.Builder(this)
         .setTitle(player.name)
-        .setItems(new String[] {
-            game.t("Importer une photo", "Import a photo"),
-            game.t("Changer de sprite", "Change sprite"),
-            game.t("Supprimer la photo", "Remove photo")
-        }, (d, which) -> {
-          if (which == 0) {
+        .setItems(choices, (d, which) -> {
+          if (localLobby && which == 0) {
+            editLocalProfile(index);
+          } else if (localLobby && which == 4) {
+            new AlertDialog.Builder(this)
+                .setMessage(game.t("Retirer " + player.name + " de la table ?",
+                    "Remove " + player.name + " from this table?"))
+                .setNegativeButton(game.t("Garder", "Keep"), null)
+                .setPositiveButton(game.t("Retirer", "Remove"), (dialog, choice) -> {
+                  game.players.remove(index);
+                  game.active = 0;
+                  store.saveRoster(game);
+                  save();
+                }).show();
+          } else if (which == (localLobby ? 1 : 0)) {
             openPhotoPicker(index);
-          } else if (which == 1) {
+          } else if (which == (localLobby ? 2 : 1)) {
             chooseAvatar(index);
           } else {
             player.photo = "";
             if (network.connected) network.profile("");
-            else save();
+            else { if (!network.hosting) store.saveRoster(game); save(); }
           }
+        }).show();
+  }
+
+  private void editLocalProfile(int index) {
+    if (index < 0 || index >= game.players.size()) return;
+    GameEngine.Player player = game.players.get(index);
+    EditText nickname = input(game.t("Pseudo", "Nickname"));
+    nickname.setText(player.name);
+    Spinner language = spinner(new String[] {"FR", "EN"});
+    language.setSelection("EN".equals(player.language) ? 1 : 0);
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Profil du joueur", "Player profile"))
+        .setView(column(nickname, language))
+        .setNegativeButton(game.t("Annuler", "Cancel"), null)
+        .setPositiveButton(game.t("Enregistrer", "Save"), (dialog, which) -> {
+          String name = nickname.getText().toString().trim();
+          if (name.isEmpty() || name.length() > 16) {
+            message(game.t("Pseudo : 1 à 16 caractères", "Nickname: 1 to 16 characters"));
+            return;
+          }
+          for (int i = 0; i < game.players.size(); i++)
+            if (i != index && game.players.get(i).name.equalsIgnoreCase(name)) {
+              message(game.t("Pseudo déjà utilisé", "Nickname already in use"));
+              return;
+            }
+          if (!store.renameProfile(player.name, name)) {
+            message(game.t("Ce pseudo appartient déjà à un ancien profil",
+                "This nickname belongs to another saved profile"));
+            return;
+          }
+          player.name = name;
+          player.language = language.getSelectedItem().toString();
+          store.saveRoster(game);
+          save();
         }).show();
   }
 
@@ -691,7 +760,7 @@ public final class MainActivity extends Activity
       if (square != original) square.recycle();
       original.recycle();
       if (network.connected) network.profile(game.players.get(photoPlayer).photo);
-      else save();
+      else { if (!network.hosting) store.saveRoster(game); save(); }
     } catch (Exception e) {
       message(game.t("Image illisible", "Could not read image"));
     }
@@ -774,7 +843,98 @@ public final class MainActivity extends Activity
     setPassPending(false);
     clockSkew = Long.MAX_VALUE;
     game.newParty();
+    store.loadRoster(game);
     save();
+  }
+
+  @Override
+  public void clearRoster() {
+    if (!"LOBBY".equals(game.screen) || network.connected || network.hosting) return;
+    new AlertDialog.Builder(this)
+        .setTitle(game.t("Changer de groupe ?", "Change the group?"))
+        .setMessage(game.t("Les profils de cette table seront retirés. L'historique reste conservé.",
+            "These table profiles will be removed. Your history stays saved."))
+        .setNegativeButton(game.t("Garder", "Keep"), null)
+        .setPositiveButton(game.t("Changer", "Change"), (dialog, which) -> {
+          store.clearRoster();
+          game.newParty();
+          save();
+        }).show();
+  }
+
+  private void returnToLobby() {
+    setPassPending(false);
+    game.newParty();
+    store.loadRoster(game);
+    save();
+  }
+
+  @Override
+  public void showPartyMenu() {
+    if (network.connected || network.hosting) {
+      showSettings();
+      return;
+    }
+    if ("LOBBY".equals(game.screen)) {
+      pauseLocalDialog(new AlertDialog.Builder(this)
+          .setTitle(game.t("Menu de la soirée", "Party menu"))
+          .setItems(new String[] {game.t("Continuer", "Continue"),
+              game.t("Accueil", "Home"), game.t("Réglages", "Settings"),
+              game.t("Changer de groupe", "Change group")},
+              (dialog, which) -> {
+                if (which == 1) { game.screen = "HOME"; view.invalidate(); }
+                else if (which == 2) showSettings();
+                else if (which == 3) clearRoster();
+              }).create()).show();
+      return;
+    }
+    boolean resultScreen = "RESULT".equals(game.screen);
+    pauseLocalDialog(new AlertDialog.Builder(this)
+        .setTitle(game.t("Pause de la soirée", "Party pause"))
+        .setItems(new String[] {game.t("Reprendre le jeu", "Resume game"),
+            resultScreen ? game.t("Défi suivant", "Next challenge")
+                : game.t("Annuler ce défi", "Cancel this challenge"),
+            game.t("Retour au salon", "Back to lobby"),
+            game.t("Accueil · reprendre plus tard", "Home · resume later"),
+            game.t("Réglages", "Settings")},
+            (dialog, which) -> {
+              if (which == 1) {
+                setPassPending(false);
+                if (resultScreen) game.advance();
+                else game.startSelection();
+                save();
+              } else if (which == 2) {
+                pauseLocalDialog(new AlertDialog.Builder(this)
+                    .setMessage(game.t("Quitter cette partie ? Les résultats déjà joués restent dans le classement.",
+                        "Leave this party? Completed rounds remain in the leaderboard."))
+                    .setNegativeButton(game.t("Rester", "Stay"), null)
+                    .setPositiveButton(game.t("Retour au salon", "Back to lobby"),
+                        (d, w) -> returnToLobby()).create()).show();
+              } else if (which == 3) {
+                game.screen = "HOME";
+                view.invalidate();
+              } else if (which == 4) showSettings();
+            }).create()).show();
+  }
+
+  private AlertDialog pauseLocalDialog(AlertDialog dialog) {
+    if (!network.connected && !network.hosting) {
+      if (localDialogDepth++ == 0) localDialogStartedAt = System.currentTimeMillis();
+      dialog.setOnDismissListener(d -> {
+        if (--localDialogDepth > 0) return;
+        localDialogDepth = 0;
+        long paused = Math.max(0, System.currentTimeMillis() - localDialogStartedAt);
+        boolean timed = "GAME".equals(game.screen) || "PREDICT".equals(game.screen)
+            || "CREW".equals(game.screen) || "RULE_VOTE".equals(game.screen);
+        if (!timed) return;
+        if (game.started > 0) game.started += paused;
+        if (game.deadline > 0) game.deadline += paused;
+        if (game.reportDeadline > 0) game.reportDeadline += paused;
+        if (game.revealUntil > 0) game.revealUntil += paused;
+        save();
+      });
+    }
+    return dialog;
   }
 
   @Override
@@ -806,7 +966,7 @@ public final class MainActivity extends Activity
 
   @Override
   public boolean hasSavedParty() {
-    return savedSession;
+    return savedSession && !game.players.isEmpty();
   }
 
   @Override
@@ -1013,7 +1173,7 @@ public final class MainActivity extends Activity
     EditText link = input(game.t("Lien de playlist HTTPS", "HTTPS playlist link"));
     link.setText(musicLink());
     String title = MusicLinks.name(musicProvider);
-    new AlertDialog.Builder(this)
+    pauseLocalDialog(new AlertDialog.Builder(this)
         .setTitle(title)
         .setMessage(game.t("Colle le lien d'une playlist de cette plateforme. Vide = accueil de l'application.",
             "Paste a playlist link from this platform. Blank = app home."))
@@ -1030,7 +1190,7 @@ public final class MainActivity extends Activity
               view.invalidate();
             })
         .setNegativeButton(game.t("Annuler", "Cancel"), null)
-        .show();
+        .create()).show();
   }
 
   @Override
@@ -1054,6 +1214,145 @@ public final class MainActivity extends Activity
     } catch (Exception e) {
       message(game.t("Application musicale indisponible", "Music app unavailable"));
     }
+  }
+
+  @Override
+  public void showRadioDock() {
+    LinearLayout body = new LinearLayout(this);
+    body.setOrientation(LinearLayout.VERTICAL);
+    body.setPadding(dp(18), dp(18), dp(18), dp(14));
+    GradientDrawable background = new GradientDrawable();
+    background.setColor(Color.rgb(22, 27, 40));
+    background.setCornerRadius(dp(18));
+    background.setStroke(dp(1), Color.rgb(213, 177, 103));
+    body.setBackground(background);
+    TextView title = radioText(game.t("RADIO APÉRO", "PARTY RADIO"), 23,
+        Color.rgb(255, 248, 230));
+    body.addView(title);
+    TextView current = radioText(game.t("À L'ÉCOUTE · ", "TUNED TO · ")
+        + MusicLinks.name(musicProvider).toUpperCase(), 12, Color.rgb(213, 177, 103));
+    body.addView(current);
+    TextView source = radioText(game.t("CHOISIS TON AMBIANCE", "CHOOSE YOUR SOUND"),
+        12, Color.rgb(161, 172, 189));
+    LinearLayout.LayoutParams sourceParams = new LinearLayout.LayoutParams(-1, -2);
+    sourceParams.topMargin = dp(19);
+    body.addView(source, sourceParams);
+    String[] names = {game.t("♫  ORIGINAL", "♫  ORIGINAL"), "◉  SPOTIFY",
+        "◆  DEEZER", "♫  APPLE MUSIC", "▤  AMAZON MUSIC",
+        game.t("×  SILENCE", "×  SILENCE")};
+    final AlertDialog[] active = new AlertDialog[1];
+    for (int rowIndex = 0; rowIndex < 3; rowIndex++) {
+      LinearLayout row = new LinearLayout(this);
+      for (int column = 0; column < 2; column++) {
+        final int provider = rowIndex * 2 + column;
+        TextView card = radioCard(names[provider], provider == musicProvider, 66);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(66), 1);
+        params.setMargins(dp(3), dp(4), dp(3), dp(4));
+        row.addView(card, params);
+        card.setOnClickListener(v -> {
+          setMusicProvider(provider);
+          active[0].dismiss();
+          if (MusicLinks.external(provider)) openMusicProvider();
+        });
+      }
+      body.addView(row);
+    }
+    TextView controls = radioText(game.t("LECTEUR ACTIF", "ACTIVE PLAYER"),
+        12, Color.rgb(161, 172, 189));
+    LinearLayout.LayoutParams controlsParams = new LinearLayout.LayoutParams(-1, -2);
+    controlsParams.topMargin = dp(15);
+    body.addView(controls, controlsParams);
+    LinearLayout transport = new LinearLayout(this);
+    TextView play = radioCard(game.t("⏯  PAUSE / JOUER", "⏯  PLAY / PAUSE"), false, 50);
+    TextView next = radioCard(game.t("⏭  SUIVANT", "⏭  NEXT"), false, 50);
+    LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, dp(50), 1);
+    half.setMargins(dp(3), dp(5), dp(3), dp(5));
+    transport.addView(play, half);
+    LinearLayout.LayoutParams half2 = new LinearLayout.LayoutParams(0, dp(50), 1);
+    half2.setMargins(dp(3), dp(5), dp(3), dp(5));
+    transport.addView(next, half2);
+    play.setOnClickListener(v -> mediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
+    next.setOnClickListener(v -> mediaKey(KeyEvent.KEYCODE_MEDIA_NEXT));
+    body.addView(transport);
+    LinearLayout playlistRow = new LinearLayout(this);
+    TextView playlist = radioCard(game.t("↗  OUVRIR", "↗  OPEN"), false, 48);
+    TextView edit = radioCard(game.t("✎  PLAYLIST", "✎  PLAYLIST"), false, 48);
+    LinearLayout.LayoutParams playlistHalf = new LinearLayout.LayoutParams(0, dp(48), 1);
+    playlistHalf.setMargins(dp(3), dp(5), dp(3), dp(5));
+    playlistRow.addView(playlist, playlistHalf);
+    LinearLayout.LayoutParams editHalf = new LinearLayout.LayoutParams(0, dp(48), 1);
+    editHalf.setMargins(dp(3), dp(5), dp(3), dp(5));
+    playlistRow.addView(edit, editHalf);
+    body.addView(playlistRow);
+    playlist.setOnClickListener(v -> {
+      active[0].dismiss();
+      if (MusicLinks.external(musicProvider)) openMusicProvider();
+      else message(game.t("Choisis d'abord une plateforme", "Choose a music service first"));
+    });
+    edit.setOnClickListener(v -> {
+      active[0].dismiss();
+      if (MusicLinks.external(musicProvider)) editMusicLink();
+      else message(game.t("Choisis d'abord une plateforme", "Choose a music service first"));
+    });
+    TextView foot = radioText(game.t("La lecture reste dans l'application musicale. Les touches contrôlent le lecteur Android actif.",
+        "Playback stays in the music app. Keys control Android's active player."),
+        11, Color.rgb(161, 172, 189));
+    LinearLayout.LayoutParams footParams = new LinearLayout.LayoutParams(-1, -2);
+    footParams.topMargin = dp(8);
+    body.addView(foot, footParams);
+    TextView close = radioText(game.t("FERMER  ×", "CLOSE  ×"), 13,
+        Color.rgb(213, 177, 103));
+    close.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+    close.setMinHeight(dp(42));
+    close.setClickable(true);
+    close.setFocusable(true);
+    close.setOnClickListener(v -> active[0].dismiss());
+    body.addView(close);
+    ScrollView scroll = new ScrollView(this);
+    scroll.setFillViewport(false);
+    scroll.setVerticalScrollBarEnabled(false);
+    scroll.addView(body);
+    AlertDialog dialog = pauseLocalDialog(new AlertDialog.Builder(this).setView(scroll).create());
+    active[0] = dialog;
+    dialog.show();
+    dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+    dialog.getWindow().setLayout(getResources().getDisplayMetrics().widthPixels - dp(28),
+        android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+  }
+
+  private int dp(float size) {
+    return Math.round(size * getResources().getDisplayMetrics().density);
+  }
+
+  private TextView radioText(String value, int size, int color) {
+    TextView view = new TextView(this);
+    view.setText(value);
+    view.setTextSize(size);
+    view.setTextColor(color);
+    view.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+    return view;
+  }
+
+  private TextView radioCard(String value, boolean selected, int height) {
+    TextView card = radioText(value, height >= 60 ? 15 : 13,
+        selected ? Color.rgb(18, 22, 34) : Color.rgb(255, 248, 230));
+    card.setGravity(Gravity.CENTER);
+    card.setMinHeight(dp(height));
+    card.setClickable(true);
+    card.setFocusable(true);
+    GradientDrawable fill = new GradientDrawable();
+    fill.setColor(selected ? Color.rgb(213, 177, 103) : Color.rgb(36, 44, 60));
+    fill.setCornerRadius(dp(10));
+    fill.setStroke(dp(1), selected ? Color.rgb(245, 215, 153) : Color.rgb(75, 88, 110));
+    card.setBackground(fill);
+    return card;
+  }
+
+  private void mediaKey(int key) {
+    AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
+    if (manager == null) return;
+    manager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, key));
+    manager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, key));
   }
 
   private String musicLink() {
@@ -1410,8 +1709,7 @@ public final class MainActivity extends Activity
       game.screen = "HOME";
       view.invalidate();
     } else if (!"HOME".equals(game.screen)) {
-      game.screen = "HOME";
-      view.invalidate();
+      showPartyMenu();
     } else super.onBackPressed();
   }
 }

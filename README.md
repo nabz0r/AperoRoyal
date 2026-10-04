@@ -2,18 +2,24 @@
 
 **La soirée devient une borne d’arcade.** Dix défis Android pour 2 à 6 amis, sur **un seul téléphone** ou **plusieurs téléphones**. À chaque manche, tout le monde touche au jeu : réponses secrètes, parcours piégé, chaîne mémoire, mesure musicale, jury, galerie de dessin ou relais de bombe.
 
-![Accueil Apéro Royale](docs/screenshots/home.png)
+![Nouvel accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.4.5**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.5.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.6**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.6.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+
+**La table vous retrouve.** Créez les profils une fois : pseudos, langues FR/EN, sprites et photos restent disponibles pour la soirée suivante. Un menu de pause permet d'annuler un défi sans score ni gorgée, de revenir au salon ou à l'accueil, puis de reprendre. La Radio Apéro s'ouvre d'un toucher, avec sources, playlist favorite et commandes du lecteur Android actif. [Voir la refonte 1.4.6 et les références Play Store](docs/RELEASE_146_DESIGN.md).
+
+![Radio Apéro — sources et commandes](docs/screenshots/radio-dock.png)
 
 ## La boucle de jeu
 
-1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites. Une vraie photo peut aussi être importée depuis l’appareil.
+1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites, ou importe une photo. La table est retrouvée lors des soirées suivantes ; le salon permet de modifier ou retirer chaque profil.
 2. **La salle choisit.** En mode Vote, chacun choisit parmi trois défis. En mode Libre, le groupe ouvre le catalogue ; en mode **Turbo**, le jeu enchaîne des défis surprises plus courts.
 3. **Le téléphone passe.** L’écran annonce le numéro de tour, le pseudo et le défi. Le chrono reste arrêté jusqu’à ce que le joueur concerné touche **Je suis prêt** sur le téléphone partagé ou le sien.
 4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Dans Culture G et Blind Test, les amis répondent avant lui ; dans Réflexe, Roulette, Mémoire et Rythme, chacun prépare un élément du défi. Les autres posent un verdict, devinent le dessin ou se passent la bombe. Ces choix rapportent des points et modifient le défi. Sur un téléphone partagé, **C’est moi** ouvre chaque choix privé et suspend le chrono pendant le passage.
 5. **Les rôles changent.** Le dessin est deviné par tous les non-artistes ; la moitié doit trouver pour que l’artiste gagne. Dans la bombe, chaque porteur choisit à qui la passer, puis peut tenter un fil après un tour de la salle. Le joueur actif **alterne à chaque manche** ; chaque ami a une action dans les dix jeux.
 6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
+
+En local, **☰** suspend les chronos et donne accès à *Annuler ce défi*, *Retour au salon* et *Accueil · reprendre plus tard*. Un défi annulé n'est jamais inscrit au classement. Sur plusieurs téléphones, les invités continuent de suivre l'hôte.
 
 **Confort 1.4.0.** L’accueil, la palette, l’icône et les réglages adoptent une direction nocturne plus adulte. La source musicale se choisit dans une liste claire ; un bouton dans l’en-tête ouvre l’application choisie pendant la partie. La bande originale du jeu se tait lorsqu’une source externe ou le silence est sélectionné. Effets et vibrations restent séparés. Les écrans s’adaptent aussi aux téléphones 16:9 ; les chronos locaux reprennent après un passage dans les réglages ou en arrière-plan.
 
@@ -135,4 +141,4 @@ Illustrations originales dans [`art/source`](art/source), décors des mini-jeux 
 
 ---
 
-**English:** Apéro Royale 1.4.5 is a French/English Android party arcade for 2–6 friends on one phone or several over Wi-Fi, paired Bluetooth or an Internet room code. Every player has a game-specific action in all ten challenges. Friends answer, shape a target course, shield a cup, create a memory chain or beat pattern, judge, guess a drawing, or pass the bomb. On separate devices, hidden cat micro-games can be found during waiting time; a first discovery can remix the next room rule. Private local handoffs pause the timer. A single host decides results and saves the leaderboard. Original per-game scenes, pixel sprites, a controllable retro soundtrack, guides and optional shortcuts to external music apps complete the game. The signed APK is linked above.
+**English:** Apéro Royale 1.4.6 is a French/English Android party arcade for 2–6 friends on one phone or several over Wi-Fi, paired Bluetooth or an Internet room code. Local player profiles now survive new parties and app restarts. The pause menu can cancel an unfinished challenge without recording a result, return to the lobby or resume later. The new Party Radio panel opens Spotify, Deezer, Apple Music or Amazon Music, remembers a playlist link and sends play/pause/next keys to Android's active player when available; streaming stays in the external app. Every player has a game-specific action in all ten challenges, and waiting guests can discover hidden cat games. The host decides results and saves the leaderboard. The signed APK is linked above.
