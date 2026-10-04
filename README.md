@@ -1,26 +1,29 @@
 # APÉRO ROYALE 👑
 
-**La soirée devient une borne d’arcade.** Un jeu d’apéro Android à partager entre 2 et 6 amis, sur **un seul téléphone** ou sur **plusieurs téléphones**. Votez pour la prochaine épreuve, pariez 1 à 3 gorgées virtuelles, pronostiquez la réussite des autres et faites vivre les règles secrètes de la salle.
+**La soirée devient une borne d’arcade.** Un jeu d’apéro Android pour 2 à 6 amis, sur **un seul téléphone** ou **plusieurs téléphones**. Un joueur prend la lumière à chaque manche ; tous les autres votent, pronostiquent, jugent, dessinent ou désamorcent avec lui.
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.1.0**](releases/AperoRoyale-v1.1.0.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.2.0**](releases/AperoRoyale-v1.2.0.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
 1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites. Une vraie photo peut aussi être importée depuis l’appareil.
-2. **La salle choisit.** Trois jeux apparaissent ; chaque joueur vote depuis son téléphone. Le mode libre permet à l’hôte de lancer directement n’importe lequel des dix jeux.
-3. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis pronostiquent sa victoire ou sa défaite : **+35 points** pour un bon prono, **+1 gorgée virtuelle** pour un mauvais.
-4. **Tout le monde joue.** Défis de jury, dessin à deviner, bombe en relais, votes de règles et pronostics impliquent le groupe. Le joueur actif change à chaque tour.
-5. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
+2. **La salle choisit.** En mode Vote, chacun choisit parmi trois défis. En mode Libre, le groupe ouvre le catalogue ; en mode **Turbo**, le jeu enchaîne des défis surprises plus courts.
+3. **Le téléphone passe.** L’écran annonce le numéro de tour, le pseudo et le défi. Le chrono reste arrêté jusqu’à ce que le joueur concerné touche **Je suis prêt** sur le téléphone partagé ou le sien.
+4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Les amis pronostiquent sa victoire ou sa défaite : **+35 points** pour un bon prono, **+1 gorgée virtuelle** pour un mauvais. Sur un téléphone, les pronostics et les jurys ont aussi un écran de passage privé.
+5. **Tout le monde joue.** Les poses et les bluffs passent devant le jury ; le dessin passe au devineur ; la bombe passe de joueur en joueur. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours.
+6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
 ![Vote du prochain jeu](docs/screenshots/vote.png)
 
+![Passage au joueur suivant avant le défi](docs/screenshots/handoff.png)
+
 ## Dix mini-jeux, dix scènes et sprites dédiés
 
-Chaque jeu possède sa propre scène animée, son sprite pixel et un guide intégré FR/EN. Le menu **Découvrir les 10 défis** explique les règles avant la partie.
+Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel animé et un guide intégré FR/EN. Les commandes restent lisibles sur ces scènes. Le menu **Découvrir les 10 défis** explique les règles avant la partie.
 
 | # | Mini-jeu | Moment de soirée |
 | --- | --- | --- |
@@ -61,7 +64,7 @@ Le relais Internet par défaut, [`ssl://broker.emqx.io:8883`](https://www.emqx.c
 
 ## Une ambiance que vous contrôlez
 
-La musique commence **désactivée**. Le menu sépare musique, style *Chill / Arcade*, volume, effets sonores et vibrations. La bande son originale est synthétisée dans l’application, sans téléchargement ; elle baisse pendant le Blind Test. L’ambiance a été reconstruite en 1.1.0 avec un groove continu et des effets plus doux.
+La musique rétro commence à **30 %**, avec des phrases plus espacées, une basse douce et un signal court lors du passage de tour. Le menu sépare musique, style *Chill / Arcade*, volume, effets sonores et vibrations ; le choix reste mémorisé. La bande son est synthétisée dans l’application, sans téléchargement, et baisse pendant le Blind Test.
 
 **Spotify est facultatif.** Configurez votre Client ID et une playlist dans **Musique / Spotify**, puis ajoutez `http://127.0.0.1:43868/callback` aux URI de redirection de votre application Spotify Developer. L’intégration OAuth PKCE utilise la Web API et demande un compte Premium et un appareil Spotify actif pour contrôler la lecture. Sans Spotify, le Blind Test utilise six mélodies originales hors ligne.
 
@@ -71,7 +74,9 @@ Android natif Java, JDK 17, Android SDK 36 et Gradle 8.14.3. Aucun serveur n’e
 
 ```sh
 ./gradlew test assembleDebug
-ADB_SERIAL=emulator-5554 python3 tools/smoke_v110.py
+ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
+ADB_SERIAL=emulator-5554 python3 tools/smoke_turns.py
+ADB_SERIAL=emulator-5554 python3 tools/smoke_turbo.py
 ```
 
 Pour créer une mise à jour signée, utilisez votre propre clé PKCS12 et placez ses paramètres dans `signing.properties` à la racine ; ce fichier reste hors Git :
@@ -87,8 +92,8 @@ keyPassword=your-password
 
 `GameEngine` arbitre les tours, votes, pronostics, règles et scores. `GameStore` conserve session, historique, statistiques par joueur et par jeu dans SQLite. `ArcadeView` et `GameSprites` dessinent les écrans et scènes. `PartyNetwork`, `BluetoothPartyNetwork` et `InternetPartyNetwork` transportent les commandes et instantanés. `ArcadeAudio` produit musique et effets ; `SpotifyBridge` gère l’option Spotify.
 
-Illustrations originales dans [`art/source`](art/source), ressources compressées sous `app/src/main/res/drawable-nodpi`. Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
+Illustrations originales dans [`art/source`](art/source), décors des mini-jeux sous [`app/src/main/res/drawable-nodpi`](app/src/main/res/drawable-nodpi) et captures réelles d’émulateur sous [`docs/screenshots`](docs/screenshots). Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
 
 ---
 
-**English:** Apéro Royale 1.1.0 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Everyone votes on the next game and predicts the active player’s result; social challenges use a jury. Ten games have dedicated pixel sprites and guides. Eleven hidden achievements reveal a room-wide rule, enforced by group vote. Music starts muted, and optional photos and Spotify can be configured in the menus. The signed APK is linked above.
+**English:** Apéro Royale 1.2.0 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round clearly hands control to the next player, and the clock starts only after they are ready. Choose group Vote, Free Play or quick Turbo rounds. Friends predict outcomes, judge social challenges and guess drawings on their own phone or through a private pass screen. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. Retro music starts quietly; optional photos and Spotify remain configurable. The signed APK is linked above.

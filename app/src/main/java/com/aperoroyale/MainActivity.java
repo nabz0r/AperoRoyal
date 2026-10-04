@@ -66,9 +66,9 @@ public final class MainActivity extends Activity
     savedSession = store.load(game);
     if (savedSession) game.screen = "HOME";
     audio = new ArcadeAudio();
-    audio.setEnabled(getPreferences(MODE_PRIVATE).getBoolean("music", false));
+    audio.setEnabled(getPreferences(MODE_PRIVATE).getBoolean("music", true));
     audio.setStyle(getPreferences(MODE_PRIVATE).getInt("musicStyle", 0));
-    audio.setVolume(getPreferences(MODE_PRIVATE).getFloat("musicVolume", .5f));
+    audio.setVolume(getPreferences(MODE_PRIVATE).getFloat("musicVolume", .3f));
     soundEffects = getPreferences(MODE_PRIVATE).getBoolean("soundEffects", true);
     haptics = getPreferences(MODE_PRIVATE).getBoolean("haptics", true);
     network = new PartyNetwork(this);
@@ -83,6 +83,7 @@ public final class MainActivity extends Activity
     if (isFinishing()) return;
     audio.setScene(game.screen);
     if (!network.connected && game.predictionTimedOut()) {
+      passPending = false;
       beginGameAudio();
       save();
     }
@@ -122,6 +123,7 @@ public final class MainActivity extends Activity
   @Override
   public void finishGame(boolean won) {
     if (!"GAME".equals(game.screen)) return;
+    passPending = false;
     GameEngine.Player p = game.current();
     long duration = Math.max(0, System.currentTimeMillis() - game.started);
     game.finish(won);
@@ -144,12 +146,46 @@ public final class MainActivity extends Activity
   @Override
   public void enterGame() {
     game.enterGame();
+    if ("HANDOFF".equals(game.screen) && soundEffects) audio.turn();
     save();
+  }
+
+  @Override
+  public void readyTurn() {
+    if (network.connected) { network.command("READY", 0); return; }
+    GameEngine.Player current = game.current();
+    if (current == null || network.isRemote(current.name)) return;
+    game.readyTurn();
+    save();
+  }
+
+  public GameEngine.Player localGuesser() {
+    if (!"GAME".equals(game.screen) || game.game != 5 || !game.drawingReady
+        || game.players.size() < 2) return null;
+    GameEngine.Player guesser = game.players.get((game.active + 1) % game.players.size());
+    return network.connected ? (guesser.name.equals(network.localName) ? guesser : null)
+        : (network.isRemote(guesser.name) ? null : guesser);
+  }
+
+  @Override
+  public void drawingReady() {
+    if (!"GAME".equals(game.screen) || game.game != 5 || game.drawingReady) return;
+    game.drawingReady = true;
+    passPending = localGuesser() != null;
+    save();
+  }
+
+  @Override
+  public void drawGuess(int choice) {
+    if (network.connected) { network.command("DRAW_GUESS", choice); return; }
+    if (passPending || localGuesser() == null || choice < 0 || choice > 3) return;
+    finishGame(choice == game.target);
   }
 
   @Override
   public void placeBet(int sips) {
     if (!game.placeBet(sips)) return;
+    passPending = localPredictor() != null;
     save();
   }
 
@@ -160,18 +196,21 @@ public final class MainActivity extends Activity
       return i >= 0 && i != game.active && i < game.predictions.length
           && game.predictions[i] < 0 ? game.players.get(i) : null;
     }
-    for (int i = 0; i < game.players.size() && i < game.predictions.length; i++)
-      if (i != game.active && game.predictions[i] < 0
+    for (int step = 1; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
+      if (i < game.predictions.length && game.predictions[i] < 0
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    }
     return null;
   }
 
   @Override
   public void predict(boolean win) {
     GameEngine.Player voter = localPredictor();
-    if (voter == null) return;
+    if (voter == null || passPending) return;
     if (network.connected) { network.command("PREDICT", win ? 1 : 0); return; }
     if (game.predict(voter.name, win)) {
+      passPending = "PREDICT".equals(game.screen) && localPredictor() != null;
       if ("GAME".equals(game.screen)) beginGameAudio();
       save();
     }
@@ -179,7 +218,10 @@ public final class MainActivity extends Activity
 
   @Override
   public void beginJury() {
-    if (game.beginJury()) save();
+    if (game.beginJury()) {
+      passPending = localJudge() != null;
+      save();
+    }
   }
 
   public GameEngine.Player localJudge() {
@@ -189,20 +231,25 @@ public final class MainActivity extends Activity
       return i >= 0 && i != game.active && i < game.juryVotes.length
           && game.juryVotes[i] < 0 ? game.players.get(i) : null;
     }
-    for (int i = 0; i < game.players.size() && i < game.juryVotes.length; i++)
-      if (i != game.active && game.juryVotes[i] < 0
+    for (int step = 1; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
+      if (i < game.juryVotes.length && game.juryVotes[i] < 0
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    }
     return null;
   }
 
   @Override
   public void judge(boolean yes) {
     GameEngine.Player juror = localJudge();
-    if (juror == null) return;
+    if (juror == null || passPending) return;
     if (network.connected) { network.command("JUDGE", yes ? 1 : 0); return; }
     if (game.castJury(juror.name, yes)) {
       if (game.juryComplete()) finishGame(game.juryVerdict());
-      else save();
+      else {
+        passPending = localJudge() != null;
+        save();
+      }
     }
   }
 
@@ -249,7 +296,10 @@ public final class MainActivity extends Activity
         .setItems(choices.toArray(new String[0]), (dialog, which) -> {
           int target = indexes.get(which);
           if (network.connected) network.command("REPORT", target);
-          else if (game.reportRule(reporter.name, game.players.get(target).name)) save();
+          else if (game.reportRule(reporter.name, game.players.get(target).name)) {
+            passPending = localRuleVoter() != null;
+            save();
+          }
         })
         .show();
   }
@@ -261,9 +311,11 @@ public final class MainActivity extends Activity
       return i >= 0 && i < game.reportVotes.length && game.reportVotes[i] < 0
           ? game.players.get(i) : null;
     }
-    for (int i = 0; i < game.players.size() && i < game.reportVotes.length; i++)
-      if (game.reportVotes[i] < 0 && !network.isRemote(game.players.get(i).name))
-        return game.players.get(i);
+    for (int step = 0; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
+      if (i < game.reportVotes.length && game.reportVotes[i] < 0
+          && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    }
     return null;
   }
 
@@ -274,11 +326,12 @@ public final class MainActivity extends Activity
     if (network.connected) { network.command("RULE_VOTE", yes ? 1 : 0); return; }
     if (game.castRuleVote(voter.name, yes)) {
       if (!"RULE_VOTE".equals(game.screen)) finishRuleVote();
-      else save();
+      else { passPending = localRuleVoter() != null; save(); }
     }
   }
 
   private void finishRuleVote() {
+    passPending = false;
     boolean penalty = game.rulePenaltyApplied;
     if (penalty) store.recordRulePenalty(game.reportTarget);
     game.rulePenaltyApplied = false;
@@ -502,9 +555,11 @@ public final class MainActivity extends Activity
       int i = game.indexOf(network.localName);
       return i < 0 || (game.votes.length > i && game.votes[i] >= 0) ? null : game.players.get(i);
     }
-    for (int i = 0; i < game.players.size(); i++)
+    for (int step = 0; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
       if (!network.isRemote(game.players.get(i).name)
           && (game.votes.length <= i || game.votes[i] < 0)) return game.players.get(i);
+    }
     return null;
   }
 
@@ -980,6 +1035,7 @@ public final class MainActivity extends Activity
         ? !drawingGuesser : !name.equals(p.name))) return;
     boolean bottom =
         "TRANSITION".equals(game.screen)
+            || "HANDOFF".equals(game.screen)
             || "RESULT".equals(game.screen)
             || ("GAME".equals(game.screen)
                 && (game.game == 1
@@ -989,11 +1045,27 @@ public final class MainActivity extends Activity
     if ("GAME".equals(game.screen)
         || "BET".equals(game.screen)
         || "TRANSITION".equals(game.screen)
+        || "HANDOFF".equals(game.screen)
         || "RESULT".equals(game.screen)) view.handleRemote(x, y, kind);
   }
 
   @Override
   public void command(String name, String command, int value) {
+    if ("DRAW_GUESS".equals(command)) {
+      if ("GAME".equals(game.screen) && game.game == 5 && game.drawingReady
+          && game.players.size() > 1 && value >= 0 && value < 4
+          && name.equals(game.players.get((game.active + 1) % game.players.size()).name))
+        finishGame(value == game.target);
+      return;
+    }
+    if ("READY".equals(command)) {
+      GameEngine.Player current = game.current();
+      if (current != null && current.name.equals(name) && "HANDOFF".equals(game.screen)) {
+        game.readyTurn();
+        save();
+      }
+      return;
+    }
     if ("REPORT".equals(command)) {
       if (value >= 0 && value < game.players.size()
           && game.reportRule(name, game.players.get(value).name)) save();

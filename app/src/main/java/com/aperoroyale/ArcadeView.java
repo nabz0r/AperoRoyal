@@ -30,6 +30,12 @@ public final class ArcadeView extends View {
 
     void enterGame();
 
+    void readyTurn();
+
+    void drawingReady();
+
+    void drawGuess(int choice);
+
     void addPlayer();
 
     void editPlayer(int index);
@@ -136,6 +142,7 @@ public final class ArcadeView extends View {
   private Bitmap cachedBitmap;
   private final Bitmap hero;
   private final Bitmap avatarSheet;
+  private final Bitmap sceneAtlas;
   private static final int BG = Color.rgb(16, 18, 38),
       PANEL = Color.rgb(31, 37, 63),
       WHITE = Color.rgb(255, 250, 240),
@@ -166,6 +173,7 @@ public final class ArcadeView extends View {
     this.actions = actions;
     hero = BitmapFactory.decodeResource(getResources(), R.drawable.arcade_party_hero);
     avatarSheet = BitmapFactory.decodeResource(getResources(), R.drawable.avatar_sheet);
+    sceneAtlas = BitmapFactory.decodeResource(getResources(), R.drawable.game_scene_atlas);
     setLayerType(View.LAYER_TYPE_SOFTWARE, null);
   }
 
@@ -188,6 +196,7 @@ public final class ArcadeView extends View {
       case "VOTE" -> vote(canvas);
       case "LIBRARY" -> library(canvas);
       case "BET" -> bet(canvas);
+      case "HANDOFF" -> handoff(canvas);
       case "PREDICT" -> predict(canvas);
       case "RULE_VOTE" -> ruleVote(canvas);
       case "SETTINGS" -> settings(canvas);
@@ -228,6 +237,31 @@ public final class ArcadeView extends View {
       c.drawCircle(x, y, 1 + i % 3, p);
     }
     p.setColor(WHITE);
+  }
+
+  private void scene(Canvas c, int game, float x, float y, float w, float h) {
+    if (sceneAtlas == null) return;
+    int col = Math.floorMod(game, 5), row = Math.floorMod(game, 10) / 5;
+    int sw = sceneAtlas.getWidth(), sh = sceneAtlas.getHeight();
+    int left = col * sw / 5, right = (col + 1) * sw / 5;
+    int top = row * sh / 2, bottom = (row + 1) * sh / 2;
+    c.save();
+    c.clipRect(x, y, x + w, y + h);
+    p.setShader(null);
+    p.setColor(WHITE);
+    p.setFilterBitmap(true);
+    c.drawBitmap(sceneAtlas, new Rect(left, top, right, bottom),
+        new RectF(x, y, x + w, y + h), p);
+    p.setShader(new LinearGradient(x, y, x, y + h,
+        Color.argb(155, 8, 11, 29), Color.argb(205, 8, 11, 29), Shader.TileMode.CLAMP));
+    c.drawRect(x, y, x + w, y + h, p);
+    p.setShader(null);
+    p.setColor(GameSprites.accent(game));
+    c.drawRect(x, y, x + w, y + 5, p);
+    float scan = y + (System.currentTimeMillis() % 4200L) / 4200f * h;
+    p.setColor((25 << 24) | (GameSprites.accent(game) & 0x00ffffff));
+    c.drawRect(x, scan, x + w, scan + 3, p);
+    c.restore();
   }
 
   private void panel(Canvas c, float x, float y, float w, float h, int fill, int stroke) {
@@ -394,7 +428,10 @@ public final class ArcadeView extends View {
     }
     if (!actions.hostAddress().isEmpty())
       block(c, actions.hostAddress(), 200, H - 272, 350, 15, CYAN, true);
-    button(c, "mode", "VOTE".equals(g.mode) ? g.t("MODE : VOTE", "MODE: VOTE") : g.t("MODE : LIBRE", "MODE: FREE"), 30, H - 253, 340, 52, CYAN);
+    String modeLabel = "FREE".equals(g.mode) ? g.t("LIBRE • CHOIX DU JEU", "FREE • PICK A GAME")
+        : "TURBO".equals(g.mode) ? g.t("TURBO • DÉFIS EXPRESS", "TURBO • QUICK ROUNDS")
+        : g.t("VOTE • LE GROUPE CHOISIT", "VOTE • GROUP CHOOSES");
+    button(c, "mode", modeLabel, 30, H - 253, 340, 52, CYAN);
     button(c, "add", g.t("+ AJOUTER JOUEUR", "+ ADD PLAYER"), 30, H - 189, 340, 55, YELLOW);
     button(
         c,
@@ -428,20 +465,23 @@ public final class ArcadeView extends View {
       rulePicker(c, owner);
       return;
     }
-    text(c, vt("CHOISIS LE PROCHAIN DÉFI", "PICK THE NEXT CHALLENGE"), 200, 164, 17, WHITE, true);
+    GameEngine.Player actor = g.current();
+    text(c, vt("TOUR ", "TURN ") + (g.turn + 1) + "  •  "
+        + (actor == null ? "?" : actor.name.toUpperCase(Locale.ROOT)), 200, 157, 18, YELLOW, true);
+    text(c, vt("CHOISIS LE PROCHAIN DÉFI", "PICK THE NEXT CHALLENGE"), 200, 182, 15, WHITE, true);
     if (voter != null) {
-      avatar(c, voter, 53, 202, .36f);
-      text(c, voter.name, 83, 207, 18, YELLOW, false);
-    } else text(c, vt("VOTE ENVOYÉ • PATIENCE", "VOTE SENT • HOLD TIGHT"), 200, 207, 16, CYAN, true);
+      avatar(c, voter, 53, 218, .36f);
+      text(c, voter.name + vt(" vote", " votes"), 83, 223, 18, CYAN, false);
+    } else text(c, vt("VOTE ENVOYÉ • PATIENCE", "VOTE SENT • HOLD TIGHT"), 200, 223, 16, CYAN, true);
     for (int i = 0; i < Math.min(3, g.offers.length); i++) {
-      float y = 236 + i * 103;
+      float y = 250 + i * 103;
       panel(c, 26, y, 348, 87, i == 0 ? Color.rgb(36, 49, 86) : PANEL, TILE[i]);
       text(c, "0" + (i + 1), 50, y + 34, 17, TILE[i], false);
       text(c, title(g.offers[i]), 200, y + 43, 19, WHITE, true);
       text(c, vt("VOTER", "VOTE") + "  →", 324, y + 70, 12, TILE[i], true);
       if (voter != null) hits.add(new Hit("vote:" + i, new RectF(26, y, 374, y + 87)));
     }
-    text(c, g.voteCount() + " / " + g.players.size() + " " + vt("VOTES", "VOTES"), 200, 571, 17, CYAN, true);
+    text(c, g.voteCount() + " / " + g.players.size() + " " + vt("VOTES", "VOTES"), 200, 585, 17, CYAN, true);
     bonusCard(c);
     ruleReportButton(c);
     catArea(c, participant);
@@ -453,6 +493,7 @@ public final class ArcadeView extends View {
   }
 
   private void ruleVote(Canvas c) {
+    if (actions.passPending()) { passScreen(c, ((MainActivity) getContext()).localRuleVoter()); return; }
     header(c, vt("LE TRIBUNAL DE L'APÉRO", "THE PARTY COURT"));
     panel(c, 27, 175, 346, 493, PANEL, PINK);
     pixelCat(c, 200, 276, 5);
@@ -474,7 +515,14 @@ public final class ArcadeView extends View {
     header(c, vt("PASSE LE TÉLÉPHONE", "PASS THE PHONE"));
     pixelCat(c, 200, 310, 6);
     text(c, next == null ? "?" : next.name, 200, 455, 31, YELLOW, true);
-    block(c, vt("Ton vote reste secret. À toi de choisir !", "Your vote stays secret. Your turn to choose!"),
+    String instruction = "GAME".equals(g.screen) && g.game == 5 && g.drawingReady
+        ? vt("Le dessin est prêt. À toi de deviner !", "The drawing is ready. Make your guess!")
+        : "PREDICT".equals(g.screen)
+        ? vt("Ton prono est secret. À toi de miser sur ton pote !", "Your prediction stays secret. Place your call!")
+        : "GAME".equals(g.screen)
+            ? vt("Le jury décide sans regarder le vote des autres.", "The jury votes without seeing anyone else's choice.")
+            : vt("Ton vote reste secret. À toi de choisir !", "Your vote stays secret. Your turn to choose!");
+    block(c, instruction,
         200, 510, 338, 18, WHITE, true);
     button(c, "readyVote", vt("C'EST MOI", "THAT'S ME"), 36, H - 124, 328, 68, CYAN);
   }
@@ -502,11 +550,13 @@ public final class ArcadeView extends View {
   }
 
   private void predict(Canvas c) {
+    if (actions.passPending()) { passScreen(c, ((MainActivity) getContext()).localPredictor()); return; }
     header(c, g.t("LE PRONO DES POTES", "FRIENDS' PREDICTION"));
     GameEngine.Player actor = g.current();
     if (actor == null) return;
     long left = Math.max(0, (g.deadline - ((MainActivity) getContext()).hostNow() + 999) / 1000);
     GameSprites.stage(c, p, g.game, 25, 170, 350, H - 278, 0, System.currentTimeMillis());
+    scene(c, g.game, 25, 170, 350, H - 278);
     GameSprites.icon(c, p, g.game, 200, 270, 5, 0, System.currentTimeMillis());
     text(c, actor.name.toUpperCase(Locale.ROOT), 200, 395, 27, WHITE, true);
     block(c, vt("Va-t-il réussir ce défi ?", "Will they beat this challenge?"),
@@ -628,7 +678,10 @@ public final class ArcadeView extends View {
       return;
     }
     header(c, g.t("CHOIX LIBRE", "FREE PLAY"));
-    text(c, g.t("UN JEU, TON CHOIX", "YOUR GAME, YOUR CALL"), 200, 160, 18, WHITE, true);
+    GameEngine.Player actor = g.current();
+    text(c, g.t("TOUR ", "TURN ") + (g.turn + 1) + "  •  "
+        + (actor == null ? "?" : actor.name.toUpperCase(Locale.ROOT)),
+        200, 160, 18, YELLOW, true);
     for (int i = 0; i < 10; i++) {
       float x = 24 + (i % 2) * 180, y = 186 + (i / 2) * 78;
       panel(c, x, y, 172, 67, PANEL, TILE[i % 4]);
@@ -753,7 +806,31 @@ public final class ArcadeView extends View {
       text(c, g.voteCount() + " / " + g.players.size() + " " + g.t("VOTES", "VOTES"),
           200, H * .44f + 252, 16, MUTED, true);
     }
-    button(c, "enter", g.t("C'EST PARTI !", "LET'S GO!"), 32, H - 110, 336, 65, YELLOW);
+    button(c, "enter", g.t("PASSER AU JOUEUR", "PASS TO PLAYER"), 32, H - 110, 336, 65, YELLOW);
+  }
+
+  private void handoff(Canvas c) {
+    GameEngine.Player actor = g.current();
+    if (actor == null) return;
+    header(c, g.t("TON TOUR ARRIVE", "YOUR TURN IS HERE"));
+    panel(c, 27, 154, 346, H - 304, PANEL, GameSprites.accent(g.game));
+    GameSprites.stage(c, p, g.game, 31, 159, 338, H - 314, 0, System.currentTimeMillis());
+    scene(c, g.game, 31, 159, 338, H - 314);
+    text(c, g.t("TOUR ", "TURN ") + (g.turn + 1), 200, 205, 20, YELLOW, true);
+    avatar(c, actor, 200, 292, 1.23f);
+    display(c, actor.name.toUpperCase(Locale.ROOT), 200, 399, 37, WHITE, true);
+    GameSprites.icon(c, p, g.game, 200, 484, 3.7f, 0, System.currentTimeMillis());
+    display(c, title(g.game), 200, 572, 26, CYAN, true);
+    block(c, g.t("Passe le téléphone. Le chrono attend que tu sois prêt.",
+        "Pass the phone. The clock waits until you're ready."),
+        200, 615, 305, 16, WHITE, true);
+    MainActivity app = (MainActivity) getContext();
+    boolean ownPhone = actions.client() ? actor.name.equals(app.network.localName)
+        : !app.network.isRemote(actor.name);
+    if (ownPhone) button(c, "readyTurn", g.t("JE SUIS PRÊT", "I'M READY"),
+        32, H - 113, 336, 69, YELLOW);
+    else block(c, g.t("En attente de " + actor.name + "…", "Waiting for " + actor.name + "…"),
+        200, H - 80, 332, 18, CYAN, true);
   }
 
   private String title(int i) {
@@ -777,13 +854,23 @@ public final class ArcadeView extends View {
   private void game(Canvas c) {
     GameEngine.Player a = g.current();
     if (a == null) return;
+    if (g.juryPhase && actions.passPending()) {
+      passScreen(c, ((MainActivity) getContext()).localJudge());
+      return;
+    }
+    if (g.game == 5 && g.drawingReady && actions.passPending()) {
+      passScreen(c, ((MainActivity) getContext()).localGuesser());
+      return;
+    }
     header(c, title(g.game));
     avatar(c, a, 52, 146, .42f);
     text(c, a.name, 91, 150, 20, WHITE, false);
-    text(c, "#" + (g.turn + 1), 355, 150, 16, YELLOW, true);
+    text(c, "TURBO".equals(g.mode) ? "⚡ #" + (g.turn + 1) : "#" + (g.turn + 1),
+        355, 150, 16, YELLOW, true);
     panel(c, 20, 169, 360, H - 261, PANEL, GameSprites.accent(g.game));
     GameSprites.stage(c, p, g.game, 23, 172, 354, H - 267,
         g.game == 3 || g.game == 9 ? g.taps : g.progress, System.currentTimeMillis());
+    scene(c, g.game, 23, 172, 354, H - 267);
     GameSprites.icon(c, p, g.game, 68, 211, 2.15f,
         g.game == 3 ? g.taps : g.progress, System.currentTimeMillis());
     if (g.deadline > 0) {
@@ -982,6 +1069,11 @@ public final class ArcadeView extends View {
         p.setStrokeCap(Paint.Cap.ROUND);
         c.drawLine(s[0], s[1], s[2], s[3], p);
       }
+      if (((MainActivity) getContext()).localGuesser() == null) {
+        block(c, g.t("Le devineur choisit sa réponse…", "The guesser is choosing…"),
+            200, 579, 300, 18, CYAN, true);
+        return;
+      }
       for (int i = 0; i < 4; i++) {
         int opt = (i - g.target + 4) % 4;
         String[] q = GameEngine.DRAW[(g.variant + opt) % GameEngine.DRAW.length];
@@ -1120,8 +1212,11 @@ public final class ArcadeView extends View {
       text(c, g.t("★ SECRET DÉBLOQUÉ ★", "★ SECRET UNLOCKED ★"),
           200, 660, 14, YELLOW, true);
     button(c, "board", g.t("CLASSEMENT", "LEADERBOARD"), 35, H - 180, 330, 54, PANEL);
+    GameEngine.Player nextPlayer = g.players.get(Math.floorMod(
+        g.active + (g.ruleId == 2 ? -1 : 1), g.players.size()));
     button(
-        c, "next", g.t("TOUR SUIVANT", "NEXT TURN"), 35, H - 110, 330, 62, g.lastWon ? CYAN : PINK);
+        c, "next", g.t("AU TOUR DE ", "NEXT: ") + nextPlayer.name.toUpperCase(Locale.ROOT),
+        35, H - 110, 330, 62, g.lastWon ? CYAN : PINK);
   }
 
   private void glass(Canvas c, float x, float y, float level) {
@@ -1325,6 +1420,10 @@ public final class ArcadeView extends View {
       actions.remoteTouch(x, y, kind, H);
       return true;
     }
+    if ("GAME".equals(g.screen) && actions.client() && g.game == 5 && g.drawingReady) {
+      if (kind == 0) handle(x, y, kind);
+      return true;
+    }
     if ("GAME".equals(g.screen) && !actions.client()) {
       GameEngine.Player actor = g.current();
       if (actor != null && ((MainActivity) getContext()).network.isRemote(actor.name)
@@ -1340,6 +1439,10 @@ public final class ArcadeView extends View {
       return true;
     }
     if ("GAME".equals(g.screen) && g.game == 9 && actions.client()) {
+      if (kind == 0) handle(x, y, kind);
+      return true;
+    }
+    if ("HANDOFF".equals(g.screen) && actions.client()) {
       if (kind == 0) handle(x, y, kind);
       return true;
     }
@@ -1432,7 +1535,8 @@ public final class ArcadeView extends View {
       case "join" -> actions.joinRoom();
       case "stats" -> actions.stats();
       case "board" -> actions.stats();
-      case "mode" -> actions.setMode("VOTE".equals(g.mode) ? "FREE" : "VOTE");
+      case "mode" -> actions.setMode("VOTE".equals(g.mode) ? "FREE"
+          : "FREE".equals(g.mode) ? "TURBO" : "VOTE");
       case "cat" -> actions.catTap();
       case "partyTab" -> { statsTab = 0; invalidate(); }
       case "historyTab" -> { statsTab = 1; invalidate(); }
@@ -1452,6 +1556,7 @@ public final class ArcadeView extends View {
         }
       }
       case "enter" -> actions.enterGame();
+      case "readyTurn" -> actions.readyTurn();
       case "predictYes" -> actions.predict(true);
       case "predictNo" -> actions.predict(false);
       case "ruleReport" -> actions.reportRule();
@@ -1475,8 +1580,7 @@ public final class ArcadeView extends View {
       }
       case "tune" -> actions.tune();
       case "drawReady" -> {
-        g.drawingReady = true;
-        actions.save();
+        actions.drawingReady();
       }
       case "beat" -> {
         long elapsed = ((MainActivity) getContext()).hostNow() - g.started;
@@ -1493,7 +1597,8 @@ public final class ArcadeView extends View {
         if (id.startsWith("edit:")) { actions.editPlayer(Integer.parseInt(id.substring(5))); return; }
         if (id.startsWith("answer:")) {
           int selected = Integer.parseInt(id.substring(7));
-          actions.finishGame(selected == g.target);
+          if (g.game == 5) actions.drawGuess(selected);
+          else actions.finishGame(selected == g.target);
         } else if (id.startsWith("cup:")) {
           int cup = Integer.parseInt(id.substring(4));
           actions.selectCup(cup);

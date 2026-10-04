@@ -172,6 +172,12 @@ public final class GameEngine {
       for (int i = 0; i < TYPES.length; i++)
         if (!pool.contains(i) && (turn == 0 || i != game)) pool.add(i);
     Collections.shuffle(pool, random);
+    if ("TURBO".equals(mode)) {
+      offers = new int[0];
+      votes = new int[0];
+      startNext(pool.get(0));
+      return;
+    }
     offers = new int[] {pool.get(0), pool.get(1), pool.get(2)};
     votes = new int[players.size()];
     java.util.Arrays.fill(votes, -1);
@@ -283,6 +289,12 @@ public final class GameEngine {
 
   public void enterGame() {
     if (!"TRANSITION".equals(screen)) return;
+    screen = "HANDOFF";
+    started = System.currentTimeMillis();
+  }
+
+  public void readyTurn() {
+    if (!"HANDOFF".equals(screen)) return;
     screen = "BET";
     started = System.currentTimeMillis();
   }
@@ -295,7 +307,7 @@ public final class GameEngine {
     java.util.Arrays.fill(predictions, -1);
     predictions[active] = 2;
     screen = "PREDICT";
-    deadline = System.currentTimeMillis() + 8000;
+    deadline = System.currentTimeMillis() + ("TURBO".equals(mode) ? 5000 : 12000);
     return true;
   }
 
@@ -341,6 +353,7 @@ public final class GameEngine {
           case 9 -> 30;
           default -> 0;
         };
+    if ("TURBO".equals(mode) && seconds > 0) seconds = Math.max(10, seconds - 4);
     if (bonusId == 3 && seconds > 0) seconds += 5;
     deadline = seconds == 0 ? 0 : started + seconds * 1000L;
   }

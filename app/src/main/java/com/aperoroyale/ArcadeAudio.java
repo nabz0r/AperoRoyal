@@ -22,12 +22,17 @@ public final class ArcadeAudio {
   private static final int RATE = 22050;
   private static final int STEP_MS = 250;
   private static final int[][] SCORE = {
-    {64, 67, 71, 67, 62, 67, 69, 67, 64, 67, 71, 76, 74, 71, 69, 67},
-    {69, 72, 76, 72, 67, 72, 79, 72, 69, 72, 76, 81, 79, 76, 72, 67},
-    {72, 76, 79, 84, 79, 76, 74, 79, 72, 76, 79, 86, 84, 79, 76, 74}
+    {0, 0, 64, 0, 0, 67, 0, 0, 71, 0, 67, 0, 0, 0, 62, 0,
+     0, 0, 64, 0, 0, 69, 0, 0, 71, 0, 0, 74, 71, 0, 0, 0},
+    {0, 69, 0, 0, 72, 0, 0, 76, 0, 0, 72, 0, 79, 0, 0, 0,
+     0, 69, 0, 0, 72, 0, 0, 81, 0, 0, 76, 0, 72, 0, 0, 0},
+    {72, 0, 0, 79, 0, 76, 0, 0, 84, 0, 0, 79, 0, 76, 0, 0,
+     74, 0, 0, 79, 0, 86, 0, 0, 84, 0, 79, 0, 76, 0, 74, 0}
   };
   private static final int[][] BASS = {
-    {40, 40, 45, 43}, {45, 45, 43, 47}, {48, 48, 50, 47}
+    {40, 40, 45, 43, 40, 43, 45, 47},
+    {45, 45, 43, 47, 45, 48, 43, 47},
+    {48, 48, 50, 47, 48, 52, 50, 47}
   };
   private static final int[][] MELODIES = {
     {64, 67, 71, 76, 71, 67, 64, 59},
@@ -62,8 +67,10 @@ public final class ArcadeAudio {
                   int currentScene = scene;
                   short[] pcm = new short[samplesPerStep];
                   if (enabled) {
-                    double lead = frequency(SCORE[currentScene][step % 16]);
-                    double bass = frequency(BASS[currentScene][(step / 4) % 4]);
+                    int note = SCORE[currentScene][step % 32];
+                    double lead = note == 0 ? 0 : frequency(note);
+                    int root = BASS[currentScene][(step / 4) % 8];
+                    double bass = frequency(root);
                     boolean kickStep = step % 4 == 0;
                     boolean snareStep = step % 4 == 2;
                     boolean hatStep = step % 2 == 1;
@@ -71,13 +78,16 @@ public final class ArcadeAudio {
                       double time = (step * (long) samplesPerStep + i) / (double) RATE;
                       double within = i / (double) RATE;
                       double attack = Math.min(1, within / .009);
-                      double leadEnvelope = attack * Math.exp(-9 * within);
+                      double leadEnvelope = note == 0 ? 0 : attack * Math.exp(-11 * within);
                       double leadWave = Math.sin(2 * Math.PI * lead * time)
                           + .19 * Math.sin(4 * Math.PI * lead * time);
                       double bassWave = Math.sin(2 * Math.PI * bass * time)
                           + .24 * Math.sin(4 * Math.PI * bass * time);
-                      double pad = Math.sin(2 * Math.PI * frequency(BASS[currentScene][(step / 4) % 4] + 19) * time)
-                          + .6 * Math.sin(2 * Math.PI * frequency(BASS[currentScene][(step / 4) % 4] + 24) * time);
+                      double pad = Math.sin(2 * Math.PI * frequency(root + 19) * time)
+                          + .6 * Math.sin(2 * Math.PI * frequency(root + 24) * time);
+                      double arpeggio = step % 4 == 3
+                          ? Math.sin(2 * Math.PI * frequency(root + 31) * time)
+                              * Math.exp(-21 * within) : 0;
                       double kick = 0;
                       if (kickStep && within < .22) {
                         double sweep = 53 + 90 * Math.exp(-30 * within);
@@ -90,12 +100,13 @@ public final class ArcadeAudio {
                       double hat = hatStep && within < .07 ? noise * Math.exp(-55 * within) : 0;
                       double duck = System.currentTimeMillis() < duckUntil ? .17 : 1;
                       double activity = currentScene == 2 ? 1 : currentScene == 1 ? .72 : .55;
-                      double sample = (bassWave * .083
-                          + pad * (style == 0 ? .018 : .013)
-                          + leadWave * leadEnvelope * (style == 0 ? .038 : .060)
-                          + kick * (style == 0 ? .055 : .095) * activity
-                          + snare * (style == 0 ? .025 : .048) * activity
-                          + hat * (style == 0 ? .012 : .028) * activity) * duck * volume;
+                      double sample = (bassWave * .07 * Math.exp(-2.4 * within)
+                          + pad * (style == 0 ? .012 : .009)
+                          + leadWave * leadEnvelope * (style == 0 ? .028 : .052)
+                          + arpeggio * (style == 0 ? .010 : .022)
+                          + kick * (style == 0 ? .064 : .105) * activity
+                          + snare * (style == 0 ? .019 : .044) * activity
+                          + hat * (style == 0 ? .008 : .024) * activity) * duck * volume;
                       pcm[i] = (short) (Math.max(-1, Math.min(1, sample)) * Short.MAX_VALUE);
                     }
                   }
@@ -147,6 +158,14 @@ public final class ArcadeAudio {
     long now = System.currentTimeMillis();
     if (now - lastClick.getAndSet(now) < 45) return;
     effects.execute(() -> playNote(79, 45, 0.13f));
+  }
+
+  public void turn() {
+    effects.execute(() -> {
+      playNote(60, 80, .12f);
+      playNote(67, 80, .12f);
+      playNote(72, 140, .14f);
+    });
   }
 
   public void win() {

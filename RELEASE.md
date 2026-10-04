@@ -1,29 +1,30 @@
-# Apéro Royale 1.1.0 — Arcade sociale
+# Apéro Royale 1.2.0 — Le tour passe enfin
 
-- [APK Android signé](releases/AperoRoyale-v1.1.0.apk) · `com.aperoroyale` · versionCode `3` · Android 8.0+ (API 26)
-- SHA-256 : `bfa425f671aa445b64cab594b0d0efed617a25cc347902c01e26027d4cda95e5`
-- Certificat de signature SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` (même clé que 1.0.1)
+- [APK Android signé](releases/AperoRoyale-v1.2.0.apk) · `com.aperoroyale` · versionCode `4` · Android 8.0+ (API 26)
+- SHA-256 de l’APK : `037f250b157d30595c8d6dc773844ce3a8210fd8c5aa39118552c3dbaf0cba5f`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que les versions précédentes
 
-## Nouveautés
+## Ce qui change
 
-Direction artistique retravaillée autour d’une fête urbaine rétro originale, six portraits illustrés, scènes animées et sprites propres aux dix mini-jeux. La musique procédurale a été reconstruite avec un groove continu et des effets plus doux ; elle reste coupée par défaut. Le menu permet de régler séparément musique, volume, effets et vibrations.
+**Le tour de chacun est explicite.** L’écran de passage annonce le joueur et le défi, puis attend son « Je suis prêt » avant la mise. À deux sur un téléphone, le premier vote part désormais du joueur actif ; après chaque manche, l’ordre s’inverse. Les pronostics, jurys et dessins à deviner ont leur propre relais privé. Le second joueur intervient donc pendant chaque manche au lieu d’attendre passivement la suivante.
 
-Le joueur actif mise 1 à 3 gorgées virtuelles ; **tous les autres pronostiquent** le résultat pour marquer des points. Les poses et les bluffs passent devant un jury au lieu d’un bouton d’auto-validation. La roulette révèle son gobelet, la mémoire monte en difficulté et les jeux de rythme/réflexe utilisent des commandes réseau adaptées à la latence. Un classement par défi rejoint les classements de soirée et historiques.
+**Mode Turbo.** Le lobby propose maintenant Vote, Libre et Turbo. Turbo choisit un défi surprise sans attendre le scrutin et raccourcit les chronos de jeu ; les mises et pronostics restent présents.
 
-Onze secrets sont cachés dans la partie, dont le chat pixel. Le premier secret permet de choisir parmi dix règles applicables à toute la salle. Les infractions sociales sont signalées par les joueurs et jugées par vote sur leurs téléphones. Le jeu n’utilise pas le microphone.
+**Décors et son.** Dix décors rétro nocturnes originaux habillent les mini-jeux et l’écran de passage, sans masquer les commandes. Le morceau procédural est moins répétitif, démarre à volume réduit et marque le changement de joueur avec un court signal. Musique, volume, style, SFX et vibrations restent réglables.
 
-Le README et les guides expliquent le parcours, et les dix écrans de jeu sont capturés dans [`docs/screenshots/games`](docs/screenshots/games).
+**Dessin en réseau.** Le devineur distant choisit sa réponse depuis son propre téléphone ; l’hôte vérifie cette action avant d’attribuer le résultat. Le devineur local reçoit un écran de passage avant de voir les réponses.
 
-## Vérifications effectuées
+Le [README](README.md) présente le nouveau parcours et les captures des dix jeux ; [l’écran de passage](docs/screenshots/handoff.png) montre le moment « à toi de jouer ».
 
-- `./gradlew test assembleDebug assembleRelease` et `lintVitalRelease` : réussis. Le projet n’a pas encore de tests unitaires Gradle (`NO-SOURCE`).
-- `tools/smoke_v110.py` sur émulateur Android 16 : les dix mini-jeux terminés, alternance de deux joueurs sur un même téléphone, dix mises, dix pronostics, enregistrement SQLite et captures des dix écrans.
-- Deux émulateurs Android 16 et Android 8.0 : un invité rejoint le salon Wi-Fi via redirection TCP, vote depuis son téléphone, mise sur son propre tour, termine le défi de rythme à distance et participe au vote d’une règle ; la pénalité et l’historique sont synchronisés sur l’hôte.
-- Salon Internet via le relais public MQTT TLS : le second émulateur rejoint avec le code à 12 caractères, reçoit le lobby, vote depuis son téléphone et la transition est synchronisée.
-- Import de photo via le sélecteur Android sur émulateur : la photo de test devient le portrait du profil et reste enregistrée dans la session SQLite après réduction locale.
-- L’APK signé s’installe sur l’émulateur Android 8.0 au-dessus de la version 1.0.1, démarre sans erreur fatale observée et annonce la version 1.1.0.
-- `apksigner verify` : certificat valide ; `aapt` : versionCode 3 et API minimale 26 ; SHA-256 calculé sur l’APK livré.
+## Vérifications
 
-## Limites vérifiées honnêtement
+- `./gradlew test assembleDebug assembleRelease lintVitalRelease` : réussite. Les tâches unitaires Gradle indiquent encore `NO-SOURCE` ; les parcours réels sont couverts par les scripts ci-dessous.
+- `tools/smoke_v120.py` sur émulateur Android 16 : dix jeux terminés, deux profils alternés, dix mises et pronostics, relais du dessin, historique SQLite et dix nouvelles captures.
+- `tools/smoke_turns.py` : deux manches Vote complètes, premier votant et joueur actif alternés.
+- `tools/smoke_turbo.py` : deux manches Turbo, sélection directe et alternance des joueurs.
+- Deux émulateurs Android 16 et Android 8.0 en Wi-Fi via redirection locale : le second téléphone rejoint la salle, vote, reçoit son tour, valide lui-même « Je suis prêt » et place sa mise. Le jeu de dessin a aussi été terminé avec l’artiste sur l’hôte et le devineur sur l’autre téléphone ; le résultat a été enregistré sur l’hôte.
+- L’APK signé s’installe en mise à jour sur Android 8.0. `aapt` annonce versionCode 4 / minSdk 26 ; `apksigner verify` valide la signature et le certificat ci-dessus.
 
-L’intégration Bluetooth RFCOMM exige deux téléphones Android appairés et n’a pas été validée sur émulateur. Le salon Internet a été vérifié jusqu’au vote et à la transition ; un tour complet à distance via le relais public n’a pas été rejoué dans ce cycle. Spotify demande un compte et un appareil actif et n’a pas été revalidé. L’import a été testé avec une image de démonstration, pas une galerie personnelle réelle. Le relais Internet par défaut est un [service public de test EMQX](https://www.emqx.com/en/mqtt/public-mqtt5-broker) sans garantie de disponibilité. L’hôte doit garder l’application ouverte pendant une partie à plusieurs téléphones.
+## Limites actuelles
+
+Bluetooth RFCOMM demande deux téléphones appairés et n’a pas été revalidé sur les émulateurs. Le salon Internet dépend d’un relais MQTT TLS public de test ; la version précédente a été vérifiée jusqu’au vote et à la transition, mais cette version n’a pas refait un tour complet sur ce relais. Spotify demande une configuration et un appareil compatible ; aucun compte Spotify réel n’a été utilisé dans cette validation. Le jeu en réseau garde l’hôte ouvert pendant la partie.
