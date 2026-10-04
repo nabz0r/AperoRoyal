@@ -226,6 +226,7 @@ public final class MainActivity extends Activity
   public void drawingReady() {
     if (!"GAME".equals(game.screen) || game.game != 5 || game.drawingReady) return;
     game.drawingReady = true;
+    game.resumeGame();
     setPassPending(localGuesser() != null);
     save();
   }
@@ -447,7 +448,8 @@ public final class MainActivity extends Activity
     if (!passPending) return;
     long paused = Math.max(0, System.currentTimeMillis() - passStartedAt);
     if ("PREDICT".equals(game.screen) && game.deadline > 0) game.deadline += paused;
-    if ("GAME".equals(game.screen) && game.juryPhase && game.deadline > 0)
+    if ("GAME".equals(game.screen) && (game.juryPhase ||
+        (game.game == 5 && game.drawingReady)) && game.deadline > 0)
       game.deadline += paused;
     if ("RULE_VOTE".equals(game.screen) && game.reportDeadline > 0)
       game.reportDeadline += paused;

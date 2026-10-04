@@ -66,6 +66,7 @@ public final class GameEngine {
   }
   private final ArrayList<Integer> deck = new ArrayList<>();
   private final int[] lastVariant = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+  private final ArrayList<ArrayList<Integer>> variantDecks = new ArrayList<>();
   public String screen = "HOME";
   public int active = 0,
       turn = 0,
@@ -140,6 +141,7 @@ public final class GameEngine {
     active = turn = 0;
     screen = "LOBBY";
     deck.clear();
+    variantDecks.clear();
     java.util.Arrays.fill(lastVariant, -1);
     mode = "VOTE";
     offers = votes = catTaps = new int[0];
@@ -269,17 +271,17 @@ public final class GameEngine {
     if (deck.isEmpty()) for (int i = 0; i < TYPES.length; i++) deck.add(i);
     game = chosen;
     deck.remove(Integer.valueOf(chosen));
-    int variants = switch (chosen) {
-      case 0 -> QUIZ_FR.length;
-      case 1 -> POSES.length;
-      case 2 -> TUNES.length;
-      case 5 -> DRAW.length;
-      case 8 -> BLUFF.length;
-      default -> 6;
-    };
-    variant = random.nextInt(variants);
-    if (variants > 1 && variant == lastVariant[chosen])
-      variant = (variant + 1 + random.nextInt(variants - 1)) % variants;
+    int variants = variantCount(chosen);
+    while (variantDecks.size() < TYPES.length) variantDecks.add(new ArrayList<>());
+    ArrayList<Integer> variantDeck = variantDecks.get(chosen);
+    if (variantDeck.isEmpty()) {
+      for (int i = 0; i < variants; i++) variantDeck.add(i);
+      Collections.shuffle(variantDeck, random);
+      // The first card of a fresh pack must differ from the previous pack's last card.
+      if (variants > 1 && variantDeck.get(variantDeck.size() - 1) == lastVariant[chosen])
+        Collections.swap(variantDeck, variantDeck.size() - 1, 0);
+    }
+    variant = variantDeck.remove(variantDeck.size() - 1);
     lastVariant[chosen] = variant;
     target = random.nextInt(4);
     progress = chosen == 7 ? -1 : 0;
@@ -309,6 +311,17 @@ public final class GameEngine {
     screen = "TRANSITION";
     started = System.currentTimeMillis();
     deadline = 0;
+  }
+
+  private static int variantCount(int chosen) {
+    return switch (chosen) {
+      case 0 -> QUIZ_FR.length;
+      case 1 -> POSES.length;
+      case 2 -> TUNES.length;
+      case 5 -> DRAW.length;
+      case 8 -> BLUFF.length;
+      default -> 6;
+    };
   }
 
   public void enterGame() {
@@ -375,6 +388,8 @@ public final class GameEngine {
           case 1 -> 24;
           case 2 -> 18;
           case 3 -> 15;
+          case 4 -> 10;
+          case 5 -> drawingReady ? 12 : 30;
           case 6 -> 22;
           case 7 -> 16;
           case 8 -> 24;
@@ -449,6 +464,7 @@ public final class GameEngine {
     if (!"GAME".equals(screen) || game != 4 || cup < 0 || cup >= 6 || chosenCup >= 0) return false;
     chosenCup = cup;
     revealUntil = System.currentTimeMillis() + 1300;
+    deadline = 0; // Let the selected cup finish its reveal even if picked at the last second.
     return true;
   }
 
@@ -632,6 +648,7 @@ public final class GameEngine {
     JSONObject j = networkJson();
     try {
       j.remove("lastVariant");
+      j.remove("variantDecks");
       boolean actor = current() != null && current().name.equals(recipient);
       int guesser = players.isEmpty() ? -1 : (active + 1) % players.size();
       boolean drawGuesser = game == 5 && drawingReady && guesser >= 0
@@ -756,6 +773,10 @@ public final class GameEngine {
       for (int x : deck) d.put(x);
       j.put("deck", d);
       j.put("lastVariant", new JSONArray(lastVariant));
+      JSONArray packs = new JSONArray();
+      for (int i = 0; i < TYPES.length; i++)
+        packs.put(new JSONArray(i < variantDecks.size() ? variantDecks.get(i) : new ArrayList<>()));
+      j.put("variantDecks", packs);
       JSONArray s = new JSONArray();
       for (int x : sequence) s.put(x);
       j.put("sequence", s);
@@ -844,6 +865,21 @@ public final class GameEngine {
     if (previous != null)
       for (int i = 0; i < Math.min(lastVariant.length, previous.length()); i++)
         lastVariant[i] = previous.optInt(i, -1);
+    variantDecks.clear();
+    JSONArray packs = j.optJSONArray("variantDecks");
+    for (int i = 0; i < TYPES.length; i++) {
+      ArrayList<Integer> pack = new ArrayList<>();
+      JSONArray savedPack = packs == null ? null : packs.optJSONArray(i);
+      int limit = variantCount(i);
+      if (savedPack != null && savedPack.length() <= limit) {
+        for (int k = 0; k < savedPack.length(); k++) {
+          int value = savedPack.optInt(k, -1);
+          if (value < 0 || value >= limit || pack.contains(value)) { pack.clear(); break; }
+          pack.add(value);
+        }
+      }
+      variantDecks.add(pack);
+    }
     JSONArray s = j.optJSONArray("sequence");
     sequence = new int[s == null ? 0 : s.length()];
     for (int i = 0; i < sequence.length; i++) sequence[i] = s.optInt(i);

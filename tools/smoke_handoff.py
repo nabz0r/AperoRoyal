@@ -62,7 +62,7 @@ def main():
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.3)
     assert state()["screen"] == "PREDICT", "saved game was replaced by home screen"
-    tap(200, HEIGHT - 215)  # Resume the saved game from Home.
+    tap(110, HEIGHT - 215)  # Resume button is the left half of the Home row.
     wait_screen("PREDICT")
     time.sleep(6.2)
     assert state()["screen"] == "PREDICT", "resumed handoff expired"

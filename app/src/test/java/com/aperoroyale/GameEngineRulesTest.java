@@ -68,6 +68,52 @@ public final class GameEngineRulesTest {
     assertNotEquals(first, game.variant);
   }
 
+  @Test public void authoredCardsExhaustTheirPackBeforeRepeatingEvenAfterRestore() throws Exception {
+    int[] games = {0, 1, 2, 5, 8};
+    int[] counts = {GameEngine.QUIZ_FR.length, GameEngine.POSES.length,
+        GameEngine.TUNES.length, GameEngine.DRAW.length, GameEngine.BLUFF.length};
+    for (int k = 0; k < games.length; k++) {
+      GameEngine game = room();
+      boolean[] seen = new boolean[counts[k]];
+      int previous = -1;
+      for (int i = 0; i < counts[k] * 2; i++) {
+        game.startNext(games[k]);
+        assertFalse("card repeated before pack exhausted", seen[game.variant]);
+        assertNotEquals("same card at pack boundary", previous, game.variant);
+        seen[game.variant] = true;
+        previous = game.variant;
+        if (i == counts[k] - 1 || i == 2) {
+          GameEngine copy = new GameEngine(100 + k);
+          copy.restore(game.json());
+          game = copy;
+        }
+        if ((i + 1) % counts[k] == 0) java.util.Arrays.fill(seen, false);
+      }
+    }
+  }
+
+  @Test public void rouletteAndBothDrawingPhasesHaveFiniteTimeLimits() {
+    GameEngine game = room();
+    game.startNext(4);
+    game.screen = "GAME";
+    game.resumeGame();
+    assertTrue(game.deadline > game.started);
+    assertTrue(game.selectCup(0));
+    assertEquals(0, game.deadline);
+    assertTrue(game.revealUntil > 0);
+
+    game.startNext(5);
+    game.screen = "GAME";
+    game.resumeGame();
+    long drawLimit = game.deadline - game.started;
+    assertTrue(drawLimit >= 30_000 && drawLimit <= 41_000);
+    game.drawingReady = true;
+    game.resumeGame();
+    long guessLimit = game.deadline - game.started;
+    assertTrue(guessLimit >= 12_000 && guessLimit <= 23_000);
+    assertTrue(guessLimit < drawLimit);
+  }
+
   @Test public void turboWaitsForSecretRuleBeforeStartingNextChallenge() {
     GameEngine game = room();
     game.mode = "TURBO";

@@ -2,9 +2,9 @@
 
 **La soirée devient une borne d’arcade.** Un jeu d’apéro Android pour 2 à 6 amis, sur **un seul téléphone** ou **plusieurs téléphones**. Un joueur prend la lumière à chaque manche ; tous les autres votent, pronostiquent, jugent, dessinent ou désamorcent avec lui.
 
-![Accueil Apéro Royale 1.4.1](docs/screenshots/home.png)
+![Accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.4.1**](releases/AperoRoyale-v1.4.1.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.2**](releases/AperoRoyale-v1.4.2.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
@@ -18,6 +18,8 @@
 **Confort 1.4.0.** L’accueil, la palette, l’icône et les réglages adoptent une direction nocturne plus adulte. La source musicale se choisit dans une liste claire ; un bouton dans l’en-tête ouvre l’application choisie pendant la partie. La bande originale du jeu se tait lorsqu’une source externe ou le silence est sélectionné. Effets et vibrations restent séparés. Les écrans s’adaptent aussi aux téléphones 16:9 ; les chronos locaux reprennent après un passage dans les réglages ou en arrière-plan.
 
 **Fiabilité 1.4.1.** [500 soirées simulées](docs/SIMULATION_500_PARTIES.md) ont traversé les dix jeux et les trois modes, avec 7 990 manches et 40 190 restaurations d’état. Deux anomalies ont été corrigées : le choix de règle secrète en Turbo et le verdict du jury à l’expiration du chrono dans le moteur.
+
+**Rythme 1.4.2.** [Un second audit de 500 soirées](docs/SIMULATION_EXPERIENCE_500.md) mesure le temps **modélisé**, les répétitions et les actions propres à chaque mini-jeu. Les contenus écrits et sonores sortent maintenant d'un paquet sans répétition avant épuisement ; roulette et dessin ont des délais finis. L'audit révèle aussi un vrai chantier : à six sur un seul téléphone, le mode Vote prendrait environ 87 s par manche selon les hypothèses publiées, et six jeux laissent leurs amis spectateurs du défi. Ce sont des risques de conception à tester avec de vrais groupes, pas du plaisir validé automatiquement.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -84,9 +86,11 @@ Android natif Java, JDK 17, Android SDK 36 et Gradle 8.14.3. Aucun serveur n’e
 
 ```sh
 ./gradlew test assembleDebug
+./gradlew testDebugUnitTest --tests com.aperoroyale.PartyExperienceSimulationTest
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turns.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turbo.py
+ADB_SERIAL=emulator-5554 python3 tools/smoke_pacing.py
 ```
 
 Pour créer une mise à jour signée, utilisez votre propre clé PKCS12 et placez ses paramètres dans `signing.properties` à la racine ; ce fichier reste hors Git :
@@ -108,4 +112,4 @@ Illustrations originales dans [`art/source`](art/source), décors des mini-jeux 
 
 ---
 
-**English:** Apéro Royale 1.4.1 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. Ten games have distinct scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The mature new visual direction adds an illustrated lounge home and a redesigned music menu. Choose original music, silence or a shortcut to Spotify, Deezer, Apple Music or Amazon Music. External playback stays in the chosen music app; the sound game remains original and offline. See the [ten-game redesign plan](docs/REFONTE_DIX_MINI_JEUX.md). The signed APK is linked above.
+**English:** Apéro Royale 1.4.2 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. Ten games have distinct scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The mature new visual direction adds an illustrated lounge home and a redesigned music menu. Choose original music, silence or a shortcut to Spotify, Deezer, Apple Music or Amazon Music. External playback stays in the chosen music app; the sound game remains original and offline. See the [ten-game redesign plan](docs/REFONTE_DIX_MINI_JEUX.md). The signed APK is linked above.

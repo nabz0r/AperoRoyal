@@ -1,6 +1,6 @@
 # Les dix défis qui donnent envie de relancer une manche
 
-**Diagnostic et spécification de jeu, 4 octobre 2026.** Analyse initiale sur Apéro Royale 1.3.0 (`6e6893b`), mise à jour pour 1.4.0. Les refontes collectives décrites ci-dessous restent à prototyper ; la suppression du quiz Spotify, le menu musical multi-services et la nouvelle direction de l'accueil sont déjà livrés dans 1.4.0. Aucun test avec un groupe réel n'a encore mesuré le plaisir, la compréhension ou le partage.
+**Diagnostic et spécification de jeu, 4 octobre 2026.** Analyse initiale sur Apéro Royale 1.3.0 (`6e6893b`), mise à jour pour 1.4.2. Les refontes collectives décrites ci-dessous restent à prototyper ; la suppression du quiz Spotify, le menu musical multi-services et la nouvelle direction de l'accueil sont déjà livrés. [L'audit automatisé de rythme de 1.4.2](SIMULATION_EXPERIENCE_500.md) confirme le risque d'attente sur un téléphone partagé et la faible participation dans six défis. Les paquets sans répétition et les chronos du dessin/de la roulette sont livrés. Aucun test avec un groupe réel n'a encore mesuré le plaisir, la compréhension ou le partage.
 
 ## L'objectif produit
 

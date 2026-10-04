@@ -1,6 +1,6 @@
 # Simulation de 500 soirées — Apéro Royale 1.4.1
 
-Le test reproductible [`PartySimulationTest`](../app/src/test/java/com/aperoroyale/PartySimulationTest.java) exécute le **vrai moteur de jeu** avec 500 graines différentes, de deux à six joueurs, en modes Vote, Libre et Turbo. Chaque soirée dure de 12 à 20 manches. Le test alterne acteurs, mises, pronostics, votes, jury, roulette, réflexes, bombe, règles secrètes et signalements de règle. Il sauvegarde et restaure régulièrement l'état en JSON, comme lors d'une reprise ou d'une synchronisation, puis vérifie tours, scores, compteurs et secrets des instantanés invités.
+Le test reproductible [`PartySimulationTest`](../app/src/test/java/com/aperoroyale/PartySimulationTest.java) exécute le **vrai moteur de jeu** avec 500 graines différentes, de deux à six joueurs, en modes Vote, Libre et Turbo. Chaque soirée dure de 12 à 20 manches. Le test alterne acteurs, mises, pronostics, votes, jury, roulette, réflexes, bombe, règles secrètes et signalements de règle. Il sauvegarde et restaure régulièrement l'état en JSON, comme lors d'une reprise ou d'une synchronisation, puis vérifie tours, scores, compteurs et secrets des instantanés invités. [L'audit de rythme et de participation de 1.4.2](SIMULATION_EXPERIENCE_500.md) ajoute un second jeu de 500 soirées, avec hypothèses de temps explicites et diagnostic des dix défis.
 
 ## Résultat après corrections
 

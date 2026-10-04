@@ -1,3 +1,27 @@
+# Apéro Royale 1.4.2 — Le rythme sous la loupe
+
+- [APK Android signé 1.4.2](releases/AperoRoyale-v1.4.2.apk) · `com.aperoroyale` · versionCode `9` · Android 8.0+ (API 26)
+- SHA-256 : `9bc4da3199785da590d1d8ddb49aa5b91227bf77d77cef3f262c156eb61ba02a`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.1
+
+## Changements
+
+- [Audit de 500 soirées supplémentaires](docs/SIMULATION_EXPERIENCE_500.md) : 7 990 manches avec temps modélisé, part de préparation, répétition des jeux et cartes, et participation propre à chaque défi. Le scénario à six sur un téléphone en mode Vote ressort à 87,3 s modélisées par manche ; six défis sur dix restent essentiellement solo. Ces constats sont des risques de conception, non une validation du plaisir.
+- QCM, poses, motifs sonores, dessins et amorces de bluff passent dans des paquets mélangés persistants : aucune carte ne revient avant épuisement du paquet, y compris après reprise de la partie.
+- Roulette : 10 s pour choisir un gobelet, puis révélation complète. Dessin : 30 s pour dessiner, 12 s pour deviner ; le relais sur téléphone partagé suspend le délai du devineur.
+
+## Vérifications
+
+- `./gradlew testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite. Les deux simulations totalisent 1 000 soirées et 15 980 manches ; la nouvelle simulation sert au diagnostic de rythme avec hypothèses publiées.
+- Parcours sur émulateur Android 16 : les dix mini-jeux terminés à deux profils locaux avec passage de téléphone, mises, pronostics et historique.
+- Test de passage privé sur Android 16 : pronostic Turbo et jury suspendus pendant le relais, reprise après fermeture et arrière-plan. Le script a été adapté à l'emplacement actuel du bouton « Reprendre ».
+- Test de rythme sur Android 16 : après plus de 12 s de passage privé, le devineur garde son nouveau chrono ; la roulette sans choix expire avec une défaite enregistrée.
+- APK release installée et lancée sur émulateur Android 8.0. `apksigner verify` valide la signature v2 ; `aapt` confirme versionCode 9 / minSdk 26.
+
+**Limites.** Les durées du rapport sont des estimations, pas des observations humaines ou des mesures de latence Bluetooth/Wi-Fi/Internet. Le plaisir entre amis, l'attente ressentie et les mécaniques collectives à refaire nécessitent des tests avec de vrais groupes. Les dix refontes de gameplay décrites dans la documentation ne sont pas livrées dans 1.4.2.
+
+---
+
 # Apéro Royale 1.4.1 — Une soirée qui continue
 
 - [APK Android signé 1.4.1](releases/AperoRoyale-v1.4.1.apk) · `com.aperoroyale` · versionCode `8` · Android 8.0+ (API 26)
