@@ -104,11 +104,19 @@ public final class GameEngine {
   public String mode = "VOTE";
   /** Consecutive rounds without an action from every player. */
   public int passiveStreak = 0;
-  public int[] offers = {}, votes = {}, catTaps = {};
+  public int[] offers = {}, votes = {};
   public String ruleOwner = "";
   public int ruleId = -1, voteWinner = -1, freePick = 0;
   public int bonusId = 0;
   public int secretMask = 0, secretId = -1;
+  /** Waiting-room discoveries are private until solved; the host validates every move. */
+  public int[] hiddenProbe = {}, hiddenKind = {}, hiddenStep = {}, hiddenSeed = {},
+      hiddenWonMask = {}, hiddenMistakes = {}, hiddenSolvedTurn = {};
+  public String hiddenLastOwner = "";
+  public int hiddenLastKind = -1, hiddenLastTurn = -1;
+  public String queuedRuleOwner = "";
+  public int queuedSecretId = -1;
+  public int[] queuedRuleOffers = {};
   public int[] ruleOffers = {};
   public String reportTarget = "", reportBy = "", reportReturn = "VOTE";
   public int[] reportVotes = {};
@@ -153,11 +161,19 @@ public final class GameEngine {
     java.util.Arrays.fill(lastVariant, -1);
     mode = "VOTE";
     passiveStreak = 0;
-    offers = votes = catTaps = new int[0];
+    offers = votes = new int[0];
     ruleOwner = "";
     ruleId = voteWinner = -1;
     secretMask = 0;
     secretId = -1;
+    hiddenProbe = hiddenKind = hiddenStep = hiddenSeed = hiddenWonMask = hiddenMistakes =
+        hiddenSolvedTurn = new int[0];
+    hiddenLastOwner = "";
+    hiddenLastKind = -1;
+    hiddenLastTurn = -1;
+    queuedRuleOwner = "";
+    queuedSecretId = -1;
+    queuedRuleOffers = new int[0];
     ruleOffers = new int[0];
     reportTarget = reportBy = "";
     reportReturn = "VOTE";
@@ -175,13 +191,36 @@ public final class GameEngine {
     if (players.size() < 2) return;
     active = 0;
     turn = 0;
+    initHidden();
     startSelection();
+  }
+
+  private void initHidden() {
+    int count = players.size();
+    hiddenProbe = new int[count];
+    hiddenKind = new int[count];
+    java.util.Arrays.fill(hiddenKind, -1);
+    hiddenStep = new int[count];
+    hiddenSeed = new int[count];
+    hiddenWonMask = new int[count];
+    hiddenMistakes = new int[count];
+    hiddenSolvedTurn = new int[count];
+    java.util.Arrays.fill(hiddenSolvedTurn, -1);
   }
 
   public void startSelection() {
     deadline = 0;
     started = System.currentTimeMillis();
     voteWinner = -1;
+    if (!queuedRuleOwner.isEmpty()) {
+      ruleOwner = queuedRuleOwner;
+      secretId = queuedSecretId;
+      ruleOffers = queuedRuleOffers;
+      ruleId = -1;
+      queuedRuleOwner = "";
+      queuedSecretId = -1;
+      queuedRuleOffers = new int[0];
+    }
     if ("TURBO".equals(mode) && !ruleOwner.isEmpty() && ruleId < 0) {
       screen = "RULE_PICK";
       return;
@@ -210,7 +249,6 @@ public final class GameEngine {
     offers = new int[] {pool.get(0), pool.get(1), pool.get(2)};
     votes = new int[players.size()];
     java.util.Arrays.fill(votes, -1);
-    if (catTaps.length != players.size()) catTaps = new int[players.size()];
     screen = "VOTE";
   }
 
@@ -245,13 +283,79 @@ public final class GameEngine {
     startNext(offers[voteWinner]);
   }
 
-  public boolean catTap(String name) {
+  /** Only a remote spectator who has finished their real contribution may hunt a secret. */
+  public boolean hiddenWaiting(String name) {
     int i = indexOf(name);
-    if (!("VOTE".equals(screen) || "LIBRARY".equals(screen)) || i < 0 || ruleId >= 0 || !ruleOwner.isEmpty()) return false;
-    if (catTaps.length != players.size()) catTaps = new int[players.size()];
-    catTaps[i]++;
-    if (catTaps[i] >= 20) unlockSecret(0, name);
+    if (i < 0 || hiddenKind.length != players.size()) return false;
+    if ("VOTE".equals(screen)) return i < votes.length && votes[i] >= 0;
+    if ("LIBRARY".equals(screen)) return true;
+    if (i == active) return false;
+    if ("RESULT".equals(screen)) return true;
+    if ("CREW".equals(screen)) return i < crewChoices.length && crewChoices[i] >= 0;
+    if (!"GAME".equals(screen) || game == 9) return false;
+    if (juryPhase) return i < juryVotes.length && juryVotes[i] >= 0;
+    if (game == 5 && drawingReady)
+      return i < drawGuesses.length && drawGuesses[i] >= 0;
     return true;
+  }
+
+  /** -1 probes the small alley hint; 0..3 are the four secret controls. */
+  public boolean hiddenTap(String name, int slot) {
+    if (!hiddenWaiting(name) || slot < -1 || slot > 3) return false;
+    int i = indexOf(name);
+    if (hiddenKind[i] < 0) {
+      if (slot != -1 || hiddenWonMask[i] == 7 || hiddenSolvedTurn[i] == turn) return false;
+      if (++hiddenProbe[i] < 3) return true;
+      hiddenProbe[i] = 0;
+      for (int offset = 0; offset < 3; offset++) {
+        int kind = (turn + i + offset) % 3;
+        if ((hiddenWonMask[i] & (1 << kind)) == 0) {
+          hiddenKind[i] = kind;
+          break;
+        }
+      }
+      hiddenStep[i] = 0;
+      hiddenMistakes[i] = 0;
+      hiddenSeed[i] = random.nextInt(256);
+      return true;
+    }
+    if (slot < 0) return false;
+    if (slot != hiddenTarget(i)) {
+      hiddenMistakes[i]++;
+      if (hiddenKind[i] == 1) hiddenStep[i] = 0;
+      return true;
+    }
+    if (++hiddenStep[i] < 4) return true;
+    int kind = hiddenKind[i];
+    hiddenWonMask[i] |= 1 << kind;
+    hiddenKind[i] = -1;
+    hiddenStep[i] = 0;
+    hiddenProbe[i] = 0;
+    hiddenLastOwner = name;
+    hiddenLastKind = kind;
+    hiddenLastTurn = turn;
+    hiddenSolvedTurn[i] = turn;
+    int secret = kind == 0 ? 0 : 10 + kind;
+    boolean firstInRoom = (secretMask & (1 << secret)) == 0;
+    unlockSecret(secret, name);
+    if (firstInRoom && ruleId >= 0 && queuedRuleOwner.isEmpty()) {
+      queuedRuleOwner = name;
+      queuedSecretId = secret;
+      int base = (secret * 3) % 10;
+      queuedRuleOffers = new int[] {base, (base + 3) % 10, (base + 7) % 10};
+    }
+    return true;
+  }
+
+  public int hiddenTarget(int i) {
+    if (i < 0 || i >= hiddenKind.length || hiddenKind[i] < 0) return -1;
+    int step = hiddenStep[i];
+    int seed = hiddenSeed[i];
+    return switch (hiddenKind[i]) {
+      case 0 -> (seed + step * 3) & 3; // cat chases across four rooftops
+      case 1 -> (seed >>> (step * 2)) & 3; // read the four neon paw glyphs in order
+      default -> ((seed >>> (step * 2)) & 3) ^ 1; // tap across the vertical mirror
+    };
   }
 
   private void unlockSecret(int id, String owner) {
@@ -914,6 +1018,14 @@ public final class GameEngine {
     try {
       j.remove("lastVariant");
       j.remove("variantDecks");
+      int secretViewer = indexOf(recipient);
+      j.put("hiddenProbe", privateValues(hiddenProbe, secretViewer, 0));
+      j.put("hiddenKind", privateValues(hiddenKind, secretViewer, -1));
+      j.put("hiddenStep", privateValues(hiddenStep, secretViewer, 0));
+      j.put("hiddenSeed", privateValues(hiddenSeed, secretViewer, 0));
+      j.put("hiddenWonMask", privateValues(hiddenWonMask, secretViewer, 0));
+      j.put("hiddenMistakes", privateValues(hiddenMistakes, secretViewer, 0));
+      j.put("hiddenSolvedTurn", privateValues(hiddenSolvedTurn, secretViewer, -1));
       boolean actor = current() != null && current().name.equals(recipient);
       int guesser = players.isEmpty() ? -1 : (active + 1) % players.size();
       boolean drawGuesser = game == 5 && drawingReady && guesser >= 0
@@ -981,6 +1093,12 @@ public final class GameEngine {
     return result;
   }
 
+  private static JSONArray privateValues(int[] values, int recipient, int hidden) {
+    JSONArray result = new JSONArray();
+    for (int i = 0; i < values.length; i++) result.put(i == recipient ? values[i] : hidden);
+    return result;
+  }
+
   private JSONObject json(boolean includePhotos, boolean includeStrokes) {
     JSONObject j = new JSONObject();
     try {
@@ -1027,7 +1145,6 @@ public final class GameEngine {
       j.put("passiveStreak", passiveStreak);
       j.put("offers", new JSONArray(offers));
       j.put("votes", new JSONArray(votes));
-      j.put("catTaps", new JSONArray(catTaps));
       j.put("ruleOwner", ruleOwner);
       j.put("ruleId", ruleId);
       j.put("voteWinner", voteWinner);
@@ -1035,6 +1152,19 @@ public final class GameEngine {
       j.put("bonusId", bonusId);
       j.put("secretMask", secretMask);
       j.put("secretId", secretId);
+      j.put("hiddenProbe", new JSONArray(hiddenProbe));
+      j.put("hiddenKind", new JSONArray(hiddenKind));
+      j.put("hiddenStep", new JSONArray(hiddenStep));
+      j.put("hiddenSeed", new JSONArray(hiddenSeed));
+      j.put("hiddenWonMask", new JSONArray(hiddenWonMask));
+      j.put("hiddenMistakes", new JSONArray(hiddenMistakes));
+      j.put("hiddenSolvedTurn", new JSONArray(hiddenSolvedTurn));
+      j.put("hiddenLastOwner", hiddenLastOwner);
+      j.put("hiddenLastKind", hiddenLastKind);
+      j.put("hiddenLastTurn", hiddenLastTurn);
+      j.put("queuedRuleOwner", queuedRuleOwner);
+      j.put("queuedSecretId", queuedSecretId);
+      j.put("queuedRuleOffers", new JSONArray(queuedRuleOffers));
       j.put("ruleOffers", new JSONArray(ruleOffers));
       j.put("reportTarget", reportTarget);
       j.put("reportBy", reportBy);
@@ -1124,7 +1254,6 @@ public final class GameEngine {
     passiveStreak = Math.max(0, j.optInt("passiveStreak"));
     offers = readInts(j.optJSONArray("offers"));
     votes = readInts(j.optJSONArray("votes"));
-    catTaps = readInts(j.optJSONArray("catTaps"));
     ruleOwner = j.optString("ruleOwner", "");
     ruleId = j.optInt("ruleId", -1);
     voteWinner = j.optInt("voteWinner", -1);
@@ -1132,6 +1261,24 @@ public final class GameEngine {
     bonusId = j.optInt("bonusId", 0);
     secretMask = j.optInt("secretMask");
     secretId = j.optInt("secretId", -1);
+    hiddenProbe = readInts(j.optJSONArray("hiddenProbe"));
+    hiddenKind = readInts(j.optJSONArray("hiddenKind"));
+    hiddenStep = readInts(j.optJSONArray("hiddenStep"));
+    hiddenSeed = readInts(j.optJSONArray("hiddenSeed"));
+    hiddenWonMask = readInts(j.optJSONArray("hiddenWonMask"));
+    hiddenMistakes = readInts(j.optJSONArray("hiddenMistakes"));
+    hiddenSolvedTurn = readInts(j.optJSONArray("hiddenSolvedTurn"));
+    hiddenLastOwner = j.optString("hiddenLastOwner", "");
+    hiddenLastKind = j.optInt("hiddenLastKind", -1);
+    hiddenLastTurn = j.optInt("hiddenLastTurn", -1);
+    queuedRuleOwner = j.optString("queuedRuleOwner", "");
+    queuedSecretId = j.optInt("queuedSecretId", -1);
+    queuedRuleOffers = readInts(j.optJSONArray("queuedRuleOffers"));
+    if (hiddenKind.length != players.size() || hiddenProbe.length != players.size()
+        || hiddenStep.length != players.size() || hiddenSeed.length != players.size()
+        || hiddenWonMask.length != players.size() || hiddenMistakes.length != players.size()
+        || hiddenSolvedTurn.length != players.size())
+      initHidden();
     ruleOffers = readInts(j.optJSONArray("ruleOffers"));
     if (!ruleOwner.isEmpty() && ruleId < 0 && ruleOffers.length != 3)
       ruleOffers = new int[] {0, 1, 2};

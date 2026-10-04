@@ -1,3 +1,28 @@
+# Apéro Royale 1.4.5 — Les secrets de la ruelle
+
+- [APK Android signé 1.4.5](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.5.apk) · `com.aperoroyale` · versionCode `12` · Android 8.0+ (API 26)
+- SHA-256 : `c871f4d36b3f41546b89e21ca2618f59e95844c5852d253efb387196dac55ade`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.4
+
+## Changements
+
+- Les invités découvrent trois micro-jeux secrets dans leurs écrans d’attente : poursuite de chat, code de pattes et chat miroir. Un indice discret remplace l’ancien chat de menu à 20 tapotements. Les secrets ne figurent pas dans le catalogue des dix défis.
+- La progression privée suit le joueur pendant la manche, le résultat et le choix suivant. Une seule découverte par tour évite le spam. L’hôte valide les gestes ; les autres appareils ne reçoivent ni la graine ni la progression de ce joueur.
+- Le premier joueur qui trouve un type de secret peut choisir ou renouveler une règle de salle au **tour suivant**. La règle de la manche en cours continue donc à arbitrer ses points et gorgées. Le trophée déclenche un écran et un effet sonore sur le téléphone gagnant.
+- Nouvel artwork pixel nocturne dédié aux secrets, boutons larges et décor de ruelle. Le lobby, le catalogue, le résultat et l’attente suivent mieux la langue personnelle du joueur invité ; les noms longs du catalogue ne chevauchent plus les sprites.
+- [Audit de 10 000 soirées multi-appareils](docs/SIMULATION_10000_MULTI.md) et nouvelles captures d’émulateur dans le README.
+
+## Vérifications
+
+- `testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite. La simulation ajoute 10 000 salles, 40 000 manches, 160 000 états privés FR/EN, 35 945 secrets terminés et 400 sauvegardes restaurées. Les tests existants de 500 soirées de robustesse et 500 soirées de rythme continuent de passer.
+- Émulateur Android 16 : dix mini-jeux terminés en mode Libre avec deux profils sur le même téléphone, alternance des tours, actions des amis, paris et historique SQLite.
+- Deux émulateurs Android 16 et Android 8 en Wi‑Fi local simulé : salon FR/EN rejoint, secret découvert sur le téléphone EN, code joué après le résultat, trophée reçu, règle choisie sur l’invité et synchronisée sur l’hôte. [Captures du secret](docs/screenshots/secret-paw-code.png) et [du choix de règle](docs/screenshots/secret-room-rule-en.png).
+- APK signée vérifiée en signature v2 ; `aapt` confirme versionCode 12 et minSdk 26. Installation en mise à jour depuis 1.4.4 sur Android 8 vérifiée avant publication.
+
+**Limites.** Les 10 000 salles sont simulées dans le moteur, pas sur 10 000 connexions réelles. Aucune mesure de latence Bluetooth/Internet ni test de plaisir sur de vrais groupes n’est revendiqué. Le salon Internet par défaut dépend d’un relais public de test.
+
+---
+
 # Apéro Royale 1.4.4 — Toute la salle joue
 
 - [APK Android signé 1.4.4](releases/AperoRoyale-v1.4.4.apk) · `com.aperoroyale` · versionCode `11` · Android 8.0+ (API 26)

@@ -4,7 +4,7 @@
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.4.4**](releases/AperoRoyale-v1.4.4.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.5**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.5.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
@@ -24,6 +24,8 @@
 **Relais 1.4.3.** Les modes Vote et Turbo rappellent un défi collectif après au plus deux manches sans action de toute la salle. La bombe propose un choix de porteur, des séquences de une à trois touches et un fil rouge/bleu risqué après le passage de chacun. Réflexe, Mémoire et Rythme ont chacun six variantes mécaniques ; le Blind Test joue ses six motifs originaux dans quatre tonalités. [La simulation actualisée](docs/SIMULATION_EXPERIENCE_500.md) estime encore **81 s** par manche à six sur un téléphone en Vote : la cadence et les six défis solo restent à améliorer avec des joueurs réels.
 
 **Toute la salle 1.4.4.** Les six anciens défis solo deviennent collectifs ; le dessin invite désormais tous les amis à deviner. Une interaction propre à chaque jeu remplace le pronostic répétitif. L’écran garde les choix privés jusqu’au démarrage et diffuse ensuite le même état depuis l’hôte. [Le nouvel audit de 500 soirées](docs/SIMULATION_EXPERIENCE_500.md) compte **0 manche solo** parmi 7 990 manches modélisées ; à six sur un téléphone, Vote reste lent (77,3 s modélisées), tandis que Turbo est plus direct. Ce chiffre ne mesure ni les rires ni la latence réelle.
+
+**La ruelle secrète 1.4.5.** Sur plusieurs téléphones, les invités qui attendent après leur action peuvent remarquer deux yeux dans le décor. Les tapoter ouvre un micro-jeu caché : poursuite de chat, code de pattes ou miroir. La découverte se poursuit entre la manche, le résultat et la sélection suivante ; elle reste privée jusqu’au trophée. Le premier à réussir un secret peut choisir une nouvelle règle qui s’applique à toute la salle **au prochain tour**. Ces jeux n’apparaissent ni dans le catalogue ni dans les guides. L’interface des invités suit mieux leur propre langue FR/EN ; les noms longs du catalogue sont plus lisibles. [La simulation de 10 000 soirées](docs/SIMULATION_10000_MULTI.md) teste 40 000 manches et 160 000 vues privées FR/EN, sans prétendre mesurer le plaisir humain ou la latence réelle.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -66,7 +68,15 @@ Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel a
 
 ## Les secrets de la salle 🐈
 
-Le chat pixel revient pendant le choix du prochain jeu. Le premier à le toucher **20 fois** déclenche un secret. Dix autres secrets récompensent des exploits cachés dans les mini-jeux. Celui qui ouvre le premier secret choisit une **règle valable pour toute la salle**, synchronisée sur tous les téléphones : mot « oui » interdit, pseudos tabous, questions seulement, toast obligatoire, interdiction de pointer du doigt, et d’autres surprises. Si quelqu’un enfreint une règle sociale, un joueur le signale et **la salle vote** avant d’appliquer une gorgée virtuelle. Le jeu n’active pas le microphone pour surveiller les conversations.
+Les écrans d’attente à plusieurs appareils cachent désormais de petites rencontres jouables. Aucun jeu secret n’est listé dans le menu. La progression de chacun est conservée dans la partie et masquée aux autres téléphones ; le trophée découvert, lui, rejoint la salle. Une première découverte peut ouvrir le choix d’une **règle valable pour toute la salle**, synchronisée au prochain tour : mot « oui » interdit, pseudos tabous, questions seulement, toast obligatoire, interdiction de pointer du doigt, et d’autres surprises. Dix autres exploits cachés existent dans les mini-jeux. Si quelqu’un enfreint une règle sociale, un joueur le signale et **la salle vote** avant d’appliquer une gorgée virtuelle. Le jeu n’active pas le microphone pour surveiller les conversations.
+
+<details><summary>Aperçu visuel d’un secret (spoiler)</summary>
+
+![Un jeu secret découvert sur le téléphone invité](docs/screenshots/secret-paw-code.png)
+
+![Le trophée et la règle proposée à toute la salle](docs/screenshots/secret-discovered-en.png)
+
+</details>
 
 ## Un téléphone ou plusieurs
 
@@ -125,4 +135,4 @@ Illustrations originales dans [`art/source`](art/source), décors des mini-jeux 
 
 ---
 
-**English:** Apéro Royale 1.4.4 is a French/English Android party arcade for 2–6 friends on one phone or several over Wi-Fi, paired Bluetooth or an Internet room code. Every player has a game-specific action in all ten challenges. Friends answer, shape a target course, shield a cup, create a memory chain or beat pattern, judge, guess a drawing, or pass the bomb. Private local handoffs pause the timer. A single host decides results and saves the leaderboard. Original per-game scenes, pixel sprites, a controllable retro soundtrack, guides and optional shortcuts to external music apps complete the game. The signed APK is linked above.
+**English:** Apéro Royale 1.4.5 is a French/English Android party arcade for 2–6 friends on one phone or several over Wi-Fi, paired Bluetooth or an Internet room code. Every player has a game-specific action in all ten challenges. Friends answer, shape a target course, shield a cup, create a memory chain or beat pattern, judge, guess a drawing, or pass the bomb. On separate devices, hidden cat micro-games can be found during waiting time; a first discovery can remix the next room rule. Private local handoffs pause the timer. A single host decides results and saves the leaderboard. Original per-game scenes, pixel sprites, a controllable retro soundtrack, guides and optional shortcuts to external music apps complete the game. The signed APK is linked above.

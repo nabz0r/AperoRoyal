@@ -739,15 +739,9 @@ public final class MainActivity extends Activity
   }
 
   @Override
-  public void catTap() {
-    if (network.connected) network.command("CAT", 0);
-    else {
-      GameEngine.Player p = localParticipant();
-      if (p != null && game.catTap(p.name)) {
-        if (!game.ruleOwner.isEmpty()) audio.win();
-        save();
-      }
-    }
+  public void hiddenTap(int slot) {
+    if (network.connected && game.hiddenWaiting(network.localName))
+      network.command("HIDDEN_TAP", slot);
   }
 
   @Override
@@ -1333,9 +1327,12 @@ public final class MainActivity extends Activity
       }
       return;
     }
+    if ("HIDDEN_TAP".equals(command)) {
+      if (game.hiddenTap(name, value)) save();
+      return;
+    }
     boolean changed = switch (command) {
       case "VOTE" -> game.castVote(name, value);
-      case "CAT" -> game.catTap(name);
       case "RULE" -> game.chooseRule(name, value);
       default -> false;
     };
@@ -1362,9 +1359,14 @@ public final class MainActivity extends Activity
     long incoming = state.optLong("revision", 0);
     if (incoming < game.revision) return;
     String before = game.screen;
+    String secretBefore = game.hiddenLastOwner;
+    int secretKindBefore = game.hiddenLastKind;
     long sample = System.currentTimeMillis() - state.optLong("sentAt", System.currentTimeMillis());
     if (clockSkew == Long.MAX_VALUE || sample < clockSkew) clockSkew = sample;
     game.restore(state);
+    if (network.localName.equals(game.hiddenLastOwner)
+        && (!secretBefore.equals(game.hiddenLastOwner)
+            || secretKindBefore != game.hiddenLastKind)) audio.win();
     if ("CREW".equals(before) && "GAME".equals(game.screen)) beginGameAudio();
     view.invalidate();
   }
