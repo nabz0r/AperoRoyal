@@ -298,6 +298,7 @@ public final class ArcadeView extends View {
       case "HOME" -> home(canvas);
       case "LOBBY" -> lobby(canvas);
       case "VOTE" -> vote(canvas);
+      case "RULE_PICK" -> rulePick(canvas);
       case "LIBRARY" -> library(canvas);
       case "BET" -> bet(canvas);
       case "HANDOFF" -> handoff(canvas);
@@ -607,6 +608,12 @@ public final class ArcadeView extends View {
     bonusCard(c);
     ruleReportButton(c);
     catArea(c, participant);
+  }
+
+  private void rulePick(Canvas c) {
+    header(c, g.t("SECRET DÉBLOQUÉ", "SECRET UNLOCKED"));
+    GameEngine.Player viewer = ((MainActivity) getContext()).localParticipant();
+    rulePicker(c, viewer != null && g.ruleOwner.equals(viewer.name));
   }
 
   private void ruleReportButton(Canvas c) {

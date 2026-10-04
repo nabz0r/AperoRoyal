@@ -67,4 +67,30 @@ public final class GameEngineRulesTest {
     game.startNext(0);
     assertNotEquals(first, game.variant);
   }
+
+  @Test public void turboWaitsForSecretRuleBeforeStartingNextChallenge() {
+    GameEngine game = room();
+    game.mode = "TURBO";
+    game.startNext(0);
+    game.screen = "GAME";
+    game.deadline = System.currentTimeMillis() + 20_000;
+    game.finish(true);
+    assertEquals("A", game.ruleOwner);
+    game.advance();
+    assertEquals("RULE_PICK", game.screen);
+    assertTrue(game.chooseRule("A", game.ruleOffers[0]));
+    assertEquals("TRANSITION", game.screen);
+  }
+
+  @Test public void juryTimeoutUsesTheVotesAlreadyCast() {
+    GameEngine game = room();
+    game.startNext(1);
+    game.screen = "GAME";
+    assertTrue(game.beginJury());
+    assertTrue(game.castJury("B", true));
+    game.deadline = System.currentTimeMillis() - 1;
+    game.checkTimeout();
+    assertEquals("RESULT", game.screen);
+    assertTrue(game.lastWon);
+  }
 }

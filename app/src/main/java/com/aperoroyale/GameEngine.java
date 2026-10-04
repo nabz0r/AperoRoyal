@@ -55,7 +55,15 @@ public final class GameEngine {
   }
 
   public final ArrayList<Player> players = new ArrayList<>();
-  private final Random random = new Random();
+  private final Random random;
+
+  public GameEngine() {
+    this(new Random().nextLong());
+  }
+
+  GameEngine(long seed) {
+    random = new Random(seed);
+  }
   private final ArrayList<Integer> deck = new ArrayList<>();
   private final int[] lastVariant = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
   public String screen = "HOME";
@@ -163,6 +171,10 @@ public final class GameEngine {
     deadline = 0;
     started = System.currentTimeMillis();
     voteWinner = -1;
+    if ("TURBO".equals(mode) && !ruleOwner.isEmpty() && ruleId < 0) {
+      screen = "RULE_PICK";
+      return;
+    }
     bonusId = random.nextInt(4);
     if ("FREE".equals(mode)) {
       screen = "LIBRARY";
@@ -249,6 +261,7 @@ public final class GameEngine {
     if (!offered) return false;
     ruleId = id;
     if ("VOTE".equals(screen)) completeVoteIfReady();
+    else if ("RULE_PICK".equals(screen)) startSelection();
     return true;
   }
 
@@ -600,7 +613,8 @@ public final class GameEngine {
 
   public void checkTimeout() {
     if ("GAME".equals(screen) && deadline > 0 && System.currentTimeMillis() > deadline) {
-      if (game == 3) finish(taps >= 10);
+      if (juryPhase) finish(juryVerdict());
+      else if (game == 3) finish(taps >= 10);
       else if (game == 7) finish(rhythmHits >= 4);
       else finish(false);
     }

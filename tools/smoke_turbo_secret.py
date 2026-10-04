@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Check Turbo starts quick rounds and still alternates actors."""
+"""Exercise the Turbo secret-rule screen on a shared Android emulator."""
+
 import time
 from smoke_v120 import adb, add_player, play, state, tap, wait_screen, HEIGHT, PACKAGE
 
@@ -16,12 +17,9 @@ def main():
     tap(200, HEIGHT - 227)
     assert state()["mode"] == "TURBO"
     tap(200, HEIGHT - 96)
-    for turn in range(2):
-        if state()["screen"] == "RULE_PICK":
-            tap(200, 450)
-            assert state()["ruleId"] >= 0
+    for turn in range(20):
         s = wait_screen("TRANSITION")
-        assert s["active"] == turn and s["turn"] == turn
+        assert s["turn"] == turn
         tap(200, HEIGHT - 78)
         wait_screen("HANDOFF")
         tap(200, HEIGHT - 78)
@@ -34,12 +32,16 @@ def main():
         play(s["game"], s)
         wait_screen("RESULT", timeout=30)
         tap(200, HEIGHT - 78)
-    if state()["screen"] == "RULE_PICK":
-        tap(200, 450)
-        assert state()["ruleId"] >= 0
-    s = wait_screen("TRANSITION")
-    assert s["active"] == 0 and s["turn"] == 2
-    print("PASS: Turbo mode, two challenges, alternating actors")
+        s = state()
+        if s["screen"] == "RULE_PICK":
+            assert s["ruleOwner"] in {"Pixel", "Nova"}
+            assert s["ruleId"] == -1
+            tap(200, 450)
+            s = wait_screen("TRANSITION")
+            assert s["ruleId"] >= 0 and s["turn"] == turn + 1
+            print(f"PASS: Turbo secret rule selected by {s['ruleOwner']} after {turn + 1} rounds")
+            return
+    raise AssertionError("no secret-rule picker appeared in twenty Turbo rounds")
 
 
 if __name__ == "__main__":

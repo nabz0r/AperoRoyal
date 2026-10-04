@@ -1,3 +1,25 @@
+# Apéro Royale 1.4.1 — Une soirée qui continue
+
+- [APK Android signé 1.4.1](releases/AperoRoyale-v1.4.1.apk) · `com.aperoroyale` · versionCode `8` · Android 8.0+ (API 26)
+- SHA-256 : `a02808a53e268c7f75635272f07ad3849508e8d08bad878d15aef82437927fc5`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.0
+
+## Correctifs
+
+- En Turbo, une règle secrète débloquée dispose maintenant d'un écran de choix avant le défi suivant, y compris lorsque la partie est reprise ou synchronisée.
+- À l'expiration du chrono d'un jury, le moteur applique les votes exprimés pour les défis de pose et de bluff.
+
+## Vérifications
+
+- [Simulation reproductible de 500 soirées](docs/SIMULATION_500_PARTIES.md) : 7 990 manches de deux à six joueurs sur les dix jeux et les trois modes, 40 190 restaurations JSON, 498 choix de règle secrète dont 166 en Turbo, et 436 signalements soumis au vote. Les deux anomalies ont été détectées puis couvertes par des tests ciblés.
+- `./gradlew testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite. `apksigner verify` valide la signature v2 et `aapt` confirme versionCode 8 / minSdk 26.
+- Émulateur Android 16 : les dix jeux terminés à deux profils avec passage de tour, mises, pronostics et historique ; deux défis Turbo terminés ; secret Turbo débloqué puis règle choisie à l'écran après une manche.
+- Émulateur Android 8.0 : APK signé installé, activité lancée et processus encore actif après affichage de l'accueil.
+
+**Limites.** La simulation porte sur le moteur et ses instantanés ; elle ne représente pas 500 soirées humaines, connexions réseau réelles, interactions audio ou sessions sur téléphones physiques. Les limites de l'intégration musicale et du relais Internet de 1.4.0 restent applicables.
+
+---
+
 # Apéro Royale 1.4.0 — La nuit vous appartient
 
 - [APK Android signé 1.4.0](releases/AperoRoyale-v1.4.0.apk) · `com.aperoroyale` · versionCode `7` · Android 8.0+ (API 26)
