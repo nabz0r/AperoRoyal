@@ -13,7 +13,7 @@ The app has no Apéro Royale account, ads, analytics or telemetry. It does not o
 
 The game does not request microphone access. Social-rule infractions are reported and judged by players through an in-room vote.
 
-Spotify is optional. If enabled, the app opens Spotify authorization in the browser using OAuth PKCE and sends authorized API requests directly to Spotify to read the selected playlist and control playback. Spotify processes those requests under its own privacy policy. The Spotify Client ID and playlist ID are stored locally. Access and refresh tokens remain in app memory and are discarded when the process ends. The app does not download Spotify audio or send Spotify tokens to peers.
+The music menu can open Spotify, Deezer, Apple Music or Amazon Music through an HTTPS link. An optional playlist link and the selected service are stored in local app preferences. Apéro Royale does not connect to a music account, read its library, control external playback, transmit music credentials or send the playlist link to party peers. The chosen music app or website processes playback under its own terms and privacy policy. Original game music and sound effects are generated locally.
 
 ## Français
 
@@ -21,4 +21,4 @@ Apéro Royale conserve localement dans SQLite les pseudos, langues, sprites ou p
 
 L'application ne possède ni compte Apéro Royale, ni publicité, ni analytique, ni télémétrie. En Wi-Fi, les données du salon circulent **sans chiffrement** sur le réseau local. En Bluetooth, elles passent entre appareils associés. Sur Internet, les messages passent par un relais MQTT TLS et sont chiffrés en AES-GCM à partir du code de salle ; le relais public proposé par défaut est `broker.emqx.io`, un service de test tiers. Le code doit rester entre participants. Les autres téléphones de la salle reçoivent les pseudos, avatars ou photos, scores et état de la partie. Le jeu ne demande pas l'accès au microphone : les infractions aux règles sociales sont signalées et soumises au vote des joueurs.
 
-Spotify est facultatif. Ses requêtes sont envoyées directement à Spotify après autorisation OAuth PKCE. Le Client ID et la playlist sont enregistrés localement ; les jetons restent uniquement en mémoire pendant la session et ne sont pas envoyés aux autres joueurs. L'application ne télécharge pas l'audio Spotify.
+Le menu musical peut ouvrir Spotify, Deezer, Apple Music ou Amazon Music par un lien HTTPS. La plateforme choisie et un éventuel lien de playlist sont conservés dans les préférences locales. Apéro Royale ne se connecte pas à un compte musical, ne lit pas sa bibliothèque, ne contrôle pas la lecture externe et n'envoie ni identifiants ni playlist aux autres joueurs. La lecture est gérée par l'application ou le site choisi, selon ses propres conditions et règles de confidentialité. La musique originale et les effets du jeu sont produits localement.

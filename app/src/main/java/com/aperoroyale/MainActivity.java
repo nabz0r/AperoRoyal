@@ -38,7 +38,6 @@ public final class MainActivity extends Activity
   GameStore store;
   ArcadeAudio audio;
   PartyNetwork network;
-  SpotifyBridge spotify;
   ArcadeView view;
   private boolean savedSession = false;
   private String status = "";
@@ -54,7 +53,7 @@ public final class MainActivity extends Activity
   private long clockSkew = Long.MAX_VALUE;
   private Runnable pendingBluetooth;
   private int lastBeatCue = -1, lastBeatTurn = -1;
-  private boolean radioActive = false;
+  private int musicProvider = MusicLinks.ORIGINAL;
 
   @Override
   protected void onCreate(Bundle state) {
@@ -73,11 +72,14 @@ public final class MainActivity extends Activity
     audio = new ArcadeAudio();
     audio.setEnabled(getPreferences(MODE_PRIVATE).getBoolean("music", true));
     audio.setStyle(getPreferences(MODE_PRIVATE).getInt("musicStyle", 0));
-    audio.setVolume(getPreferences(MODE_PRIVATE).getFloat("musicVolume", .3f));
+    audio.setVolume(getPreferences(MODE_PRIVATE).getFloat("musicVolume", .18f));
     soundEffects = getPreferences(MODE_PRIVATE).getBoolean("soundEffects", true);
     haptics = getPreferences(MODE_PRIVATE).getBoolean("haptics", true);
     network = new PartyNetwork(this);
-    spotify = new SpotifyBridge(this);
+    musicProvider = getPreferences(MODE_PRIVATE).getInt("musicProvider", MusicLinks.ORIGINAL);
+    if (musicProvider < 0 || musicProvider >= MusicLinks.COUNT)
+      musicProvider = MusicLinks.ORIGINAL;
+    audio.setExternalRadio(musicProvider != MusicLinks.ORIGINAL);
     view = new ArcadeView(this, game, this);
     setContentView(view);
     audio.start();
@@ -416,29 +418,7 @@ public final class MainActivity extends Activity
       audio.duck(18000);
     } else if (game.game == 2) {
       audio.duck(14000);
-      if (spotify.ready() && spotify.connected()) {
-        game.note = "loading";
-        spotify.blind(
-            (error, round) -> {
-              if (round != null) {
-                try {
-                  JSONObject j = new JSONObject();
-                  JSONArray choices = new JSONArray();
-                  for (String c : round.choices) choices.put(c);
-                  j.put("choices", choices);
-                  j.put("answer", round.answer);
-                  j.put("uri", round.uri);
-                  game.note = j.toString();
-                } catch (Exception ignored) {
-                }
-              } else {
-                game.note = "";
-                message(error == null ? "Spotify unavailable" : error);
-                audio.tune(game.variant);
-              }
-              save();
-            });
-      } else audio.tune(game.variant);
+      audio.tune(game.variant);
     }
   }
 
@@ -946,30 +926,56 @@ public final class MainActivity extends Activity
   }
 
   @Override
-  public void spotifySettings() {
-    EditText id = input("Spotify Client ID");
-    id.setText(spotify.clientId());
-    EditText playlist = input("Spotify playlist URL or ID");
-    playlist.setText(spotify.playlistId());
-    String title = game.t("Spotify + musique arcade", "Spotify + Arcade Music");
+  public void editMusicLink() {
+    if (!MusicLinks.external(musicProvider)) return;
+    EditText link = input(game.t("Lien de playlist HTTPS", "HTTPS playlist link"));
+    link.setText(musicLink());
+    String title = MusicLinks.name(musicProvider);
     new AlertDialog.Builder(this)
         .setTitle(title)
-        .setView(column(id, playlist))
+        .setMessage(game.t("Colle le lien d'une playlist de cette plateforme. Vide = accueil de l'application.",
+            "Paste a playlist link from this platform. Blank = app home."))
+        .setView(link)
         .setPositiveButton(
             game.t("Enregistrer", "Save"),
             (d, w) -> {
-              spotify.configure(id.getText().toString(), playlist.getText().toString());
-              message("Spotify settings saved");
+              String value = link.getText().toString().trim();
+              if (!value.isEmpty() && !MusicLinks.allowed(musicProvider, value)) {
+                message(game.t("Lien HTTPS invalide pour cette plateforme", "Invalid HTTPS link for this platform"));
+                return;
+              }
+              getPreferences(MODE_PRIVATE).edit().putString("musicLink" + musicProvider, value).apply();
+              view.invalidate();
             })
-        .setNeutralButton(
-            game.t("Connecter", "Connect"),
-            (d, w) -> {
-              spotify.configure(id.getText().toString(), playlist.getText().toString());
-              spotify.connect(
-                  (error, round) -> message(error == null ? "Spotify connected" : error));
-            })
-        .setNegativeButton(game.t("Fermer", "Close"), null)
+        .setNegativeButton(game.t("Annuler", "Cancel"), null)
         .show();
+  }
+
+  @Override
+  public void setMusicProvider(int provider) {
+    if (provider < 0 || provider >= MusicLinks.COUNT) return;
+    musicProvider = provider;
+    getPreferences(MODE_PRIVATE).edit().putInt("musicProvider", musicProvider).apply();
+    audio.setExternalRadio(musicProvider != MusicLinks.ORIGINAL);
+    view.invalidate();
+  }
+
+  @Override
+  public void openMusicProvider() {
+    if (!MusicLinks.external(musicProvider)) {
+      showSettings();
+      return;
+    }
+    try {
+      startActivity(new Intent(Intent.ACTION_VIEW,
+          Uri.parse(MusicLinks.destination(musicProvider, musicLink()))));
+    } catch (Exception e) {
+      message(game.t("Application musicale indisponible", "Music app unavailable"));
+    }
+  }
+
+  private String musicLink() {
+    return getPreferences(MODE_PRIVATE).getString("musicLink" + musicProvider, "");
   }
 
   @Override
@@ -1014,34 +1020,9 @@ public final class MainActivity extends Activity
   public float musicVolume() { return audio.volume(); }
   public boolean effectsEnabled() { return soundEffects; }
   public boolean hapticsEnabled() { return haptics; }
-  public boolean radioActive() { return radioActive; }
-
-  @Override
-  public void radio() {
-    if (radioActive) {
-      spotify.pause((error, round) -> {
-        if (error == null) {
-          radioActive = false;
-          audio.setExternalRadio(false);
-          view.invalidate();
-          message(game.t("Radio arrêtée", "Radio stopped"));
-        } else message(error);
-      });
-      return;
-    }
-    if (!spotify.ready()) {
-      message("Configure Spotify in settings");
-      return;
-    }
-    spotify.radio((error, round) -> {
-      if (error == null) {
-        radioActive = true;
-        audio.setExternalRadio(true);
-        view.invalidate();
-        message(game.t("Radio Apéro lancée", "Radio Apéro playing"));
-      } else message(error);
-    });
-  }
+  public int musicProvider() { return musicProvider; }
+  public boolean hasMusicLink() { return !musicLink().isEmpty(); }
+  public String settingsOrigin() { return settingsOrigin; }
 
   @Override
   public void stats() {
@@ -1108,18 +1089,6 @@ public final class MainActivity extends Activity
   @Override
   public void tune() {
     audio.duck(4000);
-    try {
-      String uri = new JSONObject(game.note).optString("uri");
-      if (!uri.isEmpty()) {
-        spotify.replay(
-            uri,
-            (error, round) -> {
-              if (error != null) message(error);
-            });
-        return;
-      }
-    } catch (Exception ignored) {
-    }
     audio.tune(game.variant);
   }
 

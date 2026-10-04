@@ -23,8 +23,6 @@ import android.view.accessibility.AccessibilityNodeProvider;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /** Large touch targets, high contrast, vector avatars and animated arcade presentation. */
 public final class ArcadeView extends View {
@@ -95,7 +93,11 @@ public final class ArcadeView extends View {
 
     void guide();
 
-    void spotifySettings();
+    void editMusicLink();
+
+    void setMusicProvider(int provider);
+
+    void openMusicProvider();
 
     void toggleMusic();
 
@@ -106,8 +108,6 @@ public final class ArcadeView extends View {
     void changeMusicStyle();
 
     void changeMusicVolume();
-
-    void radio();
 
     void stats();
 
@@ -144,24 +144,25 @@ public final class ArcadeView extends View {
   private long lastPredictionAt = 0;
   private long lastRemoteDrawAt = 0;
   private int statsTab = 0;
+  private int settingsTab = 0;
   private int guideIndex = 0;
   private String cachedPhoto = "";
   private Bitmap cachedBitmap;
   private final Bitmap hero;
   private final Bitmap avatarSheet;
   private final Bitmap sceneAtlas;
-  private static final int BG = Color.rgb(16, 18, 38),
-      PANEL = Color.rgb(31, 37, 63),
-      WHITE = Color.rgb(255, 250, 240),
-      CYAN = Color.rgb(72, 219, 205),
-      PINK = Color.rgb(255, 105, 127),
-      YELLOW = Color.rgb(255, 195, 87),
-      MUTED = Color.rgb(178, 188, 208);
+  private static final int BG = Color.rgb(16, 18, 22),
+      PANEL = Color.rgb(34, 38, 43),
+      WHITE = Color.rgb(247, 241, 227),
+      CYAN = Color.rgb(111, 181, 174),
+      PINK = Color.rgb(182, 86, 91),
+      YELLOW = Color.rgb(216, 177, 103),
+      MUTED = Color.rgb(166, 170, 166);
   private static final int[] TILE = {
-    Color.rgb(255, 105, 127),
-    Color.rgb(72, 219, 205),
-    Color.rgb(255, 195, 87),
-    Color.rgb(178, 127, 250)
+    Color.rgb(182, 86, 91),
+    Color.rgb(111, 181, 174),
+    Color.rgb(216, 177, 103),
+    Color.rgb(147, 130, 174)
   };
 
   private static final class Hit {
@@ -270,7 +271,7 @@ public final class ArcadeView extends View {
     super(context);
     g = game;
     this.actions = actions;
-    hero = BitmapFactory.decodeResource(getResources(), R.drawable.arcade_party_hero);
+    hero = BitmapFactory.decodeResource(getResources(), R.drawable.arcade_lounge_hero);
     avatarSheet = BitmapFactory.decodeResource(getResources(), R.drawable.avatar_sheet);
     sceneAtlas = BitmapFactory.decodeResource(getResources(), R.drawable.game_scene_atlas);
     setLayerType(View.LAYER_TYPE_SOFTWARE, null);
@@ -316,29 +317,29 @@ public final class ArcadeView extends View {
   }
 
   private void background(Canvas c) {
-    p.setShader(new LinearGradient(0, 0, 400, H, Color.rgb(29, 21, 46), BG,
+    p.setShader(new LinearGradient(0, 0, 400, H, Color.rgb(35, 27, 31), BG,
         Shader.TileMode.CLAMP));
     c.drawRect(0, 0, 400, H, p);
     p.setShader(null);
-    p.setColor(Color.argb(22, 255, 195, 87));
-    for (int y = 12; y < H; y += 22)
-      for (int x = 11 + (y % 44); x < 400; x += 22) c.drawCircle(x, y, 1.2f, p);
-    p.setColor(Color.argb(19, 72, 219, 205));
+    p.setColor(Color.argb(13, 216, 177, 103));
+    for (int y = 12; y < H; y += 32)
+      for (int x = 11 + (y % 64); x < 400; x += 32) c.drawCircle(x, y, .7f, p);
+    p.setColor(Color.argb(15, 111, 181, 174));
     for (int i = 0; i < 12; i++) {
       float x = i * 37 - 5, roof = H * .70f + (i * 53 % 90);
       c.drawRect(x, roof, x + 32, H, p);
     }
-    p.setColor(Color.argb(30, 255, 195, 87));
+    p.setColor(Color.argb(22, 216, 177, 103));
     p.setStrokeWidth(1);
     for (int i = 0; i < 7; i++) c.drawLine(0, H * .70f + i * 25, 400, H * .70f + i * 25, p);
     particle.setSeed(17);
     long t = System.currentTimeMillis();
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < 9; i++) {
       float x = particle.nextInt(400),
           y = (particle.nextInt((int) H) + (t / 30 + i * 19) % ((int) H)) % H;
-      p.setColor(i % 3 == 0 ? Color.argb(125, 255, 195, 87)
-          : Color.argb(100, 72, 219, 205));
-      c.drawCircle(x, y, 1 + i % 3, p);
+      p.setColor(i % 3 == 0 ? Color.argb(65, 216, 177, 103)
+          : Color.argb(60, 111, 181, 174));
+      c.drawCircle(x, y, 1 + i % 2, p);
     }
     p.setColor(WHITE);
   }
@@ -371,15 +372,15 @@ public final class ArcadeView extends View {
   private void panel(Canvas c, float x, float y, float w, float h, int fill, int stroke) {
     p.setStyle(Paint.Style.FILL);
     p.setColor(Color.argb(85, 0, 0, 0));
-    c.drawRoundRect(x + 3, y + 6, x + w + 3, y + h + 6, 16, 16, p);
+    c.drawRoundRect(x + 3, y + 6, x + w + 3, y + h + 6, 9, 9, p);
     p.setColor(fill);
-    c.drawRoundRect(x, y, x + w, y + h, 16, 16, p);
+    c.drawRoundRect(x, y, x + w, y + h, 9, 9, p);
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(2.3f);
+    p.setStrokeWidth(1.5f);
     p.setColor(stroke);
-    c.drawRoundRect(x, y, x + w, y + h, 16, 16, p);
+    c.drawRoundRect(x, y, x + w, y + h, 9, 9, p);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(Color.argb(39, 255, 255, 255));
+    p.setColor(Color.argb(18, 255, 255, 255));
     c.drawRoundRect(x + 9, y + 5, x + w - 9, y + 7, 1, 1, p);
   }
 
@@ -441,14 +442,19 @@ public final class ArcadeView extends View {
   }
 
   private void header(Canvas c, String sub) {
-    display(c, "APÉRO", 22, 49, 27, YELLOW, false);
-    display(c, "ROYALE", 22, 78, 27, PINK, false);
+    display(c, "APÉRO", 22, 49, 27, WHITE, false);
+    display(c, "ROYALE", 22, 78, 27, YELLOW, false);
     boolean canMenu = !"HOME".equals(g.screen) && !"SETTINGS".equals(g.screen)
         && !"GUIDE".equals(g.screen) && !"STATS".equals(g.screen);
-    text(c, canMenu ? "☰" : "✦", 365, 62, 26, CYAN, true);
+    if (canMenu) {
+      text(c, "♫", 291, 61, 25, YELLOW, true);
+      hits.add(new Hit("musicShortcut", new RectF(263, 11, 322, 89),
+          vt("Ouvrir la musique", "Open music")));
+    }
+    text(c, canMenu ? "☰" : "✦", 365, 62, 26, YELLOW, true);
     if (canMenu) hits.add(new Hit("settings", new RectF(325, 12, 398, 89),
         vt("Réglages", "Settings")));
-    p.setColor(PINK);
+    p.setColor(YELLOW);
     c.drawRoundRect(20, 91, 380, 94, 2, 2, p);
     if (sub != null) text(c, sub, 200, 122, 14, MUTED, true);
   }
@@ -469,9 +475,9 @@ public final class ArcadeView extends View {
           new RectF(28, top + 12, 372, top + heroHeight - 13), p);
     }
     float heading = top + heroHeight + (compact ? 29 : 43);
-    display(c, g.t("TON APÉRO", "YOUR NIGHT"), 200, heading,
+    display(c, g.t("LA NUIT", "OWN THE"), 200, heading,
         compact ? 30 : 35, WHITE, true);
-    display(c, g.t("DEVIENT LÉGENDE", "YOUR LEGEND"), 200, heading + 37,
+    display(c, g.t("EST À VOUS", "NIGHT"), 200, heading + 37,
         compact ? 30 : 35, YELLOW, true);
     block(
         c,
@@ -493,7 +499,7 @@ public final class ArcadeView extends View {
         35, y + 68, 330, 59, CYAN);
     button(c, "stats", g.t("CLASSEMENT", "LEADERBOARD"), 35, y + 136, 155, 55, YELLOW);
     button(
-        c, "settings", g.t("MUSIQUE / SPOTIFY", "MUSIC / SPOTIFY"), 205, y + 136, 160, 55, YELLOW);
+        c, "settings", g.t("SON & OPTIONS", "SOUND & SETTINGS"), 205, y + 136, 160, 55, YELLOW);
     button(c, "guide", g.t("DÉCOUVRIR LES 10 DÉFIS", "EXPLORE ALL 10 GAMES"),
         35, y + 200, 330, 51, PANEL);
     text(
@@ -719,26 +725,80 @@ public final class ArcadeView extends View {
   }
 
   private void settings(Canvas c) {
-    header(c, g.t("RÉGLAGES DE LA SOIRÉE", "PARTY SETTINGS"));
+    header(c, g.t("PERSONNALISE TA SOIRÉE", "MAKE IT YOUR NIGHT"));
     MainActivity a = (MainActivity) getContext();
-    float y = 162;
-    button(c, "musicToggle", g.t("MUSIQUE : ", "MUSIC: ") + (a.musicEnabled() ? "ON" : "OFF"),
-        30, y, 340, 60, a.musicEnabled() ? CYAN : PANEL);
-    button(c, "musicStyle", g.t("AMBIANCE : ", "MOOD: ") + (a.musicStyle() == 0 ? "CHILL" : "ARCADE"),
-        30, y + 72, 340, 60, YELLOW);
-    button(c, "musicVolume", g.t("VOLUME : ", "VOLUME: ") + Math.round(a.musicVolume() * 100) + "%",
-        30, y + 144, 340, 60, CYAN);
-    button(c, "effectsToggle", "SFX : " + (a.effectsEnabled() ? "ON" : "OFF"),
-        30, y + 216, 340, 60, a.effectsEnabled() ? CYAN : PANEL);
-    button(c, "hapticToggle", g.t("VIBRATIONS : ", "HAPTICS: ") + (a.hapticsEnabled() ? "ON" : "OFF"),
-        30, y + 288, 340, 60, a.hapticsEnabled() ? CYAN : PANEL);
-    panel(c, 30, y + 374, 340, 143, PANEL, PINK);
-    text(c, "RADIO APÉRO × SPOTIFY", 200, y + 409, 17, WHITE, true);
-    block(c, g.t("Optionnelle. Le jeu marche sans compte Spotify.",
-        "Optional. The game works without Spotify."), 200, y + 436, 310, 12, MUTED, true);
-    button(c, "spotify", g.t("CONFIG.", "CONFIG"), 47, y + 467, 145, 43, PINK);
-    button(c, "radio", a.radioActive() ? g.t("STOP RADIO", "STOP RADIO") : "RADIO",
-        207, y + 467, 146, 43, CYAN);
+    if (settingsTab == 2) {
+      text(c, g.t("SOURCE MUSICALE", "MUSIC SOURCE"), 31, 173, 14, MUTED, false);
+      String[] names = {g.t("Bande originale", "Original score"), "Spotify", "Deezer",
+          "Apple Music", "Amazon Music", g.t("Silence", "Silence")};
+      for (int i = 0; i < names.length; i++)
+        button(c, "provider:" + i, (i == a.musicProvider() ? "✓  " : "") + names[i],
+            30, 193 + i * 72, 340, 58, i == a.musicProvider() ? YELLOW : PANEL);
+      block(c, g.t("Les plateformes externes s'ouvrent dans leur propre application.",
+          "External services open in their own app."), 200, 665, 336, 13, MUTED, true);
+      button(c, "settingsMusic", g.t("RETOUR AU SON", "BACK TO SOUND"),
+          35, H - 90, 330, 59, PANEL);
+      return;
+    }
+    button(c, "settingsMusic", g.t("MUSIQUE", "MUSIC"), 30, 151, 163, 49,
+        settingsTab == 0 ? YELLOW : PANEL);
+    button(c, "settingsParty", g.t("PARTIE", "PARTY"), 207, 151, 163, 49,
+        settingsTab == 1 ? YELLOW : PANEL);
+    if (settingsTab == 0) {
+      String source = MusicLinks.name(a.musicProvider());
+      if (a.musicProvider() == MusicLinks.ORIGINAL) source = g.t("Bande originale", "Original score");
+      if (a.musicProvider() == MusicLinks.SILENT) source = g.t("Silence", "Silence");
+      text(c, g.t("SOURCE MUSICALE", "MUSIC SOURCE"), 31, 236, 13, MUTED, false);
+      button(c, "musicProvider", source + "  ›", 30, 247, 340, 58, YELLOW);
+      if (MusicLinks.external(a.musicProvider())) {
+        button(c, "openMusic", g.t("OUVRIR L'APPLICATION  ↗", "OPEN MUSIC APP  ↗"),
+            30, 319, 340, 58, CYAN);
+        button(c, "musicLink", a.hasMusicLink() ? g.t("CHANGER LA PLAYLIST", "CHANGE PLAYLIST")
+            : g.t("AJOUTER UNE PLAYLIST", "ADD A PLAYLIST"), 30, 390, 340, 53, PANEL);
+        block(c, g.t("La lecture reste dans votre application musicale. Revenez au jeu pour continuer la manche.",
+            "Playback stays in your music app. Return here to continue the round."),
+            200, 473, 336, 13, MUTED, true);
+      } else if (a.musicProvider() == MusicLinks.ORIGINAL) {
+        button(c, "musicToggle", g.t("BANDE ORIGINALE : ", "GAME SOUNDTRACK: ")
+            + (a.musicEnabled() ? "ON" : "OFF"), 30, 319, 340, 55,
+            a.musicEnabled() ? CYAN : PANEL);
+        button(c, "musicStyle", g.t("AMBIANCE : ", "MOOD: ")
+            + (a.musicStyle() == 0 ? "CHILL" : "ARCADE"), 30, 386, 340, 55, PANEL);
+        button(c, "musicVolume", g.t("VOLUME : ", "VOLUME: ")
+            + Math.round(a.musicVolume() * 100) + "%", 30, 453, 340, 55, PANEL);
+      } else {
+        block(c, g.t("La bande originale est coupée. Les effets restent configurables ci-dessous.",
+            "The soundtrack is muted. Effects remain configurable below."),
+            200, 350, 336, 14, MUTED, true);
+      }
+      text(c, g.t("CONFORT DE JEU", "GAME FEEL"), 31, 548, 13, MUTED, false);
+      button(c, "effectsToggle", "SFX : " + (a.effectsEnabled() ? "ON" : "OFF"),
+          30, 559, 163, 55, a.effectsEnabled() ? CYAN : PANEL);
+      button(c, "hapticToggle", g.t("VIBRATIONS : ", "HAPTICS: ")
+          + (a.hapticsEnabled() ? "ON" : "OFF"),
+          207, 559, 163, 55, a.hapticsEnabled() ? CYAN : PANEL);
+      block(c, g.t("Les effets et vibrations se règlent séparément de la musique.",
+          "Effects and haptics are independent from music."),
+          200, 646, 336, 12, MUTED, true);
+    } else {
+      text(c, g.t("MODE DE PARTIE", "PARTY MODE"), 31, 236, 13, MUTED, false);
+      if ("LOBBY".equals(a.settingsOrigin()))
+        button(c, "mode", g.t("CHANGER : ", "CHANGE: ") + g.mode,
+            30, 247, 340, 58, YELLOW);
+      else panel(c, 30, 247, 340, 58, PANEL, MUTED);
+      if (!"LOBBY".equals(a.settingsOrigin()))
+        block(c, g.t("Choisis le mode dans le salon avant de lancer la partie.",
+            "Choose a mode in the lobby before starting."), 200, 274, 310, 13, MUTED, true);
+      button(c, "guide", g.t("GUIDE DES 10 JEUX", "ALL 10 GAME GUIDES"),
+          30, 331, 340, 58, CYAN);
+      button(c, "stats", g.t("CLASSEMENT", "LEADERBOARD"),
+          30, 405, 340, 58, PANEL);
+      panel(c, 30, 489, 340, 135, PANEL, YELLOW);
+      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 521, 15, YELLOW, true);
+      block(c, g.t("Un seul téléphone ? Passe-le à chaque tour. Plusieurs ? Rejoins la salle depuis l'accueil.",
+          "One phone? Pass it each turn. More phones? Join the room from home."),
+          200, 551, 304, 14, WHITE, true);
+    }
     button(c, "back", g.t("RETOUR", "BACK"), 35, H - 90, 330, 59, PANEL);
   }
 
@@ -747,8 +807,8 @@ public final class ArcadeView extends View {
       "Four answers, sixteen seconds. Speed counts: one mistake or timeout loses the wager."},
     {"Prends la pose absurde affichée et tiens bon. Le groupe décide si le défi est réussi.",
       "Strike the silly pose on screen and hold it. The group decides if you pulled it off."},
-    {"Sans Spotify, écoute le motif : montée, descente, sauts ou silences ? Avec Spotify, retrouve le titre.",
-      "Offline, hear the pattern: rising, falling, jumps or pauses? With Spotify, name the song."},
+    {"Écoute le motif original : montée, descente, sauts ou silences ? Choisis vite la bonne forme.",
+      "Hear the original pattern: rising, falling, jumps or pauses? Pick its shape quickly."},
     {"Frappe dix cibles néon avant la fin du chrono. Les cibles changent de place à chaque touche.",
       "Hit ten neon targets before the clock runs out. Targets jump after each hit."},
     {"Choisis un des six gobelets. Le nombre de gobelets piégés égale ta mise : gros pari, gros risque.",
@@ -1099,33 +1159,20 @@ public final class ArcadeView extends View {
   private void blind(Canvas c) {
     block(
         c,
-        g.note.startsWith("{")
-            ? g.t("Écoute et devine le morceau !", "Listen and name that tune!")
-            : g.t("Écoute : quel motif entends-tu ?", "Listen: which pattern do you hear?"),
+        g.t("Écoute : quel motif entends-tu ?", "Listen: which pattern do you hear?"),
         200,
         258,
         300,
         20,
         WHITE,
         true);
-    if ("loading".equals(g.note)) {
-      label(c, "Spotify…", 345);
-      return;
-    }
     button(c, "tune", g.t("▶ ÉCOUTER", "▶ PLAY TUNE"), 60, 309, 280, 55, PINK);
-    JSONArray spotifyChoices = null;
-    try {
-      if (g.note.startsWith("{")) spotifyChoices = new JSONObject(g.note).optJSONArray("choices");
-    } catch (Exception ignored) {
-    }
     for (int i = 0; i < 4; i++) {
       int option = (i - g.target + 4) % 4;
       String name =
           (g.english() ? g.screenChoicesEn : g.screenChoicesFr).length == 4
               ? (g.english() ? g.screenChoicesEn : g.screenChoicesFr)[i]
-              : spotifyChoices == null
-              ? GameEngine.TUNES[(g.variant + option) % 6][g.english() ? 1 : 0]
-              : spotifyChoices.optString(option, "?");
+              : GameEngine.TUNES[(g.variant + option) % 6][g.english() ? 1 : 0];
       button(c, "answer:" + i, name, 35, 384 + i * 62, 330, 51, i % 2 == 0 ? CYAN : YELLOW);
     }
   }
@@ -1725,10 +1772,25 @@ public final class ArcadeView extends View {
       case "guide" -> actions.guide();
       case "guidePrev" -> { guideIndex = Math.floorMod(guideIndex - 1, 10); invalidate(); }
       case "guideNext" -> { guideIndex = (guideIndex + 1) % 10; invalidate(); }
-      case "radio" -> actions.radio();
+      case "musicShortcut", "openMusic" -> actions.openMusicProvider();
+      case "musicProvider" -> { settingsTab = 2; invalidate(); }
+      case "musicLink" -> actions.editMusicLink();
+      case "provider:0", "provider:1", "provider:2", "provider:3", "provider:4",
+          "provider:5" -> {
+        actions.setMusicProvider(Integer.parseInt(id.substring(9)));
+        settingsTab = 0;
+        invalidate();
+      }
+      case "settingsMusic" -> { settingsTab = 0; invalidate(); }
+      case "settingsParty" -> { settingsTab = 1; invalidate(); }
       case "add" -> actions.addPlayer();
       case "host" -> actions.startHost();
-      case "back" -> actions.home();
+      case "back" -> {
+        if ("SETTINGS".equals(g.screen) && settingsTab == 2) {
+          settingsTab = 0;
+          invalidate();
+        } else actions.home();
+      }
       case "start" -> {
         if (g.players.size() >= 2) {
           g.begin();
@@ -1753,7 +1815,6 @@ public final class ArcadeView extends View {
       case "musicVolume" -> actions.changeMusicVolume();
       case "effectsToggle" -> actions.toggleEffects();
       case "hapticToggle" -> actions.toggleHaptics();
-      case "spotify" -> actions.spotifySettings();
       case "win" -> actions.finishGame(true);
       case "lose" -> actions.finishGame(false);
       case "next" -> {

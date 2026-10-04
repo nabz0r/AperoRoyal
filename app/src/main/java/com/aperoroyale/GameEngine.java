@@ -642,14 +642,10 @@ public final class GameEngine {
               en[i] = QUIZ_EN[variant][option + 1];
             }
           } else if (game == 2) {
-            JSONArray spotify = null;
-            if (note.startsWith("{")) spotify = new JSONObject(note).optJSONArray("choices");
             for (int i = 0; i < 4; i++) {
               int option = (i - target + 4) % 4;
-              fr[i] = spotify == null ? TUNES[(variant + option) % TUNES.length][0]
-                  : spotify.optString(option, "?");
-              en[i] = spotify == null ? TUNES[(variant + option) % TUNES.length][1]
-                  : spotify.optString(option, "?");
+              fr[i] = TUNES[(variant + option) % TUNES.length][0];
+              en[i] = TUNES[(variant + option) % TUNES.length][1];
             }
           } else {
             if (actor && !drawingReady) {
@@ -675,11 +671,6 @@ public final class GameEngine {
           if (game == 6) j.put("sequence", new JSONArray());
         }
         if (game == 5 && !actor && !drawingReady) j.put("variant", -1);
-        if (game == 2 && j.optString("note").startsWith("{")) {
-          JSONObject noteJson = new JSONObject(j.optString("note"));
-          noteJson.remove("answer");
-          j.put("note", noteJson.toString());
-        }
       }
     } catch (Exception ignored) { }
     return j;

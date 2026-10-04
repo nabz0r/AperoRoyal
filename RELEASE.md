@@ -1,3 +1,26 @@
+# Apéro Royale 1.4.0 — La nuit vous appartient
+
+- [APK Android signé 1.4.0](releases/AperoRoyale-v1.4.0.apk) · `com.aperoroyale` · versionCode `7` · Android 8.0+ (API 26)
+- SHA-256 : `3525d3465b5828ca91d6d0ca4f8915d79de0b511bcd806ac77c0aaa898cc1f20`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.3.0
+
+## Changements
+
+- **Nouvelle direction visuelle.** Accueil illustré comme un salon d'arcade nocturne, palette charbon/laiton, composants moins arrondis et icône redessinée. Les dix scènes de jeu conservent leurs mécaniques et adoptent la nouvelle palette ; leurs captures ont été régénérées.
+- **Musique à votre goût.** Le menu de réglages permet de choisir bande originale, Spotify, Deezer, Apple Music, Amazon Music ou silence. Un lien HTTPS de playlist peut être mémorisé pour chaque plateforme ; le bouton d'ouverture et le raccourci ♫ en jeu lancent l'application musicale ou le navigateur. Musique du jeu, effets et vibrations sont indépendants. Le volume initial de la bande originale passe à 18 % sur une nouvelle installation.
+- **Blind Test autonome.** L'ancien accès OAuth et les appels Web API Spotify ont été retirés du jeu. Le mini-jeu reste fondé sur ses motifs sonores originaux et jouable hors ligne. La [politique développeur Spotify](https://developer.spotify.com/policy) interdit de construire un jeu ou quiz avec sa plateforme sans autorisation applicable.
+- **Plan de la suite.** [Audit et refonte des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) : rôle de chaque joueur, latence, contenu, rejouabilité, moments à partager et critères de test. Ces refontes collectives sont des spécifications, pas des mécaniques déjà livrées.
+
+## Vérifications de 1.4.0
+
+- `./gradlew testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite, dont tests des liens HTTPS et fournisseurs.
+- Émulateur Android 16 : écran d'accueil, réglages, choix de Deezer, lien externe ouvert dans Chrome. Le parcours automatisé a terminé les dix mini-jeux avec deux profils, alternance des acteurs, mises, pronostics, historique et dix captures actualisées.
+- Émulateur Android 8.0 : APK signé installé et activité lancée. `apksigner verify` valide la signature v2 ; `aapt` confirme versionCode 7 et minSdk 26.
+
+**Limites de validation.** Aucune session sur de vrais téléphones avec comptes Spotify, Deezer, Apple Music ou Amazon Music, ni test complet Bluetooth ou Internet sur cette version. Le bouton musical ouvre un service externe : Apéro Royale n'en pilote pas lecture, pause ou volume. Les dix refontes de gameplay restent à développer et à éprouver auprès de groupes réels. Le relais Internet public, l'identité réseau et le classement historique par pseudo gardent les limites décrites ci-dessous.
+
+---
+
 # Apéro Royale 1.3.0 — La salle joue avec toi
 
 - [APK Android signé 1.3.0](releases/AperoRoyale-v1.3.0.apk) · `com.aperoroyale` · versionCode `6` · Android 8.0+ (API 26)

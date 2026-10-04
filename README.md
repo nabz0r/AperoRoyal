@@ -2,9 +2,9 @@
 
 **La soirée devient une borne d’arcade.** Un jeu d’apéro Android pour 2 à 6 amis, sur **un seul téléphone** ou **plusieurs téléphones**. Un joueur prend la lumière à chaque manche ; tous les autres votent, pronostiquent, jugent, dessinent ou désamorcent avec lui.
 
-![Accueil Apéro Royale](docs/screenshots/home.png)
+![Accueil Apéro Royale 1.4.0](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.3.0**](releases/AperoRoyale-v1.3.0.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.0**](releases/AperoRoyale-v1.4.0.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ## La boucle de jeu
 
@@ -15,7 +15,7 @@
 5. **Tout le monde joue.** Les poses passent devant le jury ; le bluff oppose la vérité secrète du conteur aux votes des amis ; le dessin passe au devineur ; la bombe demande deux actions par joueur avant de circuler. Le joueur actif **alterne à chaque manche**, et le premier votant suit l’ordre des tours.
 6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
 
-**Confort 1.3.0.** Les écrans s’adaptent aussi aux téléphones 16:9. Sur un téléphone partagé, la langue du pronostic ou du jury suit la personne qui tient l’appareil. En jeu local, les chronos reprennent après un passage dans les réglages, en arrière-plan ou après réouverture. Les boutons, votes et cibles exposent maintenant des actions nommées à l’accessibilité Android. La musique du jeu se tait en arrière-plan ; la Radio Apéro Spotify, lorsqu’elle est activée, remplace la musique synthétique du jeu tout en laissant les effets sonores.
+**Confort 1.4.0.** L’accueil, la palette, l’icône et les réglages adoptent une direction nocturne plus adulte. La source musicale se choisit dans une liste claire ; un bouton dans l’en-tête ouvre l’application choisie pendant la partie. La bande originale du jeu se tait lorsqu’une source externe ou le silence est sélectionné. Effets et vibrations restent séparés. Les écrans s’adaptent aussi aux téléphones 16:9 ; les chronos locaux reprennent après un passage dans les réglages ou en arrière-plan.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -31,7 +31,7 @@ Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel a
 | --- | --- | --- |
 | 01 | **Culture G** | Un QCM tordu ; répondre vite rapporte un bonus. |
 | 02 | **Positions à la con** | Une pose absurde à défendre devant le jury des amis. |
-| 03 | **Blind Test** | Reconnaître un motif sonore hors ligne (montée, descente, alternance, échos…) ou un titre Spotify configuré. |
+| 03 | **Blind Test** | Reconnaître un motif sonore original hors ligne (montée, descente, alternance, échos…). |
 | 04 | **Réflexe néon** | Dix cibles à attraper avant la fin du chrono, même sur un téléphone invité. |
 | 05 | **Roulette Royale** | Six gobelets, des pièges révélés après votre choix et une mise qui augmente le risque. |
 | 06 | **Dessin maudit** | Dessiner un concept impossible puis passer au devineur. |
@@ -66,9 +66,15 @@ Le relais Internet par défaut, [`ssl://broker.emqx.io:8883`](https://www.emqx.c
 
 ## Une ambiance que vous contrôlez
 
-La musique rétro commence à **30 %**, avec quatre variations de phrase, un timbre par jeu, une basse douce et un signal court lors du passage de tour. Le menu sépare musique, style *Chill / Arcade*, volume, effets sonores et vibrations ; le choix reste mémorisé. La bande son est synthétisée dans l’application, sans téléchargement, et baisse pendant le Blind Test et le défi de rythme.
+La bande originale démarre discrètement à **18 %** pour une nouvelle installation, avec quatre variations de phrase, un timbre par jeu, une basse douce et un signal court lors du passage de tour. Le menu **Musique** permet de choisir bande originale, Spotify, Deezer, Apple Music, Amazon Music ou silence. Pour les services externes, collez facultativement une URL HTTPS de playlist puis touchez **Ouvrir l’application**. Le raccourci ♫ dans l’en-tête permet de rouvrir le service pendant la partie. La lecture et ses commandes restent dans l’application musicale choisie ; aucun compte ou abonnement n’est fourni par le jeu. Le menu distingue aussi style *Chill / Arcade*, volume de la bande originale, effets et vibrations. Les réglages sont mémorisés localement.
 
-**Spotify est facultatif.** Configurez votre Client ID et une playlist dans **Musique / Spotify**, puis ajoutez `http://127.0.0.1:43868/callback` aux URI de redirection de votre application Spotify Developer. L’intégration OAuth PKCE utilise la Web API et demande un compte Premium et un appareil Spotify actif pour contrôler la lecture. Sans Spotify, le Blind Test utilise six mélodies originales hors ligne.
+La version 1.4.0 retire l’ancien contrôle OAuth et le quiz fondé sur la Web API Spotify : la [Developer Policy Spotify](https://developer.spotify.com/policy) interdit les jeux et quiz construits avec sa plateforme sans autorisation applicable. Les quatre services musicaux sont des **raccourcis d’écoute indépendants** : Apéro Royale n’inspecte pas leurs titres et ne pilote pas leur lecture. Le défi sonore reste jouable hors ligne avec six motifs originaux. La [spécification de refonte des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) détaille les prochains prototypes collectifs, encore à réaliser.
+
+![Réglages de la musique](docs/screenshots/settings-music.png)
+
+![Choix de la plateforme musicale](docs/screenshots/settings-sources.png)
+
+![Source musicale externe](docs/screenshots/settings-provider.png)
 
 ## Pour développer
 
@@ -92,12 +98,12 @@ keyPassword=your-password
 
 `./gradlew assembleRelease` produit `app/build/outputs/apk/release/app-release.apk`. Conservez la même clé pour permettre les mises à jour Android.
 
-`GameEngine` arbitre les tours, votes, pronostics, règles et scores. `GameStore` conserve session, historique, statistiques par joueur et par jeu dans SQLite. `ArcadeView` et `GameSprites` dessinent les écrans et scènes. `PartyNetwork`, `BluetoothPartyNetwork` et `InternetPartyNetwork` transportent les commandes et instantanés. `ArcadeAudio` produit musique et effets ; `SpotifyBridge` gère l’option Spotify.
+`GameEngine` arbitre les tours, votes, pronostics, règles et scores. `GameStore` conserve session, historique, statistiques par joueur et par jeu dans SQLite. `ArcadeView` et `GameSprites` dessinent les écrans et scènes. `PartyNetwork`, `BluetoothPartyNetwork` et `InternetPartyNetwork` transportent les commandes et instantanés. `ArcadeAudio` produit musique et effets ; `MusicLinks` valide les liens des services musicaux externes.
 
 Illustrations originales dans [`art/source`](art/source), décors des mini-jeux sous [`app/src/main/res/drawable-nodpi`](app/src/main/res/drawable-nodpi) et captures réelles d’émulateur sous [`docs/screenshots`](docs/screenshots). Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
 
-**Pour guider la prochaine version :** [audit produit et feuille de route jeu par jeu](docs/AUDIT_PRODUIT_2026.md), fondés sur le code, les captures et des recherches externes.
+**Pour guider la prochaine version :** [diagnostic et refonte détaillée des dix mini-jeux](docs/REFONTE_DIX_MINI_JEUX.md), puis [audit produit initial](docs/AUDIT_PRODUIT_2026.md). Ces documents distinguent les mécaniques déjà livrées des hypothèses à tester avec de vrais groupes.
 
 ---
 
-**English:** Apéro Royale 1.3.0 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. Bluff now has a secret truth and the bomb requires two actions per player. Ten games have distinct painted night scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The updated soundtrack has per-game variations and gives way to optional Spotify radio. The signed APK is linked above.
+**English:** Apéro Royale 1.4.0 is a French/English Android party arcade for 2–6 friends. Play on one phone or join a room over Wi-Fi, paired Bluetooth or an Internet code. Every round hands control to the next player; private prediction and jury clocks pause until the next person is ready. Local rounds resume after reopening or backgrounding the app. Choose group Vote, Free Play or Turbo rounds. Friends back or challenge the actor, judge social games and guess drawings on their own phone or through a private pass screen. Ten games have distinct scenes, pixel sprites and guides. Eleven hidden achievements can reveal a room-wide rule. The mature new visual direction adds an illustrated lounge home and a redesigned music menu. Choose original music, silence or a shortcut to Spotify, Deezer, Apple Music or Amazon Music. External playback stays in the chosen music app; the sound game remains original and offline. See the [ten-game redesign plan](docs/REFONTE_DIX_MINI_JEUX.md). The signed APK is linked above.
