@@ -17,7 +17,7 @@ def start_vote():
     wait_screen("LOBBY")
     add_player("Pixel")
     add_player("Nova")
-    tap(200, HEIGHT - 96)
+    tap(292, HEIGHT - 178)
     return wait_screen("VOTE")
 
 

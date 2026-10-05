@@ -9,14 +9,13 @@ def main():
     adb("shell", "pm", "clear", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.8)
-    tap(200, HEIGHT - 282)
+    tap(200, HEIGHT - 329)
     wait_screen("LOBBY")
     add_player("Pixel")
     add_player("Nova")
-    tap(200, HEIGHT - 227)
-    tap(200, HEIGHT - 227)
+    tap(322, HEIGHT - 248)
     assert state()["mode"] == "TURBO"
-    tap(200, HEIGHT - 96)
+    tap(292, HEIGHT - 178)
     for turn in range(2):
         if state()["screen"] == "RULE_PICK":
             tap(200, 450)

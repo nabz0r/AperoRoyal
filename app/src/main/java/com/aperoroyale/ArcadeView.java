@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
 
-/** Large touch targets, high contrast, vector avatars and animated arcade presentation. */
+/** Compact visual controls with generous touch targets and an illustrated arcade stage. */
 public final class ArcadeView extends View {
   public interface Actions {
     void save();
@@ -66,6 +66,8 @@ public final class ArcadeView extends View {
     void reportRule();
 
     void ruleVote(boolean yes);
+    void joinVote(boolean yes);
+    void retryJoin();
 
     void bombTap();
 
@@ -148,6 +150,8 @@ public final class ArcadeView extends View {
   private final ArrayList<Hit> hits = new ArrayList<>();
   private final Random particle = new Random(19);
   private float H = 820, scale = 1, offsetX = 0, strokeX, strokeY;
+  private int spectatorPhase = 0, spectatorStep = 0;
+  private String spectatorName = "";
   private boolean drawing = false;
   private final ArrayList<float[]> ghostStrokes = new ArrayList<>();
   private boolean ghostDrawing = false;
@@ -308,7 +312,8 @@ public final class ArcadeView extends View {
     canvas.scale(scale, scale);
     hits.clear();
     background(canvas);
-    switch (g.screen) {
+    if (spectatorWaiting()) spectatorScreen(canvas);
+    else switch (g.screen) {
       case "HOME" -> home(canvas);
       case "LOBBY" -> lobby(canvas);
       case "VOTE" -> vote(canvas);
@@ -319,6 +324,7 @@ public final class ArcadeView extends View {
       case "PREDICT" -> predict(canvas);
       case "CREW" -> crew(canvas);
       case "RULE_VOTE" -> ruleVote(canvas);
+      case "JOIN_VOTE" -> joinVote(canvas);
       case "SETTINGS" -> settings(canvas);
       case "GUIDE" -> guide(canvas);
       case "TRANSITION" -> transition(canvas);
@@ -326,6 +332,17 @@ public final class ArcadeView extends View {
       case "RESULT" -> result(canvas);
       case "STATS" -> stats(canvas);
       default -> home(canvas);
+    }
+    if (!spectatorWaiting() && !"HOME".equals(g.screen)
+        && !"SETTINGS".equals(g.screen) && !"JOIN_VOTE".equals(g.screen)
+        && !g.lastJoinName.isEmpty()
+        && g.joinDecisionUntil > ((MainActivity) getContext()).hostNow()) {
+      int accent = g.lastJoinAccepted ? CYAN : PINK;
+      panel(canvas, 33, 128, 334, 39, PANEL, accent);
+      String decision = g.lastJoinAccepted
+          ? vt(g.lastJoinName + " rejoint la table !", g.lastJoinName + " joins the table!")
+          : vt(g.lastJoinName + " : refusé · 1 gorgée", g.lastJoinName + ": denied · 1 sip");
+      block(canvas, decision, 200, 153, 312, 14, accent, true);
     }
     canvas.restore();
     postInvalidateDelayed("GAME".equals(g.screen) || "TRANSITION".equals(g.screen)
@@ -374,11 +391,12 @@ public final class ArcadeView extends View {
     c.drawBitmap(sceneAtlas, new Rect(left, top, right, bottom),
         new RectF(x, y, x + w, y + h), p);
     p.setShader(new LinearGradient(x, y, x, y + h,
-        Color.argb(155, 8, 11, 29), Color.argb(205, 8, 11, 29), Shader.TileMode.CLAMP));
+        Color.argb(170, 8, 11, 22), Color.argb(225, 8, 11, 22), Shader.TileMode.CLAMP));
     c.drawRect(x, y, x + w, y + h, p);
     p.setShader(null);
     p.setColor(GameSprites.accent(game));
-    c.drawRect(x, y, x + w, y + 5, p);
+    c.drawRect(x, y, x + w, y + 2, p);
+    c.drawRect(x, y, x + 2, y + h, p);
     float scan = y + (System.currentTimeMillis() % 4200L) / 4200f * h;
     p.setColor((25 << 24) | (GameSprites.accent(game) & 0x00ffffff));
     c.drawRect(x, scan, x + w, scan + 3, p);
@@ -387,17 +405,15 @@ public final class ArcadeView extends View {
 
   private void panel(Canvas c, float x, float y, float w, float h, int fill, int stroke) {
     p.setStyle(Paint.Style.FILL);
-    p.setColor(Color.argb(85, 0, 0, 0));
-    c.drawRoundRect(x + 3, y + 6, x + w + 3, y + h + 6, 9, 9, p);
+    p.setColor(Color.argb(38, 0, 0, 0));
+    c.drawRoundRect(x + 2, y + 3, x + w + 2, y + h + 3, 6, 6, p);
     p.setColor(fill);
-    c.drawRoundRect(x, y, x + w, y + h, 9, 9, p);
+    c.drawRoundRect(x, y, x + w, y + h, 6, 6, p);
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(1.5f);
-    p.setColor(stroke);
-    c.drawRoundRect(x, y, x + w, y + h, 9, 9, p);
+    p.setStrokeWidth(1);
+    p.setColor((95 << 24) | (stroke & 0x00ffffff));
+    c.drawRoundRect(x, y, x + w, y + h, 6, 6, p);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(Color.argb(18, 255, 255, 255));
-    c.drawRoundRect(x + 9, y + 5, x + w - 9, y + 7, 1, 1, p);
   }
 
   private void text(Canvas c, String s, float x, float y, float size, int color, boolean center) {
@@ -440,17 +456,57 @@ public final class ArcadeView extends View {
 
   private void button(
       Canvas c, String id, String label, float x, float y, float w, float h, int color) {
-    panel(c, x, y, w, h, color, Color.argb(170, 255, 255, 255));
-    float size = 19;
-    p.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+    float visualH = Math.min(43, h - 7);
+    float top = y + (h - visualH) / 2;
+    int accent = color == PANEL ? MUTED : color;
+    p.setColor(color == PANEL ? Color.rgb(29, 32, 38) : Color.rgb(37, 38, 42));
+    c.drawRoundRect(x + 2, top, x + w - 2, top + visualH, 5, 5, p);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(1);
+    p.setColor((105 << 24) | (accent & 0x00ffffff));
+    c.drawRoundRect(x + 2, top, x + w - 2, top + visualH, 5, 5, p);
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(accent);
+    c.drawRoundRect(x + 9, top + 10, x + 12, top + visualH - 10, 2, 2, p);
+    float size = 16;
+    p.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
     do {
       p.setTextSize(size);
-      if (p.measureText(label) <= w - 16) break;
-      size -= 1;
-    } while (size > 14);
-    display(c, label, x + w / 2, y + h / 2 + size * .34f,
-        size + 1, color == PANEL ? WHITE : BG, true);
+      if (p.measureText(label) <= w - 57) break;
+      size -= .5f;
+    } while (size > 10);
+    p.setColor(color == PANEL ? WHITE : accent);
+    p.setTextAlign(Paint.Align.LEFT);
+    c.drawText(label, x + 23, top + visualH / 2 + size * .34f, p);
+    text(c, "›", x + w - 20, top + visualH / 2 + 5, 19, accent, true);
     hits.add(new Hit(id, new RectF(x, y, x + w, y + h), label));
+  }
+
+  private void answerRow(Canvas c, int option, String label,
+      float x, float y, float w, float h) {
+    int accent = GameSprites.accent(g.game);
+    p.setColor(Color.argb(188, 18, 21, 28));
+    c.drawRoundRect(x + 1, y + 5, x + w - 1, y + h - 5, 3, 3, p);
+    p.setColor(Color.argb(95, 212, 214, 210));
+    c.drawRect(x + 1, y + h - 5, x + w - 1, y + h - 4, p);
+    p.setColor(accent);
+    c.drawRect(x + 1, y + 5, x + 4, y + h - 5, p);
+    p.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+    p.setTextSize(13);
+    p.setTextAlign(Paint.Align.CENTER);
+    c.drawText(String.valueOf((char) ('A' + option)), x + 24, y + h / 2 + 4, p);
+    p.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+    float size = 16;
+    do {
+      p.setTextSize(size);
+      if (p.measureText(label) <= w - 91) break;
+      size -= .5f;
+    } while (size > 10);
+    p.setColor(WHITE);
+    p.setTextAlign(Paint.Align.LEFT);
+    c.drawText(label, x + 47, y + h / 2 + size * .34f, p);
+    text(c, "›", x + w - 22, y + h / 2 + 5, 17, accent, true);
+    hits.add(new Hit("answer:" + option, new RectF(x, y, x + w, y + h), label));
   }
 
   private void label(Canvas c, String s, float y) {
@@ -458,21 +514,22 @@ public final class ArcadeView extends View {
   }
 
   private void header(Canvas c, String sub) {
-    display(c, "APÉRO", 22, 49, 27, WHITE, false);
-    display(c, "ROYALE", 22, 78, 27, YELLOW, false);
+    display(c, "APÉRO", 22, 57, 24, WHITE, false);
+    display(c, "ROYALE", 105, 57, 24, YELLOW, false);
+    text(c, "EST. 2026  /  AFTER DARK", 23, 77, 8, MUTED, false);
     boolean canMenu = !"HOME".equals(g.screen) && !"SETTINGS".equals(g.screen)
         && !"GUIDE".equals(g.screen) && !"STATS".equals(g.screen);
     if (canMenu) {
-      text(c, "♫", 291, 61, 25, YELLOW, true);
+      text(c, "♫", 292, 54, 22, YELLOW, true);
       hits.add(new Hit("musicShortcut", new RectF(263, 11, 322, 89),
           vt("Ouvrir la musique", "Open music")));
     }
-    text(c, canMenu ? "☰" : "✦", 365, 62, 26, YELLOW, true);
+    text(c, canMenu ? "☰" : "✦", 365, 55, 22, YELLOW, true);
     if (canMenu) hits.add(new Hit("settings", new RectF(325, 12, 398, 89),
         vt("Réglages", "Settings")));
     p.setColor(YELLOW);
-    c.drawRoundRect(20, 91, 380, 94, 2, 2, p);
-    if (sub != null) text(c, sub, 200, 122, 14, MUTED, true);
+    c.drawRect(20, 90, 380, 91, p);
+    if (sub != null) text(c, sub, 200, 116, 12, MUTED, true);
   }
 
   private void home(Canvas c) {
@@ -494,79 +551,88 @@ public final class ArcadeView extends View {
     c.drawRect(26, top + heroHeight * .4f, 374, top + heroHeight - 6, p);
     p.setShader(null);
     p.setColor(Color.argb(205, 12, 17, 28));
-    c.drawRoundRect(38, top + 19, 296, top + 48, 8, 8, p);
+    c.drawRoundRect(38, top + 19, 296, top + 48, 3, 3, p);
     float pulse = (float) (Math.sin(System.currentTimeMillis() / 330.0) * .5 + .5);
     p.setColor(Color.argb(150 + (int) (pulse * 90), 236, 190, 99));
     c.drawCircle(48, top + 34, 3 + pulse * 1.5f, p);
     text(c, g.t("10 JEUX · À VOUS DE JOUER", "10 GAMES · YOUR MOVE"),
         176, top + 39, 11, YELLOW, true);
-    display(c, g.t("FAITES DU", "MAKE SOME"), 43, top + heroHeight - 91, 31, WHITE, false);
-    display(c, g.t("BRUIT.", "NOISE."), 43, top + heroHeight - 54, 37, YELLOW, false);
+    display(c, g.t("LA NUIT", "THE NIGHT"), 43, top + heroHeight - 91, 31, WHITE, false);
+    display(c, g.t("EST À VOUS.", "IS YOURS."), 43, top + heroHeight - 54, 34, YELLOW, false);
     text(c, g.t("2–6 amis  /  un ou plusieurs téléphones", "2–6 friends  /  one or more phones"),
         43, top + heroHeight - 25, 12, WHITE, false);
     float y = top + heroHeight + 14;
     String launch = g.players.size() > 0
-        ? g.t("JOUER AVEC LA MÊME ÉQUIPE  →", "PLAY WITH YOUR CREW  →")
-        : g.t("LANCER LA SOIRÉE  →", "START THE PARTY  →");
+        ? g.t("JOUER AVEC LA MÊME ÉQUIPE", "PLAY WITH YOUR CREW")
+        : g.t("LANCER LA SOIRÉE", "START THE PARTY");
     button(c, "new", launch, 20, y, 360, 61, YELLOW);
-    float sweep = 29 + (System.currentTimeMillis() % 2600) / 2600f * 310;
-    p.setColor(Color.argb(165, 255, 247, 212));
-    p.setStrokeWidth(2.5f);
-    c.drawLine(sweep, y + 5, Math.min(371, sweep + 30), y + 5, p);
     if (actions.hasSavedParty()) {
-      button(c, "resume", g.t("↺  REPRENDRE", "↺  RESUME"), 20, y + 72, 174, 55, CYAN);
-      button(c, "join", g.t("↗  REJOINDRE", "↗  JOIN ROOM"), 206, y + 72, 174, 55, PANEL);
-    } else button(c, "join", g.t("↗  REJOINDRE UNE SALLE", "↗  JOIN A ROOM"),
+      button(c, "resume", g.t("REPRENDRE", "RESUME"), 20, y + 72, 174, 55, CYAN);
+      button(c, "join", g.t("REJOINDRE", "JOIN ROOM"), 206, y + 72, 174, 55, PANEL);
+    } else button(c, "join", g.t("REJOINDRE UNE SALLE", "JOIN A ROOM"),
         20, y + 72, 360, 55, CYAN);
     float navY = y + 143;
     homeTile(c, "stats", "◆", g.t("SCORES", "SCORES"), 20, navY, YELLOW);
     homeTile(c, "guide", "▦", g.t("DÉFIS", "GAMES"), 112, navY, PINK);
     homeTile(c, "musicShortcut", "♫", "RADIO", 204, navY, CYAN);
     homeTile(c, "settings", "⚙", g.t("OPTIONS", "SETTINGS"), 296, navY, WHITE);
-    panel(c, 20, navY + 84, 360, 56, Color.rgb(29, 34, 48), Color.argb(95, 255, 255, 255));
+    panel(c, 20, navY + 73, 360, 56, Color.rgb(29, 34, 42), CYAN);
     text(c, g.players.isEmpty() ? g.t("LA TABLE VOUS ATTEND", "YOUR TABLE IS WAITING")
         : g.t("L'ÉQUIPE EST PRÊTE", "THE CREW IS READY"),
-        36, navY + 108, 13, YELLOW, false);
+        36, navY + 97, 13, YELLOW, false);
     text(c, g.players.isEmpty() ? g.t("Lancez une soirée en 2 touches", "Start a party in two taps")
         : g.players.size() + g.t(" portraits sauvegardés", " saved profiles"),
-        36, navY + 125, 11, MUTED, false);
+        36, navY + 114, 11, MUTED, false);
     for (int i = 0; i < Math.min(g.players.size(), 4); i++)
-      avatar(c, g.players.get(i), 238 + i * 36, navY + 112, .45f);
+      avatar(c, g.players.get(i), 238 + i * 36, navY + 101, .45f);
     text(c, g.t("CHAQUE TOUR APPARTIENT À QUELQU'UN", "EVERY TURN BELONGS TO SOMEONE"),
         200, H - 20, 11, MUTED, true);
   }
 
   private void homeTile(Canvas c, String id, String icon, String caption,
       float x, float y, int accent) {
-    panel(c, x, y, 84, 73, PANEL, Color.argb(110, 255, 255, 255));
     p.setColor(accent);
-    c.drawRect(x + 8, y + 6, x + 76, y + 9, p);
-    text(c, icon, x + 42, y + 41, 28, accent, true);
-    text(c, caption, x + 42, y + 62, 10, WHITE, true);
-    hits.add(new Hit(id, new RectF(x, y, x + 84, y + 73), caption));
+    c.drawRect(x, y + 2, x + 84, y + 3, p);
+    text(c, icon, x + 42, y + 31, 21, accent, true);
+    text(c, caption, x + 42, y + 51, 10, WHITE, true);
+    hits.add(new Hit(id, new RectF(x, y, x + 84, y + 61), caption));
+  }
+
+  private void segment(Canvas c, String id, String caption, float x, float y,
+      float w, boolean selected, int accent) {
+    p.setColor(selected ? Color.rgb(47, 46, 43) : Color.rgb(27, 30, 35));
+    c.drawRoundRect(x + 1, y + 5, x + w - 1, y + 43, 4, 4, p);
+    p.setColor(selected ? accent : Color.rgb(77, 82, 87));
+    c.drawRect(x + 8, y + 43, x + w - 8, y + 45, p);
+    text(c, caption, x + w / 2, y + 31, 12, selected ? WHITE : MUTED, true);
+    hits.add(new Hit(id, new RectF(x, y, x + w, y + 52), caption));
   }
 
   private void lobby(Canvas c) {
-    header(c, vt("SALLE DES LÉGENDES", "HALL OF LEGENDS"));
-    label(c, g.players.size() + " / 6  " + vt("JOUEURS", "PLAYERS"), 158);
+    header(c, vt("LA TABLE", "THE TABLE"));
+    text(c, g.players.size() + " / 6  " + vt("JOUEURS", "PLAYERS"),
+        24, 151, 13, WHITE, false);
     if (!actions.client() && !((MainActivity) getContext()).network.hosting) {
-      text(c, vt("CHANGER", "RESET"), 343, 158, 11, MUTED, true);
-      hits.add(new Hit("resetRoster", new RectF(289, 137, 393, 178),
+      text(c, vt("CHANGER", "RESET"), 345, 151, 11, MUTED, true);
+      hits.add(new Hit("resetRoster", new RectF(286, 129, 393, 170),
           vt("Changer de groupe", "Change group")));
     }
     for (int i = 0; i < g.players.size(); i++) {
       GameEngine.Player a = g.players.get(i);
-      float y = 181 + i * 65;
-      panel(c, 22, y, 356, 57, PANEL, i == g.active ? CYAN : Color.rgb(67, 80, 119));
-      avatar(c, a, 59, y + 28, 0.46f);
-      display(c, a.name, 99, y + 29, 20, WHITE, false);
-      text(c, vt("TOUCHE • PROFIL / PHOTO", "TAP • PROFILE / PHOTO"),
-          99, y + 47, 9, MUTED, false);
-      text(c, a.language, 340, y + 33, 15, YELLOW, true);
+      float y = 170 + i * 54;
+      p.setColor(i == g.active ? CYAN : Color.rgb(76, 82, 90));
+      c.drawRect(22, y + 49, 378, y + 50, p);
+      avatar(c, a, 48, y + 25, 0.38f);
+      display(c, a.name, 77, y + 27, 18, WHITE, false);
+      text(c, vt("PROFIL / PHOTO", "PROFILE / PHOTO"),
+          77, y + 42, 8, MUTED, false);
+      text(c, a.language, 348, y + 29, 12, YELLOW, true);
+      text(c, "›", 369, y + 29, 14, MUTED, true);
       if (!actions.client() || a.name.equals(((MainActivity) getContext()).network.localName))
-        hits.add(new Hit("edit:" + i, new RectF(22, y, 378, y + 57),
+        hits.add(new Hit("edit:" + i, new RectF(22, y, 378, y + 52),
             a.name + vt(" : portrait et profil", ": avatar and profile")));
     }
+    if (g.players.size() <= 2) tableDiagram(c);
     if (actions.client()) {
       block(
           c,
@@ -580,26 +646,61 @@ public final class ArcadeView extends View {
       return;
     }
     if (!actions.hostAddress().isEmpty())
-      block(c, actions.hostAddress(), 200, H - 272, 350, 15, CYAN, true);
-    String modeLabel = "FREE".equals(g.mode) ? g.t("LIBRE • CHOIX DU JEU", "FREE • PICK A GAME")
-        : "TURBO".equals(g.mode) ? g.t("TURBO • DÉFIS EXPRESS", "TURBO • QUICK ROUNDS")
-        : g.t("VOTE • LE GROUPE CHOISIT", "VOTE • GROUP CHOOSES");
-    if (g.players.size() >= 4 && "VOTE".equals(g.mode))
-      text(c, g.t("1 TÉLÉPHONE ? TURBO EST PLUS RAPIDE", "ONE PHONE? TURBO IS FASTER"),
-          200, H - 267, 12, CYAN, true);
-    button(c, "mode", modeLabel, 30, H - 253, 340, 52, CYAN);
-    button(c, "add", g.t("+ AJOUTER JOUEUR", "+ ADD PLAYER"), 30, H - 189, 340, 55, YELLOW);
-    button(
-        c,
-        "start",
-        g.t("LANCER LA PARTIE", "START PARTY"),
-        30,
-        H - 124,
-        340,
-        56,
-        g.players.size() >= 2 ? PINK : PANEL);
-    button(c, "host", g.t("HÉBERGER", "HOST ROOM"), 30, H - 60, 165, 44, CYAN);
-    button(c, "back", g.t("RETOUR", "BACK"), 205, H - 60, 165, 44, PANEL);
+      block(c, actions.hostAddress(), 200, H - 305, 350, 11, CYAN, true);
+    else {
+      String modeHelp = "FREE".equals(g.mode)
+          ? vt("CHOISISSEZ LE PROCHAIN JEU", "PICK THE NEXT GAME")
+          : "TURBO".equals(g.mode)
+              ? vt("SURPRISES ET MANCHES COURTES", "SURPRISES AND QUICK ROUNDS")
+              : vt("CHACUN VOTE POUR LE PROCHAIN JEU", "EVERYONE VOTES FOR THE NEXT GAME");
+      text(c, modeHelp, 200, H - 305, 11, CYAN, true);
+    }
+    text(c, vt("CHOIX DE LA SOIRÉE", "PARTY FORMAT"), 24, H - 282, 11, MUTED, false);
+    segment(c, "modeVote", "VOTE", 22, H - 274, 112, "VOTE".equals(g.mode), YELLOW);
+    segment(c, "modeFree", vt("LIBRE", "FREE"), 144, H - 274, 112,
+        "FREE".equals(g.mode), CYAN);
+    segment(c, "modeTurbo", "TURBO", 266, H - 274, 112,
+        "TURBO".equals(g.mode), PINK);
+    button(c, "add", g.t("AJOUTER +", "ADD PLAYER +"),
+        22, H - 207, 172, 58, YELLOW);
+    button(c, "start", g.t("JOUER", "PLAY"),
+        206, H - 207, 172, 58, g.players.size() >= 2 ? PINK : PANEL);
+    button(c, "host", g.t("HÉBERGER", "HOST ROOM"),
+        22, H - 139, 172, 58, CYAN);
+    button(c, "back", g.t("RETOUR", "BACK"),
+        206, H - 139, 172, 58, PANEL);
+  }
+
+  private void tableDiagram(Canvas c) {
+    float cx = 200, cy = H - 425;
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(1);
+    p.setColor(Color.argb(90, 216, 177, 103));
+    c.drawCircle(cx, cy, 57, p);
+    p.setColor(Color.argb(42, 216, 177, 103));
+    c.drawCircle(cx, cy, 65, p);
+    p.setStyle(Paint.Style.FILL);
+    for (int i = 0; i < 6; i++) {
+      double angle = -Math.PI / 2 + i * Math.PI / 3;
+      float x = cx + (float) Math.cos(angle) * 82;
+      float y = cy + (float) Math.sin(angle) * 82;
+      if (i < g.players.size()) avatar(c, g.players.get(i), x, y, .35f);
+      else {
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.2f);
+        p.setColor(Color.argb(130, 166, 170, 166));
+        c.drawCircle(x, y, 13, p);
+        p.setStyle(Paint.Style.FILL);
+        text(c, "+", x, y + 5, 13, MUTED, true);
+        if (!actions.client()) hits.add(new Hit("add",
+            new RectF(x - 26, y - 26, x + 26, y + 26),
+            g.t("Ajouter un joueur", "Add a player")));
+      }
+    }
+    text(c, String.format(Locale.ROOT, "%02d / 06", g.players.size()),
+        cx, cy + 3, 17, YELLOW, true);
+    text(c, g.t("LA TABLE PREND FORME", "THE TABLE TAKES SHAPE"),
+        cx, cy + 26, 9, MUTED, true);
   }
 
   private boolean viewerEnglish() {
@@ -607,6 +708,7 @@ public final class ArcadeView extends View {
     if (actions.client()) {
       int local = g.indexOf(a.network.localName);
       if (local >= 0) return "EN".equals(g.players.get(local).language);
+      return "EN".equals(a.network.localLanguage);
     }
     GameEngine.Player viewer = switch (g.screen) {
       case "PREDICT" -> a.localPredictor();
@@ -621,6 +723,120 @@ public final class ArcadeView extends View {
   }
 
   private String vt(String fr, String en) { return viewerEnglish() ? en : fr; }
+
+  private boolean spectatorWaiting() {
+    return actions.client() && !g.players.isEmpty()
+        && g.indexOf(((MainActivity) getContext()).network.localName) < 0
+        && !"HOME".equals(g.screen) && !"SETTINGS".equals(g.screen);
+  }
+
+  private void spectatorScreen(Canvas c) {
+    MainActivity app = (MainActivity) getContext();
+    String name = app.network.localName;
+    if (!name.equals(spectatorName)) {
+      spectatorName = name;
+      spectatorPhase = spectatorStep = 0;
+    }
+    boolean en = "EN".equals(app.network.localLanguage);
+    header(c, en ? "THE GALLERY" : "EN TRIBUNE");
+    text(c, name.toUpperCase(Locale.ROOT), 200, 153, 20, YELLOW, true);
+    String status = "JOIN_VOTE".equals(g.screen)
+        ? (en ? "THE TABLE IS VOTING NOW" : "LA TABLE VOTE MAINTENANT")
+        : name.equals(g.lastJoinName) && !g.lastJoinAccepted
+            ? (en ? "VOTE: NO · TAKE 1 VIRTUAL SIP" : "VOTE : NON · BOIS 1 GORGÉE VIRTUELLE")
+            : (en ? "WATCH THIS ROUND · JOIN AT THE BREAK" : "REGARDE CE TOUR · ENTRE À LA PAUSE");
+    if ("JOIN_VOTE".equals(g.screen)) {
+      panel(c, 25, 185, 350, 157, PANEL, CYAN);
+      pixelCat(c, 81, 261, 2.3f);
+      text(c, en ? "ADMISSION VOTE" : "VOTE D'ENTRÉE", 205, 227, 17, CYAN, true);
+      text(c, g.pendingJoinName, 205, 269, 23, WHITE, true);
+      text(c, en ? "NEXT ROUND" : "PROCHAIN TOUR", 205, 305, 12, MUTED, true);
+    } else {
+      panel(c, 25, 185, 350, 157, PANEL, GameSprites.accent(g.game));
+      GameSprites.stage(c, p, g.game, 28, 188, 344, 151, g.progress,
+          System.currentTimeMillis());
+      scene(c, g.game, 28, 188, 344, 151);
+      text(c, en ? "LIVE NOW" : "EN DIRECT", 200, 217, 11, CYAN, true);
+      block(c, title(g.game), 200, 260, 315, 18, WHITE, true);
+      GameEngine.Player actor = g.current();
+      text(c, actor == null ? "?" : actor.name, 200, 298, 17, YELLOW, true);
+    }
+    block(c, status, 200, 371, 350, 12, CYAN, true);
+    text(c, en ? "SECRET ARCADE" : "ARCADE SECRÈTE", 200, 418, 13, MUTED, true);
+    if (spectatorPhase == 0) {
+      text(c, en ? "CATCH THE PIXEL CAT" : "ATTRAPE LE CHAT PIXEL", 200, 452, 17, WHITE, true);
+      float x = 110 + (spectatorStep * 71) % 180;
+      float y = 516 + (spectatorStep * 97) % 115;
+      pixelCat(c, x, y, 3.5f);
+      hits.add(new Hit("spectatorCat", new RectF(x - 49, y - 50, x + 49, y + 50),
+          en ? "Catch the cat" : "Attraper le chat"));
+      text(c, spectatorStep + " / 12", 200, 686, 19, YELLOW, true);
+    } else if (spectatorPhase == 1) {
+      text(c, en ? "PAW CODE: 1 3 2 4 1 2" : "CODE PATTES : 1 3 2 4 1 2",
+          200, 452, 15, WHITE, true);
+      int[] colors = {YELLOW, CYAN, PINK, WHITE};
+      for (int i = 0; i < 4; i++) {
+        float x = 121 + (i % 2) * 158, y = 515 + (i / 2) * 94;
+        p.setColor(Color.rgb(33, 36, 41));
+        c.drawCircle(x, y, 39, p);
+        text(c, String.valueOf(i + 1), x, y + 9, 25, colors[i], true);
+        hits.add(new Hit("spectatorPaw:" + i,
+            new RectF(x - 49, y - 49, x + 49, y + 49), String.valueOf(i + 1)));
+      }
+      text(c, spectatorStep + " / 6", 200, 686, 19, YELLOW, true);
+    } else if (spectatorPhase == 2) {
+      text(c, en ? "TAP THE OPPOSITE LIGHT" : "TOUCHE LA LUMIÈRE OPPOSÉE",
+          200, 452, 16, WHITE, true);
+      int lit = spectatorStep % 2;
+      for (int i = 0; i < 2; i++) {
+        float x = i == 0 ? 118 : 282;
+        p.setColor(i == lit ? YELLOW : Color.rgb(41, 46, 53));
+        c.drawCircle(x, 556, i == lit ? 36 : 30, p);
+        text(c, i == 0 ? "←" : "→", x, 565, 24, i == lit ? BG : WHITE, true);
+        hits.add(new Hit("spectatorMirror:" + i,
+            new RectF(x - 51, 504, x + 51, 608), i == 0 ? "Left" : "Right"));
+      }
+      text(c, spectatorStep + " / 6", 200, 686, 19, CYAN, true);
+    } else {
+      pixelCat(c, 200, 540, 4);
+      text(c, en ? "THREE SECRETS FOUND" : "TROIS SECRETS DÉCOUVERTS",
+          200, 642, 18, YELLOW, true);
+      button(c, "spectatorReplay", en ? "PLAY AGAIN" : "REJOUER",
+          80, 663, 240, 56, CYAN);
+    }
+    if (name.equals(g.lastJoinName) && !g.lastJoinAccepted
+        && g.pendingJoinName.isEmpty()) {
+      text(c, (en ? "SIPS ON THE BOARD: " : "GORGÉES AU COMPTEUR : ")
+          + g.lastJoinSips, 200, H - 108, 12, MUTED, true);
+      button(c, "retryJoin", en ? "ASK AGAIN NEXT ROUND" : "RETENTER AU PROCHAIN TOUR",
+          34, H - 92, 332, 60, PINK);
+    } else block(c, en ? "Your secret progress stays on this phone."
+        : "Tes secrets restent sur ce téléphone.", 200, H - 63, 340, 12, MUTED, true);
+  }
+
+  private void joinVote(Canvas c) {
+    MainActivity app = (MainActivity) getContext();
+    header(c, vt("UN AMI À LA PORTE", "A FRIEND AT THE DOOR"));
+    long seconds = Math.max(0, (g.joinVoteDeadline - app.hostNow() + 999) / 1000);
+    text(c, seconds + vt(" S POUR VOTER", " S TO VOTE"), 200, 177, 13, CYAN, true);
+    pixelCat(c, 200, 294, 4);
+    text(c, g.pendingJoinName.toUpperCase(Locale.ROOT), 200, 423, 27, YELLOW, true);
+    block(c, vt("On lui fait une place au prochain tour ?",
+        "Give them a seat for the next round?"), 200, 474, 330, 18, WHITE, true);
+    GameEngine.Player voter = app.localJoinVoter();
+    int cast = 0;
+    for (int vote : g.joinVotes) if (vote >= 0) cast++;
+    text(c, cast + " / " + g.players.size() + vt(" VOTES", " VOTES"),
+        200, 524, 16, CYAN, true);
+    if (voter != null) {
+      text(c, vt("À ", "FOR ") + voter.name, 200, 556, 15, WHITE, true);
+      button(c, "joinYes", vt("OUI, UNE PLACE !", "YES, JOIN US!"),
+          38, 575, 324, 61, CYAN);
+      button(c, "joinNo", vt("NON, +1 GORGÉE VIRTUELLE", "NO, +1 VIRTUAL SIP"),
+          38, 642, 324, 61, PINK);
+    } else block(c, vt("Le vote continue…", "Voting continues…"),
+        200, 612, 300, 18, MUTED, true);
+  }
 
   private void vote(Canvas c) {
     MainActivity a = (MainActivity) getContext();
@@ -862,92 +1078,103 @@ public final class ArcadeView extends View {
     text(c, bonusName(), 200, 673, 18, accent, true);
   }
 
+  private void settingRow(Canvas c, String id, String title, String value,
+      float y, int accent) {
+    p.setColor(Color.rgb(67, 70, 72));
+    c.drawRect(28, y + 52, 372, y + 53, p);
+    p.setColor(accent);
+    c.drawRect(28, y + 12, 31, y + 40, p);
+    p.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+    p.setTextSize(16);
+    p.setTextAlign(Paint.Align.LEFT);
+    p.setColor(WHITE);
+    c.drawText(title, 45, y + 34, p);
+    p.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+    p.setTextSize(14);
+    while (p.measureText(value) > 150 && p.getTextSize() > 11) p.setTextSize(p.getTextSize() - .5f);
+    p.setTextAlign(Paint.Align.RIGHT);
+    p.setColor(accent);
+    c.drawText(value, 356, y + 34, p);
+    hits.add(new Hit(id, new RectF(23, y, 377, y + 56), title + ": " + value));
+  }
+
   private void settings(Canvas c) {
-    header(c, g.t("PERSONNALISE TA SOIRÉE", "MAKE IT YOUR NIGHT"));
+    header(c, g.t("RÉGLAGES DE LA SOIRÉE", "PARTY SETTINGS"));
     MainActivity a = (MainActivity) getContext();
     if (settingsTab == 2) {
-      text(c, g.t("SOURCE MUSICALE", "MUSIC SOURCE"), 31, 173, 14, MUTED, false);
+      text(c, g.t("CHOISIR UNE SOURCE", "CHOOSE A SOURCE"), 28, 169, 13, MUTED, false);
       String[] names = {g.t("ORIGINAL", "ORIGINAL"), "SPOTIFY", "DEEZER",
           "APPLE MUSIC", "AMAZON MUSIC", g.t("SILENCE", "SILENCE")};
-      String[] symbols = {"♪", "◉", "◆", "♫", "▤", "×"};
       for (int i = 0; i < names.length; i++) {
-        float x = i % 2 == 0 ? 30 : 207, y = 192 + (i / 2) * 104;
+        float x = i % 2 == 0 ? 27 : 207, y = 188 + (i / 2) * 68;
         boolean selected = i == a.musicProvider();
-        panel(c, x, y, 163, 92, selected ? Color.rgb(50, 58, 74) : PANEL,
-            selected ? YELLOW : Color.argb(100, 255, 255, 255));
-        text(c, symbols[i], x + 81, y + 46, 29, selected ? YELLOW : CYAN, true);
-        text(c, names[i], x + 81, y + 75, 12, WHITE, true);
-        hits.add(new Hit("provider:" + i, new RectF(x, y, x + 163, y + 92), names[i]));
+        segment(c, "provider:" + i, names[i], x, y, 166,
+            selected, selected ? YELLOW : CYAN);
       }
       block(c, g.t("Une playlist mémorisée s'ouvre d'un geste depuis la radio ♫.",
           "Saved playlists open in one tap from the ♫ radio dock."),
-          200, 531, 336, 14, MUTED, true);
+          200, 427, 336, 12, MUTED, true);
       button(c, "radioDock", g.t("OUVRIR LA RADIO  ♫", "OPEN PARTY RADIO  ♫"),
-          30, 570, 340, 55, CYAN);
+          28, 472, 344, 56, CYAN);
       button(c, "settingsMusic", g.t("RETOUR AU SON", "BACK TO SOUND"),
-          35, H - 90, 330, 59, PANEL);
+          28, H - 93, 344, 58, PANEL);
       return;
     }
-    button(c, "settingsMusic", g.t("MUSIQUE", "MUSIC"), 30, 151, 163, 49,
-        settingsTab == 0 ? YELLOW : PANEL);
-    button(c, "settingsParty", g.t("PARTIE", "PARTY"), 207, 151, 163, 49,
-        settingsTab == 1 ? YELLOW : PANEL);
+    segment(c, "settingsMusic", g.t("MUSIQUE", "MUSIC"), 28, 143, 166,
+        settingsTab == 0, YELLOW);
+    segment(c, "settingsParty", g.t("PARTIE", "PARTY"), 206, 143, 166,
+        settingsTab == 1, CYAN);
     if (settingsTab == 0) {
       String source = MusicLinks.name(a.musicProvider());
       if (a.musicProvider() == MusicLinks.ORIGINAL) source = g.t("Bande originale", "Original score");
       if (a.musicProvider() == MusicLinks.SILENT) source = g.t("Silence", "Silence");
-      text(c, g.t("SOURCE MUSICALE", "MUSIC SOURCE"), 31, 236, 13, MUTED, false);
-      button(c, "musicProvider", source + "  ›", 30, 247, 340, 58, YELLOW);
+      text(c, g.t("AUDIO", "AUDIO"), 28, 223, 12, MUTED, false);
+      settingRow(c, "musicProvider", g.t("Source", "Source"), source, 234, YELLOW);
       if (MusicLinks.external(a.musicProvider())) {
         button(c, "openMusic", g.t("OUVRIR L'APPLICATION  ↗", "OPEN MUSIC APP  ↗"),
-            30, 319, 340, 58, CYAN);
+            28, 310, 344, 57, CYAN);
         button(c, "musicLink", a.hasMusicLink() ? g.t("CHANGER LA PLAYLIST", "CHANGE PLAYLIST")
-            : g.t("AJOUTER UNE PLAYLIST", "ADD A PLAYLIST"), 30, 390, 340, 53, PANEL);
+            : g.t("AJOUTER UNE PLAYLIST", "ADD A PLAYLIST"), 28, 371, 344, 57, PANEL);
         block(c, g.t("La lecture reste dans votre application musicale. Revenez au jeu pour continuer la manche.",
             "Playback stays in your music app. Return here to continue the round."),
-            200, 473, 336, 13, MUTED, true);
+            200, 456, 336, 12, MUTED, true);
       } else if (a.musicProvider() == MusicLinks.ORIGINAL) {
-        button(c, "musicToggle", g.t("BANDE ORIGINALE : ", "GAME SOUNDTRACK: ")
-            + (a.musicEnabled() ? "ON" : "OFF"), 30, 319, 340, 55,
-            a.musicEnabled() ? CYAN : PANEL);
-        button(c, "musicStyle", g.t("AMBIANCE : ", "MOOD: ")
-            + (a.musicStyle() == 0 ? "CHILL" : "ARCADE"), 30, 386, 340, 55, PANEL);
-        button(c, "musicVolume", g.t("VOLUME : ", "VOLUME: ")
-            + Math.round(a.musicVolume() * 100) + "%", 30, 453, 340, 55, PANEL);
+        settingRow(c, "musicToggle", g.t("Bande originale", "Game soundtrack"),
+            a.musicEnabled() ? "ON" : "OFF", 301, CYAN);
+        settingRow(c, "musicStyle", g.t("Ambiance", "Mood"),
+            a.musicStyle() == 0 ? "CHILL" : "ARCADE", 363, CYAN);
+        settingRow(c, "musicVolume", g.t("Volume", "Volume"),
+            Math.round(a.musicVolume() * 100) + "%", 425, CYAN);
       } else {
         block(c, g.t("La bande originale est coupée. Les effets restent configurables ci-dessous.",
             "The soundtrack is muted. Effects remain configurable below."),
-            200, 350, 336, 14, MUTED, true);
+            200, 341, 336, 12, MUTED, true);
       }
-      text(c, g.t("CONFORT DE JEU", "GAME FEEL"), 31, 548, 13, MUTED, false);
-      button(c, "effectsToggle", "SFX : " + (a.effectsEnabled() ? "ON" : "OFF"),
-          30, 559, 163, 55, a.effectsEnabled() ? CYAN : PANEL);
-      button(c, "hapticToggle", g.t("VIBRATIONS : ", "HAPTICS: ")
-          + (a.hapticsEnabled() ? "ON" : "OFF"),
-          207, 559, 163, 55, a.hapticsEnabled() ? CYAN : PANEL);
+      text(c, g.t("SENSATIONS", "FEEL"), 28, 522, 12, MUTED, false);
+      settingRow(c, "effectsToggle", "SFX", a.effectsEnabled() ? "ON" : "OFF",
+          531, a.effectsEnabled() ? CYAN : MUTED);
+      settingRow(c, "hapticToggle", g.t("Vibrations", "Haptics"),
+          a.hapticsEnabled() ? "ON" : "OFF", 591, a.hapticsEnabled() ? CYAN : MUTED);
       block(c, g.t("Les effets et vibrations se règlent séparément de la musique.",
           "Effects and haptics are independent from music."),
-          200, 646, 336, 12, MUTED, true);
+          200, 681, 336, 11, MUTED, true);
     } else {
-      text(c, g.t("MODE DE PARTIE", "PARTY MODE"), 31, 236, 13, MUTED, false);
+      text(c, g.t("MODE DE PARTIE", "PARTY MODE"), 28, 223, 12, MUTED, false);
       if ("LOBBY".equals(a.settingsOrigin()))
-        button(c, "mode", g.t("CHANGER : ", "CHANGE: ") + g.mode,
-            30, 247, 340, 58, YELLOW);
-      else panel(c, 30, 247, 340, 58, PANEL, MUTED);
+        settingRow(c, "mode", g.t("Format", "Format"), g.mode, 234, YELLOW);
+      else panel(c, 28, 234, 344, 56, PANEL, MUTED);
       if (!"LOBBY".equals(a.settingsOrigin()))
         block(c, g.t("Choisis le mode dans le salon avant de lancer la partie.",
-            "Choose a mode in the lobby before starting."), 200, 274, 310, 13, MUTED, true);
-      button(c, "guide", g.t("GUIDE DES 10 JEUX", "ALL 10 GAME GUIDES"),
-          30, 331, 340, 58, CYAN);
-      button(c, "stats", g.t("CLASSEMENT", "LEADERBOARD"),
-          30, 405, 340, 58, PANEL);
-      panel(c, 30, 489, 340, 135, PANEL, YELLOW);
-      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 521, 15, YELLOW, true);
+            "Choose a mode in the lobby before starting."), 200, 271, 310, 12, MUTED, true);
+      settingRow(c, "guide", g.t("Guide des 10 jeux", "All 10 game guides"), "↗", 318, CYAN);
+      settingRow(c, "stats", g.t("Classement", "Leaderboard"), "↗", 380, CYAN);
+      panel(c, 28, 477, 344, 121, PANEL, YELLOW);
+      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 511, 13, YELLOW, true);
       block(c, g.t("Un seul téléphone ? Passe-le à chaque tour. Plusieurs ? Rejoins la salle depuis l'accueil.",
           "One phone? Pass it each turn. More phones? Join the room from home."),
-          200, 551, 304, 14, WHITE, true);
+          200, 546, 304, 12, WHITE, true);
     }
-    button(c, "back", g.t("RETOUR", "BACK"), 35, H - 90, 330, 59, PANEL);
+    button(c, "back", g.t("RETOUR", "BACK"), 28, H - 93, 344, 58, PANEL);
   }
 
   private static final String[][] GUIDE_RULES = {
@@ -1321,7 +1548,7 @@ public final class ArcadeView extends View {
       passScreen(c, ((MainActivity) getContext()).localBomber());
       return;
     }
-    header(c, title(g.game));
+    header(c, String.format(Locale.ROOT, "%02d / 10   ·   %s", g.game + 1, title(g.game)));
     avatar(c, a, 52, 146, .42f);
     text(c, a.name, 91, 150, 20, WHITE, false);
     text(c, "TURBO".equals(g.mode) ? "⚡ #" + (g.turn + 1) : "#" + (g.turn + 1),
@@ -1408,7 +1635,7 @@ public final class ArcadeView extends View {
     for (int i = 0; i < 4; i++) {
       int opt = (i - g.target + 4) % 4;
       String label = choices.length == 4 ? choices[i] : q[opt + 1];
-      button(c, "answer:" + i, label, 45, 354 + i * 66, 310, 55, i % 2 == 0 ? CYAN : YELLOW);
+      answerRow(c, i, label, 45, 354 + i * 66, 310, 55);
     }
   }
 
@@ -1470,7 +1697,7 @@ public final class ArcadeView extends View {
           (g.english() ? g.screenChoicesEn : g.screenChoicesFr).length == 4
               ? (g.english() ? g.screenChoicesEn : g.screenChoicesFr)[i]
               : GameEngine.TUNES[(g.variant + option) % 6][g.english() ? 1 : 0];
-      button(c, "answer:" + i, name, 35, 384 + i * 62, 330, 51, i % 2 == 0 ? CYAN : YELLOW);
+      answerRow(c, i, name, 35, 384 + i * 62, 330, 51);
     }
   }
 
@@ -1519,11 +1746,22 @@ public final class ArcadeView extends View {
         200, 317, 15, CYAN, true);
     for (int i = 0; i < 6; i++) {
       float x = 42 + (i % 3) * 107, y = 348 + (i / 3) * 132;
-      panel(c, x, y, 91, 108, g.chosenCup == i ? YELLOW : PANEL,
-          g.chosenCup == i ? WHITE : GameSprites.accent(g.game));
-      p.setColor(YELLOW);
-      c.drawRoundRect(x + 18, y + 26, x + 73, y + 81, 9, 9, p);
-      text(c, g.chosenCup == i ? "!" : "?", x + 45, y + 67, 35, BG, true);
+      p.setColor(Color.argb(190, 20, 24, 30));
+      c.drawRoundRect(x + 2, y + 2, x + 89, y + 102, 4, 4, p);
+      int accent = g.chosenCup == i ? YELLOW : GameSprites.accent(g.game);
+      p.setColor(accent);
+      c.drawRect(x + 15, y + 88, x + 76, y + 90, p);
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeWidth(2);
+      Path glass = new Path();
+      glass.moveTo(x + 17, y + 27);
+      glass.lineTo(x + 74, y + 27);
+      glass.lineTo(x + 65, y + 80);
+      glass.lineTo(x + 26, y + 80);
+      glass.close();
+      c.drawPath(glass, p);
+      p.setStyle(Paint.Style.FILL);
+      text(c, g.chosenCup == i ? "!" : "?", x + 45, y + 66, 31, accent, true);
       if (g.crewChoiceCount(i) > 0)
         text(c, "♥ " + g.crewChoiceCount(i), x + 45, y + 18, 15, PINK, true);
       if (g.chosenCup < 0) hits.add(new Hit("cup:" + i, new RectF(x, y, x + 91, y + 108),
@@ -1598,15 +1836,8 @@ public final class ArcadeView extends View {
             ? new String[] {g.screenChoicesFr.length == 4 ? g.screenChoicesFr[i] : "?",
                 g.screenChoicesEn.length == 4 ? g.screenChoicesEn[i] : "?"}
             : GameEngine.DRAW[(g.variant + opt) % GameEngine.DRAW.length];
-        button(
-            c,
-            "answer:" + i,
-            q[viewerEnglish() ? 1 : 0],
-            35,
-            500 + i * 50,
-            330,
-            44,
-            i % 2 == 0 ? CYAN : YELLOW);
+        answerRow(c, i, q[viewerEnglish() ? 1 : 0],
+            35, 500 + i * 50, 330, 44);
       }
     }
   }
@@ -1634,8 +1865,16 @@ public final class ArcadeView extends View {
 
   private void tile(Canvas c, int i, boolean glow) {
     float x = 45 + (i % 2) * 165, y = 340 + (i / 2) * 130;
-    panel(c, x, y, 145, 110, TILE[i], glow ? WHITE : TILE[i]);
-    text(c, new String[] {"◆", "●", "▲", "■"}[i], x + 72, y + 68, 54, WHITE, true);
+    p.setColor(Color.argb(205, 19, 23, 29));
+    c.drawRoundRect(x + 2, y + 5, x + 143, y + 105, 5, 5, p);
+    p.setColor(glow ? WHITE : TILE[i]);
+    c.drawRect(x + 12, y + 95, x + 133, y + 98, p);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(glow ? 3 : 1);
+    c.drawRoundRect(x + 2, y + 5, x + 143, y + 105, 5, 5, p);
+    p.setStyle(Paint.Style.FILL);
+    text(c, new String[] {"◆", "●", "▲", "■"}[i], x + 72, y + 72, 48,
+        glow ? WHITE : TILE[i], true);
     if (!glow) hits.add(new Hit("tile:" + i, new RectF(x, y, x + 145, y + 110),
         g.t("Couleur ", "Color ") + (i + 1)));
   }
@@ -1661,13 +1900,13 @@ public final class ArcadeView extends View {
         ? phase / (float) RhythmClock.TARGET_MS
         : (RhythmClock.PERIOD_MS - phase) / (float) RhythmClock.TARGET_MS;
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(5 + 10 * pulse);
+    p.setStrokeWidth(3 + 8 * pulse);
     p.setColor(YELLOW);
-    c.drawCircle(200, 440, 62 + 33 * pulse, p);
+    c.drawCircle(200, 440, 55 + 30 * pulse, p);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(PINK);
-    c.drawCircle(200, 440, 68, p);
-    text(c, "TAP", 200, 452, 30, WHITE, true);
+    p.setColor(Color.rgb(35, 38, 44));
+    c.drawCircle(200, 440, 51, p);
+    text(c, "TAP", 200, 451, 25, YELLOW, true);
     hits.add(new Hit("beat", new RectF(90, 330, 310, 550),
         g.t("Frapper sur le temps", "Tap on the beat")));
     text(c, g.t("PROCHAIN TEMPS : ", "NEXT BEAT: ") + (nextBeat + 1),
@@ -1732,10 +1971,10 @@ public final class ArcadeView extends View {
     float f = Math.max(.1f, Math.min(1f,
         (g.deadline - ((MainActivity) getContext()).hostNow()) / duration));
     p.setColor(PINK);
-    c.drawCircle(200, 443, 71 + 20 * f, p);
+    c.drawCircle(200, 443, 57 + 17 * f, p);
     p.setColor(YELLOW);
-    c.drawCircle(200, 443, 56, p);
-    text(c, "TAP!", 200, 453, 26, BG, true);
+    c.drawCircle(200, 443, 49, p);
+    text(c, "TAP!", 200, 452, 24, BG, true);
     if (holder != null) hits.add(new Hit("bomb", new RectF(105, 350, 295, 540),
         vt("Toucher la bombe", "Tap the bomb")));
     text(c, g.taps + " / " + g.bombGoal(), 200, 603, 25, CYAN, true);
@@ -1993,6 +2232,10 @@ public final class ArcadeView extends View {
     if (kind > 2) return true;
     float x = (e.getX() - offsetX) / scale, y = e.getY() / scale;
     if (x < 0 || x > 400) return true;
+    if (spectatorWaiting()) {
+      if (kind == 0) handle(x, y, kind);
+      return true;
+    }
     if (kind == 0 && x >= 325 && y <= 89 && !"HOME".equals(g.screen)
         && !"SETTINGS".equals(g.screen) && !"GUIDE".equals(g.screen)
         && !"STATS".equals(g.screen)) {
@@ -2064,7 +2307,8 @@ public final class ArcadeView extends View {
       if (kind == 0) handle(x, y, kind);
       return true;
     }
-    if ("VOTE".equals(g.screen) || "LIBRARY".equals(g.screen)) {
+    if ("VOTE".equals(g.screen) || "LIBRARY".equals(g.screen)
+        || "JOIN_VOTE".equals(g.screen)) {
       if (kind == 0) handle(x, y, kind);
       return true;
     }
@@ -2143,6 +2387,30 @@ public final class ArcadeView extends View {
       case "board" -> actions.stats();
       case "mode" -> actions.setMode("VOTE".equals(g.mode) ? "FREE"
           : "FREE".equals(g.mode) ? "TURBO" : "VOTE");
+      case "modeVote" -> actions.setMode("VOTE");
+      case "modeFree" -> actions.setMode("FREE");
+      case "modeTurbo" -> actions.setMode("TURBO");
+      case "joinYes" -> actions.joinVote(true);
+      case "joinNo" -> actions.joinVote(false);
+      case "retryJoin" -> actions.retryJoin();
+      case "spectatorCat" -> {
+        if (++spectatorStep >= 12) { spectatorPhase = 1; spectatorStep = 0; }
+        invalidate();
+      }
+      case "spectatorPaw:0", "spectatorPaw:1", "spectatorPaw:2", "spectatorPaw:3" -> {
+        int[] code = {0, 2, 1, 3, 0, 1};
+        spectatorStep = Integer.parseInt(id.substring(13)) == code[spectatorStep]
+            ? spectatorStep + 1 : 0;
+        if (spectatorStep >= code.length) { spectatorPhase = 2; spectatorStep = 0; }
+        invalidate();
+      }
+      case "spectatorMirror:0", "spectatorMirror:1" -> {
+        spectatorStep = Integer.parseInt(id.substring(16)) != spectatorStep % 2
+            ? spectatorStep + 1 : 0;
+        if (spectatorStep >= 6) { spectatorPhase = 3; spectatorStep = 0; }
+        invalidate();
+      }
+      case "spectatorReplay" -> { spectatorPhase = spectatorStep = 0; invalidate(); }
       case "partyTab" -> { statsTab = 0; invalidate(); }
       case "historyTab" -> { statsTab = 1; invalidate(); }
       case "gamesTab" -> { statsTab = 2; invalidate(); }

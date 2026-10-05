@@ -73,14 +73,15 @@ def tap_node(node):
 
 
 def add_player(name):
-    tap(200, HEIGHT - 160)
+    tap(105, HEIGHT - 177)
+    time.sleep(.25)
     field = first_edit()
     tap_node(field)
     adb("shell", "input", "text", name)
     adb("shell", "input", "keyevent", "4")
     tap_node(dialog_node("android:id/button1"))
     wait_screen("LOBBY")
-    time.sleep(.35)
+    time.sleep(.45)
 
 
 def start_from_bet(game, shots):
@@ -170,14 +171,14 @@ def main():
     adb("shell", "am", "force-stop", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.5)
-    tap(200, HEIGHT - 282)
+    tap(200, HEIGHT - 329)
     wait_screen("LOBBY")
     add_player("Pixel")
     add_player("Nova")
     assert len(state()["players"]) == 2
-    tap(200, HEIGHT - 227)
+    tap(200, HEIGHT - 248)
     assert state()["mode"] == "FREE"
-    tap(200, HEIGHT - 96)
+    tap(292, HEIGHT - 178)
     wait_screen("LIBRARY")
     shots = Path("docs/screenshots/games")
     shots.mkdir(parents=True, exist_ok=True)

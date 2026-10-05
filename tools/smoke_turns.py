@@ -10,11 +10,11 @@ def main():
     adb("shell", "pm", "clear", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.8)
-    tap(200, HEIGHT - 282)
+    tap(200, HEIGHT - 329)
     wait_screen("LOBBY")
     add_player("Pixel")
     add_player("Nova")
-    tap(200, HEIGHT - 96)
+    tap(292, HEIGHT - 178)
     for turn in range(2):
         s = wait_screen("VOTE")
         assert s["active"] == turn

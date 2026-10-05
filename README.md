@@ -1,153 +1,103 @@
 # APÉRO ROYALE 👑
 
-**La soirée devient une borne d’arcade.** Dix défis Android pour 2 à 6 amis, sur **un seul téléphone** ou **plusieurs téléphones**. À chaque manche, tout le monde touche au jeu : réponses secrètes, parcours piégé, chaîne mémoire, mesure musicale, jury, galerie de dessin ou relais de bombe.
+### Dix jeux. Une table. Personne ne reste spectateur.
 
-![Nouvel accueil Apéro Royale](docs/screenshots/home.png)
+Un jeu de soirée Android pour **2 à 6 amis**, en français ou en anglais. Un seul téléphone suffit : on se le passe à chaque action privée. Chacun peut aussi jouer depuis son téléphone et voter, piéger, dessiner, deviner ou juger en direct.
 
-[**Télécharger l’APK signé 1.4.9**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.9.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK Android signé · 1.5.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.5.0.apk) · Android 8.0+ · [Notes de version](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
-**La table vous retrouve.** Créez les profils une fois : pseudos, langues FR/EN, sprites et photos restent disponibles pour la soirée suivante. Un menu de pause permet d'annuler un défi sans score ni gorgée, de revenir au salon ou à l'accueil, puis de reprendre. La Radio Apéro s'ouvre d'un toucher, avec sources, playlist favorite et commandes du lecteur Android actif. [Voir la refonte 1.4.6 et les références Play Store](docs/RELEASE_146_DESIGN.md).
+![Accueil Apéro Royale](docs/screenshots/home.png)
 
-![Radio Apéro — sources et commandes](docs/screenshots/radio-dock.png)
+## Une soirée en trois gestes
 
-## La boucle de jeu
+1. **Posez les noms sur la table.** Ajoutez 2 à 6 profils avec pseudo, langue et avatar original ou photo. Ils sont retrouvés à la prochaine ouverture.
+2. **Choisissez le rythme.** **Vote** : chacun choisit le prochain jeu. **Libre** : la table ouvre le catalogue. **Turbo** : le jeu tire des manches surprises plus courtes.
+3. **Passez le téléphone ou jouez chacun sur le vôtre.** Avant le défi, chacun a une action. Le joueur actif mise 1 à 3 gorgées virtuelles, relève le défi, puis le rôle change au tour suivant.
 
-1. **Créez la salle.** Chaque personne prend un pseudo, une langue FR/EN et un portrait exclusif parmi six sprites, ou importe une photo. La table est retrouvée lors des soirées suivantes ; le salon permet de modifier ou retirer chaque profil.
-2. **La salle choisit.** En mode Vote, chacun choisit parmi trois défis. En mode Libre, le groupe ouvre le catalogue ; en mode **Turbo**, le jeu enchaîne des défis surprises plus courts.
-3. **Le téléphone passe.** L’écran annonce le numéro de tour, le pseudo et le défi. Le chrono reste arrêté jusqu’à ce que le joueur concerné touche **C’est moi** sur le téléphone partagé. Si cette personne s'est éloignée, la table peut **passer sa participation** sans inventer son vote ou ses points.
-4. **Le joueur actif mise.** Il choisit 1, 2 ou 3 gorgées virtuelles. Dans Culture G et Blind Test, les amis répondent avant lui ; dans Réflexe, Roulette, Mémoire et Rythme, chacun prépare un élément du défi. Les autres posent un verdict, devinent le dessin ou se passent la bombe. Ces choix rapportent des points et modifient le défi. Sur un téléphone partagé, **C’est moi** ouvre chaque choix privé et suspend le chrono pendant le passage.
-5. **Les rôles changent.** Le dessin est deviné par tous les non-artistes ; la moitié doit trouver pour que l’artiste gagne. Dans la bombe, chaque porteur choisit à qui la passer, puis peut tenter un fil après un tour de la salle. Le joueur actif **alterne à chaque manche** ; chaque ami a une action dans les dix jeux.
-6. **On recommence.** Points, gorgées, séries et classements sont sauvegardés sur le téléphone hôte. La partie se reprend après fermeture de l’application.
-
-En local, **☰** suspend les chronos et donne accès à *Annuler ce défi*, *Retour au salon* et *Accueil · reprendre plus tard*. Un défi annulé n'est jamais inscrit au classement. Sur plusieurs téléphones, les invités continuent de suivre l'hôte.
-
-**Confort 1.4.0.** L’accueil, la palette, l’icône et les réglages adoptent une direction nocturne plus adulte. La source musicale se choisit dans une liste claire ; un bouton dans l’en-tête ouvre l’application choisie pendant la partie. La bande originale du jeu se tait lorsqu’une source externe ou le silence est sélectionné. Effets et vibrations restent séparés. Les écrans s’adaptent aussi aux téléphones 16:9 ; les chronos locaux reprennent après un passage dans les réglages ou en arrière-plan.
-
-**Fiabilité 1.4.1.** [500 soirées simulées](docs/SIMULATION_500_PARTIES.md) ont traversé les dix jeux et les trois modes, avec 7 990 manches et 40 190 restaurations d’état. Deux anomalies ont été corrigées : le choix de règle secrète en Turbo et le verdict du jury à l’expiration du chrono dans le moteur.
-
-**Rythme 1.4.2.** [Un second audit de 500 soirées](docs/SIMULATION_EXPERIENCE_500.md) mesure le temps **modélisé**, les répétitions et les actions propres à chaque mini-jeu. Les contenus écrits et sonores sortent maintenant d'un paquet sans répétition avant épuisement ; roulette et dessin ont des délais finis. L'audit révèle aussi un vrai chantier : à six sur un seul téléphone, le mode Vote prendrait environ 87 s par manche selon les hypothèses publiées, et six jeux laissent leurs amis spectateurs du défi. Ce sont des risques de conception à tester avec de vrais groupes, pas du plaisir validé automatiquement.
-
-**Relais 1.4.3.** Les modes Vote et Turbo rappellent un défi collectif après au plus deux manches sans action de toute la salle. La bombe propose un choix de porteur, des séquences de une à trois touches et un fil rouge/bleu risqué après le passage de chacun. Réflexe, Mémoire et Rythme ont chacun six variantes mécaniques ; le Blind Test joue ses six motifs originaux dans quatre tonalités. [La simulation actualisée](docs/SIMULATION_EXPERIENCE_500.md) estime encore **81 s** par manche à six sur un téléphone en Vote : la cadence et les six défis solo restent à améliorer avec des joueurs réels.
-
-**Toute la salle 1.4.4.** Les six anciens défis solo deviennent collectifs ; le dessin invite désormais tous les amis à deviner. Une interaction propre à chaque jeu remplace le pronostic répétitif. L’écran garde les choix privés jusqu’au démarrage et diffuse ensuite le même état depuis l’hôte. [Le nouvel audit de 500 soirées](docs/SIMULATION_EXPERIENCE_500.md) compte **0 manche solo** parmi 7 990 manches modélisées ; à six sur un téléphone, Vote reste lent (77,3 s modélisées), tandis que Turbo est plus direct. Ce chiffre ne mesure ni les rires ni la latence réelle.
-
-**La ruelle secrète 1.4.5.** Sur plusieurs téléphones, les invités qui attendent après leur action peuvent remarquer deux yeux dans le décor. Les tapoter ouvre un micro-jeu caché : poursuite de chat, code de pattes ou miroir. La découverte se poursuit entre la manche, le résultat et la sélection suivante ; elle reste privée jusqu’au trophée. Le premier à réussir un secret peut choisir une nouvelle règle qui s’applique à toute la salle **au prochain tour**. Ces jeux n’apparaissent ni dans le catalogue ni dans les guides. L’interface des invités suit mieux leur propre langue FR/EN ; les noms longs du catalogue sont plus lisibles. [La simulation de 10 000 soirées](docs/SIMULATION_10000_MULTI.md) teste 40 000 manches et 160 000 vues privées FR/EN, sans prétendre mesurer le plaisir humain ou la latence réelle.
-
-**Laboratoire d’expérience 1.4.7.** [3 000 soirées synthétiques et 36 000 manches](docs/LABO_EXPERIENCE_2026.md) explorent des groupes rapides, hésitants ou interrompus, sur un ou plusieurs téléphones. Le modèle révèle un risque de cadence du Vote partagé à quatre à six et distingue gestes, attente et préparation ; ses durées sont des hypothèses, pas des observations de plaisir. Le salon suggère Turbo pour accélérer une soirée à quatre ou plus sur un téléphone. Un vote non envoyé devient désormais une abstention après son délai, afin que la salle puisse continuer. Le passage local du téléphone suspend ce décompte. Le nouvel écran affiche les secondes restantes.
-
-**Horloge de soirée 1.4.8.** [Trois exécutions de 100 000 soirées, soit 5,4 millions de manches](docs/LABO_EXTREME_2026.md), branchent une horloge virtuelle sur les vrais délais du moteur. Elles croisent 2–6 amis, un, deux ou plusieurs téléphones, interruptions corrélées et réponses absentes. Le groupe peut désormais [passer la participation d'un ami absent](docs/screenshots/handoff-skip.png). Le délai de contribution repart après chaque ami ; Positions, Dessin et Bluff laissent plus de temps à la création. Les durées simulées sont des scénarios de risque, **pas des mesures d'amusement ou de réseau réel**.
-
-**Des joueurs virtuels 1.4.9.** [90 000 soirées avec des agents à mémoire](docs/LABO_GENS_VIRTUELS_2026.md) font voter, miser, juger et réagir des profils aux goûts, relations, réussites et fatigues distincts. Les mêmes cohortes comparent les anciens et nouveaux chronos sur **4,32 millions de manches simulées** au total. Le Blind Test gagne cinq secondes et Mémoire quatre : les fins forcées diminuent dans le modèle. Ces personnages sont des hypothèses de conception, **pas des invités réels ni une mesure de plaisir**.
-
-L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
-
-![Vote du prochain jeu](docs/screenshots/vote.png)
-
-![Passage au joueur suivant avant le défi](docs/screenshots/handoff.png)
-
-## Dix mini-jeux, dix scènes et sprites dédiés
-
-Chaque jeu possède désormais un **décor nocturne dédié**, un sprite pixel animé et un guide intégré FR/EN. Les commandes restent lisibles sur ces scènes. Le menu **Découvrir les 10 défis** explique les règles avant la partie.
-
-| # | Mini-jeu | Moment de soirée |
-| --- | --- | --- |
-| 01 | **Culture G** | Les amis répondent en secret ; l’acteur peut suivre la tendance ou oser sa propre réponse. |
-| 02 | **Positions à la con** | Une pose absurde à défendre devant le jury des amis. |
-| 03 | **Blind Test** | Tous écoutent un motif original, votent puis l’acteur tranche. |
-| 04 | **Réflexe néon** | Chacun place une cible ; l’acteur court le parcours façonné par les amis. |
-| 05 | **Roulette Royale** | Les amis protègent des gobelets ; pièges secrets, mise et soutien orientent le risque. |
-| 06 | **Dessin maudit** | Un artiste dessine, tous les autres devinent en privé ; une majorité fait gagner. |
-| 07 | **Mémoire flash** | Les amis construisent la chaîne ; l’acteur la rejoue dans l’ordre. |
-| 08 | **Rythme ou rien** | Chacun place un temps ; l’acteur joue la mesure du groupe sur l’horloge de l’hôte. |
-| 09 | **Bluff royal** | Raconter une anecdote vraie ou inventée ; le jury devine, le conteur marque s’il trompe la majorité. |
-| 10 | **Bombe à bulles** | Une à trois touches par porteur, choix du suivant, puis fil risqué ou relais prudent. |
+La règle de base est simple : **tu perds le défi, tu prends la gorgée que tu as misée**. Les points et le classement ajoutent du piquant. Les compteurs sont virtuels ; eau, sans alcool et défis sans consommation ont toute leur place.
 
 <table>
-<tr><td><img src="docs/screenshots/games/trivia.png" alt="Culture G" width="180"></td><td><img src="docs/screenshots/games/poses.png" alt="Positions à la con" width="180"></td><td><img src="docs/screenshots/games/blind-test.png" alt="Blind Test" width="180"></td><td><img src="docs/screenshots/games/reflex.png" alt="Réflexe néon" width="180"></td><td><img src="docs/screenshots/games/roulette.png" alt="Roulette Royale" width="180"></td></tr>
+<tr><td><img src="docs/screenshots/lobby-four.png" alt="Salon à quatre" width="240"></td><td><img src="docs/screenshots/vote.png" alt="Vote du prochain jeu" width="240"></td><td><img src="docs/screenshots/handoff.png" alt="Passage du téléphone" width="240"></td></tr>
+<tr><td>La table</td><td>Le choix collectif</td><td>À toi de jouer</td></tr>
+</table>
+
+## Dix défis, dix ambiances
+
+Chaque défi a son décor, son sprite et un guide FR/EN dans l’app. Les commandes de la version 1.5.0 sont plus fines ; la zone tactile reste confortable.
+
+| Défi | Ce qui se passe autour de la table |
+| --- | --- |
+| **Culture G** | Tout le monde répond en secret ; l’acteur tente sa réponse ou suit la tendance. |
+| **Positions à la con** | Une pose absurde à défendre devant le jury. |
+| **Blind Test** | Un motif musical original à reconnaître ; chacun écoute et vote. |
+| **Réflexe néon** | Les amis placent les cibles que l’acteur devra toucher. |
+| **Roulette Royale** | Chacun protège un verre ; l’acteur choisit son risque. |
+| **Dessin maudit** | Un dessin, puis les devinettes privées des autres. |
+| **Mémoire flash** | Les amis composent la chaîne que l’acteur devra rejouer. |
+| **Rythme ou rien** | La salle construit la mesure ; l’acteur tape les temps justes. |
+| **Bluff royal** | Histoire vraie ou inventée ? Le jury tranche. |
+| **Bombe à bulles** | Une bombe passe de main en main avant le choix du fil. |
+
+<table>
+<tr><td><img src="docs/screenshots/games/trivia.png" alt="Culture G" width="180"></td><td><img src="docs/screenshots/games/poses.png" alt="Positions" width="180"></td><td><img src="docs/screenshots/games/blind-test.png" alt="Blind Test" width="180"></td><td><img src="docs/screenshots/games/reflex.png" alt="Réflexe" width="180"></td><td><img src="docs/screenshots/games/roulette.png" alt="Roulette" width="180"></td></tr>
 <tr><td>Culture G</td><td>Positions</td><td>Blind Test</td><td>Réflexe</td><td>Roulette</td></tr>
-<tr><td><img src="docs/screenshots/games/drawing.png" alt="Dessin maudit" width="180"></td><td><img src="docs/screenshots/games/memory.png" alt="Mémoire flash" width="180"></td><td><img src="docs/screenshots/games/rhythm.png" alt="Rythme ou rien" width="180"></td><td><img src="docs/screenshots/games/bluff.png" alt="Bluff royal" width="180"></td><td><img src="docs/screenshots/games/bomb.png" alt="Bombe à bulles" width="180"></td></tr>
+<tr><td><img src="docs/screenshots/games/drawing.png" alt="Dessin" width="180"></td><td><img src="docs/screenshots/games/memory.png" alt="Mémoire" width="180"></td><td><img src="docs/screenshots/games/rhythm.png" alt="Rythme" width="180"></td><td><img src="docs/screenshots/games/bluff.png" alt="Bluff" width="180"></td><td><img src="docs/screenshots/games/bomb.png" alt="Bombe" width="180"></td></tr>
 <tr><td>Dessin</td><td>Mémoire</td><td>Rythme</td><td>Bluff</td><td>Bombe</td></tr>
 </table>
 
-![Choix du porteur et des fils de la bombe](docs/screenshots/games/bomb-choice.png)
+## Un téléphone ou plusieurs
 
-**Avant chaque défi, les potes façonnent la manche :**
+| Vous êtes… | Mise en place |
+| --- | --- |
+| **Autour d’un seul téléphone** | Créez les profils, puis passez l’appareil quand « C’est moi » apparaît. Les choix privés restent cachés jusqu’à la révélation. |
+| **Sur le même Wi-Fi** | L’hôte ouvre une salle Wi-Fi. Les amis rejoignent avec son adresse et le PIN à six chiffres. |
+| **À proximité en Bluetooth** | Appairez les téléphones Android, puis hébergez ou rejoignez la salle avec le PIN. |
+| **Connectés par Internet** | L’hôte partage un code de salle à douze caractères. Le relais MQTT TLS par défaut est un service public de test ; sa disponibilité n’est pas garantie. |
+
+L’hôte conserve la partie et le classement. Les invités votent et agissent depuis leur écran ; l’interface suit leur langue. Une partie peut être reprise après fermeture. Le menu de pause permet de revenir au salon, de reprendre, ou d’annuler le défi courant sans points ni gorgée. Un ami absent peut passer son action privée pour que la soirée continue.
+
+### Un ami débarque en pleine partie
+
+Il rejoint la salle avec le même code et son pseudo, même si une manche a commencé. Son téléphone montre le défi en cours et lui ouvre une petite **arcade secrète** : chat pixel à attraper, code de pattes, puis miroir. À la fin de la manche, chaque joueur déjà présent vote **oui** ou **non** pour lui faire une place au tour suivant. La majorité des votes exprimés l’accueille ; une égalité ou aucun vote le refuse. Les votes individuels restent cachés, et le scrutin avance après douze secondes sans réponse.
+
+En cas de refus, le nouvel arrivant prend **une gorgée virtuelle inscrite au classement** et peut demander un nouveau vote au tour suivant. Ses secrets restent jouables pendant l’attente. Une seule demande d’entrée peut attendre à la fois et la table garde sa limite de six joueurs. Pour une soirée sans alcool, la gorgée peut naturellement être remplacée par un défi ou une boisson sans alcool.
 
 <table>
-<tr><td><img src="docs/screenshots/games/crew-0.png" alt="Réponses secrètes Culture G" width="190"></td><td><img src="docs/screenshots/games/crew-3.png" alt="Choix des cibles Réflexe" width="190"></td><td><img src="docs/screenshots/games/crew-4.png" alt="Protection des gobelets" width="190"></td><td><img src="docs/screenshots/games/crew-6.png" alt="Construction de la chaîne mémoire" width="190"></td></tr>
-<tr><td>Répondre</td><td>Piéger</td><td>Protéger</td><td>Composer</td></tr>
+<tr><td><img src="docs/screenshots/late-join-spectator-en.png" alt="Invité en tribune et arcade secrète" width="230"></td><td><img src="docs/screenshots/late-join-vote.png" alt="Vote pour accueillir un ami" width="230"></td><td><img src="docs/screenshots/late-join-rejected-en.png" alt="Refus, gorgée virtuelle et nouvelle tentative" width="230"></td></tr>
+<tr><td>Regarder et jouer</td><td>Décider ensemble</td><td>Retenter sa chance</td></tr>
 </table>
 
-## Les secrets de la salle 🐈
+## Une radio qui vous laisse choisir
 
-Les écrans d’attente à plusieurs appareils cachent désormais de petites rencontres jouables. Aucun jeu secret n’est listé dans le menu. La progression de chacun est conservée dans la partie et masquée aux autres téléphones ; le trophée découvert, lui, rejoint la salle. Une première découverte peut ouvrir le choix d’une **règle valable pour toute la salle**, synchronisée au prochain tour : mot « oui » interdit, pseudos tabous, questions seulement, toast obligatoire, interdiction de pointer du doigt, et d’autres surprises. Dix autres exploits cachés existent dans les mini-jeux. Si quelqu’un enfreint une règle sociale, un joueur le signale et **la salle vote** avant d’appliquer une gorgée virtuelle. Le jeu n’active pas le microphone pour surveiller les conversations.
+Bande originale discrète, style Chill ou Arcade, volume, effets et vibrations se règlent séparément. Vous pouvez aussi choisir **Spotify, Deezer, Apple Music ou Amazon Music**, mémoriser un lien de playlist et ouvrir votre application musicale depuis la radio ♫. Le jeu ne pilote pas ces services et n’utilise pas leurs catalogues pour le Blind Test : celui-ci joue des motifs originaux, même hors ligne.
 
-<details><summary>Aperçu visuel d’un secret (spoiler)</summary>
+<table>
+<tr><td><img src="docs/screenshots/settings-music.png" alt="Réglages audio" width="230"></td><td><img src="docs/screenshots/settings-sources.png" alt="Sources musicales" width="230"></td><td><img src="docs/screenshots/radio-dock.png" alt="Radio Apéro" width="230"></td></tr>
+</table>
 
-![Un jeu secret découvert sur le téléphone invité](docs/screenshots/secret-paw-code.png)
+## Des secrets à découvrir
 
-![Le trophée et la règle proposée à toute la salle](docs/screenshots/secret-discovered-en.png)
+Sur plusieurs appareils, les écrans d’attente cachent de petits jeux. Une découverte faite par un joueur déjà dans la partie peut donner le droit de proposer une règle valable pour toute la salle au tour suivant. L’arcade de l’invité en attente reste sur son téléphone et n’influence pas le vote d’entrée. Si une règle sociale est contestée, la salle vote. Aucun microphone ne surveille les conversations.
+
+<details><summary>Voir un secret en image</summary>
+
+![Un jeu secret](docs/screenshots/secret-paw-code.png)
 
 </details>
 
-## Un téléphone ou plusieurs
+## Confiance et fabrication
 
-| Connexion | Mise en place | Usage |
-| --- | --- | --- |
-| **Un téléphone** | Ajoutez 2 à 6 joueurs dans le lobby. | Chacun prend son tour ; votes, paris, jurys et défis en relais passent d’une main à l’autre. |
-| **Wi-Fi** | L’hôte ouvre une salle Wi-Fi ; les amis entrent son IP et le PIN à six chiffres. | Actions et votes synchronisés sur le réseau local, port TCP 43867. |
-| **Bluetooth** | Associez les appareils dans Android, puis hébergez/rejoignez avec le PIN. | Salle de proximité via RFCOMM sur appareils compatibles. |
-| **Internet** | L’hôte partage le code de salle à 12 caractères. | Synchronisation via relais MQTT TLS avec messages chiffrés en AES-GCM. |
+Apéro Royale fonctionne sans compte, publicité ni télémétrie. Les profils, parties et classements sont stockés localement sur le téléphone hôte. Les photos facultatives sont réduites avant partage. [Données et réseau](PRIVACY.md) · [Licence MIT](LICENSE) · [Licences tierces](THIRD_PARTY_NOTICES.md).
 
-L’hôte garde la partie ouverte et arbitre les actions. Les invités peuvent voter, préparer chaque défi, jouer leur tour et participer aux jurys ou aux devinettes depuis leur appareil. Les réponses, pièges et votes avant révélation sont retirés des instantanés envoyés à chaque rôle. Les portraits restent uniques dans la salle ; les photos facultatives sont réduites localement avant partage. L’interface suit le français ou l’anglais du joueur concerné. Le classement historique est enregistré sur l’hôte ; les profils de même pseudo créés lors de soirées différentes partagent encore leurs statistiques historiques.
+Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principales sont dans app/src/main/java/com/aperoroyale. GameEngine gère les tours, GameStore conserve la partie dans SQLite, ArcadeView et GameSprites dessinent les scènes, ArcadeAudio joue la musique et les effets. La clé de signature n’est pas dans le dépôt.
 
-Le relais Internet par défaut, [`ssl://broker.emqx.io:8883`](https://www.emqx.com/en/mqtt/public-mqtt5-broker), est un **service public de test**. Son accès et sa disponibilité ne sont pas garantis ; le menu accepte un autre relais MQTT TLS compatible. Le code de salle est partagé entre invités : il ne protège pas les messages d’un participant malveillant qui connaît ce code. Le Wi-Fi local ne chiffre pas ses messages : utilisez un réseau de confiance. Le Bluetooth dépend de l’appairage et du support Android.
-
-## Une ambiance que vous contrôlez
-
-La bande originale démarre discrètement à **18 %** pour une nouvelle installation, avec quatre variations de phrase, un timbre par jeu, une basse douce et un signal court lors du passage de tour. Dans une salle à plusieurs téléphones, l’ambiance continue sur l’hôte ; les invités gardent leurs effets et motifs de jeu, ce qui évite plusieurs boucles musicales décalées. Le menu **Musique** permet de choisir bande originale, Spotify, Deezer, Apple Music, Amazon Music ou silence. Pour les services externes, collez facultativement une URL HTTPS de playlist puis touchez **Ouvrir l’application**. Le raccourci ♫ dans l’en-tête permet de rouvrir le service pendant la partie. La lecture et ses commandes restent dans l’application musicale choisie ; aucun compte ou abonnement n’est fourni par le jeu. Le menu distingue aussi style *Chill / Arcade*, volume de la bande originale, effets et vibrations. Les réglages sont mémorisés localement.
-
-La version 1.4.0 retire l’ancien contrôle OAuth et le quiz fondé sur la Web API Spotify : la [Developer Policy Spotify](https://developer.spotify.com/policy) interdit les jeux et quiz construits avec sa plateforme sans autorisation applicable. Les quatre services musicaux sont des **raccourcis d’écoute indépendants** : Apéro Royale n’inspecte pas leurs titres et ne pilote pas leur lecture. Le défi sonore reste jouable hors ligne avec six motifs originaux. La [spécification de refonte des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) distingue ce qui est livré des idées pour les prochaines versions.
-
-![Réglages de la musique](docs/screenshots/settings-music.png)
-
-![Choix de la plateforme musicale](docs/screenshots/settings-sources.png)
-
-![Source musicale externe](docs/screenshots/settings-provider.png)
-
-## Pour développer
-
-Android natif Java, JDK 17, Android SDK 36 et Gradle 8.14.3. Aucun serveur n’est requis pour le jeu local.
-
-```sh
-./gradlew test assembleDebug
-./gradlew testDebugUnitTest --tests com.aperoroyale.PartyExperienceSimulationTest
-./gradlew testDebugUnitTest --tests com.aperoroyale.ExperienceRiskLabTest
-./gradlew testDebugUnitTest --tests com.aperoroyale.VirtualPeopleSimulationTest
+~~~sh
+./gradlew testDebugUnitTest assembleDebug
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
-ADB_SERIAL=emulator-5554 python3 tools/smoke_turns.py
-ADB_SERIAL=emulator-5554 python3 tools/smoke_turbo.py
-ADB_SERIAL=emulator-5554 python3 tools/smoke_pacing.py
-ADB_SERIAL=emulator-5554 python3 tools/smoke_vote_timeout.py
-```
+~~~
 
-Pour créer une mise à jour signée, utilisez votre propre clé PKCS12 et placez ses paramètres dans `signing.properties` à la racine ; ce fichier reste hors Git :
-
-```properties
-storeFile=/absolute/path/release.p12
-storePassword=your-password
-keyAlias=apero
-keyPassword=your-password
-```
-
-`./gradlew assembleRelease` produit `app/build/outputs/apk/release/app-release.apk`. Conservez la même clé pour permettre les mises à jour Android.
-
-`GameEngine` arbitre les tours, choix collectifs, règles et scores. `GameStore` conserve session, historique, statistiques par joueur et par jeu dans SQLite. `ArcadeView` et `GameSprites` dessinent les écrans et scènes. `PartyNetwork`, `BluetoothPartyNetwork` et `InternetPartyNetwork` transportent les commandes et instantanés. `ArcadeAudio` produit musique et effets ; `MusicLinks` valide les liens des services musicaux externes.
-
-Illustrations originales dans [`art/source`](art/source), décors des mini-jeux sous [`app/src/main/res/drawable-nodpi`](app/src/main/res/drawable-nodpi) et captures réelles d’émulateur sous [`docs/screenshots`](docs/screenshots). Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
-
-**Pour guider la prochaine version :** [laboratoire de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md), [laboratoire extrême à horloge virtuelle](docs/LABO_EXTREME_2026.md), [diagnostic des dix mini-jeux](docs/REFONTE_DIX_MINI_JEUX.md) et [audit produit initial](docs/AUDIT_PRODUIT_2026.md). Ces documents distinguent les mécaniques déjà livrées des hypothèses à tester avec de vrais groupes.
+[Refonte visuelle et stress tests 1.5.0](docs/UI_150_ET_STRESS.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
 
 ---
 
-**English:** Apéro Royale 1.4.9 is a French/English Android party arcade for 2–6 friends on one or several phones over Wi-Fi, paired Bluetooth or an Internet room code. Local profiles and the leaderboard survive new parties. A shared phone can skip an absent friend's private turn without inventing a vote. The Blind Test and Memory timers allow more time. A new lab runs stateful virtual people through 90,000 parties per timer version and publishes its assumptions and cohort data; it does not claim to predict human enjoyment or real network latency. The signed APK is linked above.
+**English:** Apéro Royale 1.5.0 is a French/English Android party arcade for 2–6 friends, on one phone or several. Everyone acts in all ten challenges. A late friend can spectate, play secret games, and face an admission vote at the next round break; rejection adds one virtual sip and allows a retry. Profiles and the leaderboard persist. The signed APK is linked at the top; music services open in their own apps, while the Blind Test uses original offline motifs.

@@ -133,6 +133,7 @@ public final class BluetoothPartyNetwork extends PartyNetwork {
   public void joinBluetooth(BluetoothDevice device, String name, String language, String roomPin) {
     close();
     localName = name;
+    localLanguage = language;
     int epoch = generation;
     new Thread(() -> {
       try {

@@ -138,6 +138,7 @@ public final class MainActivity extends Activity
     }
     if (!network.connected && timersActive && !passPending && game.ruleVoteTimedOut())
       finishRuleVote();
+    if (!network.connected && timersActive && game.joinVoteTimedOut()) finishJoinVote();
     if (!network.connected && timersActive && "GAME".equals(game.screen) && game.game == 4
         && game.chosenCup >= 0 && System.currentTimeMillis() >= game.revealUntil)
       finishGame(game.cupIsSafe());
@@ -463,6 +464,44 @@ public final class MainActivity extends Activity
       if (!"RULE_VOTE".equals(game.screen)) finishRuleVote();
       else { setPassPending(localRuleVoter() != null); save(); }
     }
+  }
+
+  public GameEngine.Player localJoinVoter() {
+    if (!"JOIN_VOTE".equals(game.screen)) return null;
+    if (network.connected) {
+      int i = game.indexOf(network.localName);
+      return i >= 0 && i < game.joinVotes.length && game.joinVotes[i] < 0
+          ? game.players.get(i) : null;
+    }
+    for (int step = 0; step < game.players.size(); step++) {
+      int i = (game.active + step) % game.players.size();
+      if (i < game.joinVotes.length && game.joinVotes[i] < 0
+          && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
+    }
+    return null;
+  }
+
+  @Override
+  public void joinVote(boolean yes) {
+    GameEngine.Player voter = localJoinVoter();
+    if (voter == null) return;
+    if (network.connected) network.command("JOIN_VOTE", yes ? 1 : 0);
+    else if (game.castJoinVote(voter.name, yes)) {
+      if ("JOIN_VOTE".equals(game.screen)) save();
+      else finishJoinVote();
+    }
+  }
+
+  private void finishJoinVote() {
+    if (!game.lastJoinAccepted && !game.lastJoinName.isEmpty())
+      store.recordJoinPenalty(game.lastJoinName);
+    save();
+  }
+
+  @Override
+  public void retryJoin() {
+    if (network.connected && game.indexOf(network.localName) < 0)
+      network.command("RETRY_JOIN", 0);
   }
 
   private void finishRuleVote() {
@@ -1007,6 +1046,7 @@ public final class MainActivity extends Activity
       if ("VOTE".equals(game.screen)) game.deadline = now + 18000;
       if ("RULE_PICK".equals(game.screen)) game.deadline = now + 15000;
       if ("RULE_VOTE".equals(game.screen)) game.reportDeadline = now + 10000;
+      if ("JOIN_VOTE".equals(game.screen)) game.joinVoteDeadline = now + 12000;
       setPassPending(("VOTE".equals(game.screen) && game.voteCount() > 0 && localVoter() != null)
           || ("PREDICT".equals(game.screen) && localPredictor() != null)
           || ("CREW".equals(game.screen) && localCrew() != null)
@@ -1544,12 +1584,15 @@ public final class MainActivity extends Activity
 
   @Override
   public void joined(String name, String language) {
-    if ("LOBBY".equals(game.screen) && game.addPlayer(name, language, game.players.size() % 6)) {
+    boolean added = "LOBBY".equals(game.screen)
+        ? game.addPlayer(name, language, game.players.size() % 6)
+        : game.requestJoin(name, language);
+    if (added) {
       save();
-      message(name + " joined");
+      message(name + ("LOBBY".equals(game.screen) ? " joined" : " waits for the next vote"));
     } else {
       network.reject(name);
-      message("Room full or duplicate name");
+      message("Room full, name taken, or a guest is already waiting");
     }
   }
 
@@ -1580,6 +1623,18 @@ public final class MainActivity extends Activity
 
   @Override
   public void command(String name, String command, int value) {
+    if ("JOIN_VOTE".equals(command)) {
+      if (game.castJoinVote(name, value == 1)) {
+        if ("JOIN_VOTE".equals(game.screen)) save();
+        else finishJoinVote();
+      }
+      return;
+    }
+    if ("RETRY_JOIN".equals(command)) {
+      if (game.indexOf(name) < 0 && game.lastJoinName.equals(name)
+          && game.requestJoin(name, game.pendingJoinLanguage)) save();
+      return;
+    }
     if ("DRAW_GUESS".equals(command)) {
       if (game.drawGuess(name, value)) {
         if (game.drawGuessComplete()) finishGame(game.drawWin());

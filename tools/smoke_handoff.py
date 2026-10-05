@@ -8,17 +8,16 @@ def fresh_party(mode):
     adb("shell", "pm", "clear", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.4)
-    tap(200, HEIGHT - 282)
+    tap(200, HEIGHT - 329)
     wait_screen("LOBBY")
     add_player("Pixel")
     add_player("Nova")
     if mode == "FREE":
-        tap(200, HEIGHT - 227)
+        tap(200, HEIGHT - 248)
     elif mode == "TURBO":
-        tap(200, HEIGHT - 227)
-        tap(200, HEIGHT - 227)
+        tap(322, HEIGHT - 248)
     assert state()["mode"] == mode
-    tap(200, HEIGHT - 96)
+    tap(292, HEIGHT - 178)
 
 
 def ready_to_bet():

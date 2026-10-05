@@ -67,6 +67,7 @@ public final class InternetPartyNetwork extends PartyNetwork {
     close();
     hosting = host;
     localName = name;
+    localLanguage = playerLanguage;
     language = playerLanguage;
     code = roomCode;
     sender = randomHex(12);

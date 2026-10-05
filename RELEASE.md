@@ -1,3 +1,26 @@
+# Apéro Royale 1.5.0 — La table prend forme
+
+- [Télécharger l'APK Android signé 1.5.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.5.0.apk) · `com.aperoroyale` · versionCode `17` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `cdcd235991f8114a586072874eb8c1fb62fcc991daa34c7fd6475cba59d285a8`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.9
+
+## Nouveautés
+
+- Accueil, salon et réglages redessinés avec des commandes visuellement plus fines, moins d'aplats et une hiérarchie plus claire. Les surfaces tactiles gardent leurs dimensions pour rester faciles à utiliser en soirée.
+- Joueurs affichés en lignes dans le salon ; places libres autour d'une table interactive quand la soirée commence à deux. Les modes Vote, Libre et Turbo se choisissent directement.
+- Menu musique et partie présenté en lignes, sources musicales plus compactes. Captures actualisées de [l'accueil](docs/screenshots/home.png), du [salon](docs/screenshots/lobby-four.png), des [réglages](docs/screenshots/settings-music.png) et des [dix jeux](README.md#dix-défis-dix-ambiances).
+- Interface des dix défis harmonisée : choix en lignes A–D, verres de Roulette, cases de Mémoire, cibles de Rythme et de Bombe allégées. [Détails et stress tests](docs/UI_150_ET_STRESS.md).
+- Un invité peut rejoindre une salle déjà lancée, voir le défi en cours et jouer trois secrets sur son téléphone. Au changement de manche, les membres votent son entrée avec bulletins privés et délai visible. Refus : une gorgée virtuelle enregistrée dans le classement, puis possibilité de retenter. [Parcours et captures](README.md#un-ami-débarque-en-pleine-partie).
+
+## Vérifications
+
+- `testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite, 43 tests, zéro échec. Les tests d'arrivée tardive vérifient admission, refus avec gorgée, nouvelle tentative, reprise et confidentialité des bulletins.
+- Trois simulations relancées à 10 000 soirées chacune : 40 000 manches et 160 000 vues privées dans le modèle à plusieurs appareils ; 240 000 manches dans le modèle de joueurs virtuels ; 180 000 manches dans le modèle d'horloge extrême. Aucun échec de test. Elles n'évaluent pas encore la réaction sociale au nouveau vote d'entrée.
+- Deux émulateurs Android connectés en Wi-Fi : attente pendant un défi, trois secrets tactiles, vote d'entrée, refus après délai, gorgée enregistrée en SQLite et nouvelle tentative. Un parcours précédent a vérifié l'admission puis l'écran de jeu normal.
+- APK signée vérifiée avec `apksigner` ; certificat identique à 1.4.9, versionCode 17 et minSdk 26. Mise à jour signée depuis 1.4.9 installée et lancée sur Android 8.0 ; installation et lancement sur Android 16. Les deux activités principales restent au premier plan.
+
+---
+
 # Apéro Royale 1.4.9 — Les joueurs virtuels
 
 - [Télécharger l'APK Android signé 1.4.9](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.9.apk) · `com.aperoroyale` · versionCode `16` · Android 8.0+ (API 26)

@@ -42,7 +42,7 @@ public class PartyNetwork {
   private final HashMap<Socket, String> names = new HashMap<>();
   private String roomCode = "";
   public boolean hosting = false, connected = false;
-  public String localName = "";
+  public String localName = "", localLanguage = "FR";
 
   public PartyNetwork(Events events) {
     this.events = events;
@@ -161,6 +161,7 @@ public class PartyNetwork {
   public void join(String ip, String name, String language, String pin) {
     close();
     localName = name;
+    localLanguage = language;
     new Thread(
             () -> {
               try {

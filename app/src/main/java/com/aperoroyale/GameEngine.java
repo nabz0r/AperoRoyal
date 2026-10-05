@@ -129,6 +129,13 @@ public final class GameEngine {
   public int[] reportVotes = {};
   public long reportDeadline = 0;
   public boolean rulePenaltyApplied = false;
+  /** A late guest watches the current round, then the room votes at the next break. */
+  public String pendingJoinName = "", pendingJoinLanguage = "FR", lastJoinName = "";
+  public boolean lastJoinAccepted = false;
+  public int lastJoinSips = 0;
+  public int[] joinVotes = {};
+  public long joinVoteDeadline = 0;
+  public long joinDecisionUntil = 0;
 
   public Player current() {
     return players.isEmpty() ? null : players.get(Math.min(active, players.size() - 1));
@@ -159,6 +166,84 @@ public final class GameEngine {
     return true;
   }
 
+  public boolean requestJoin(String name, String language) {
+    name = name.trim();
+    if (name.isEmpty() || name.length() > 16 || players.size() >= 6
+        || !pendingJoinName.isEmpty()) return false;
+    for (Player player : players) if (player.name.equalsIgnoreCase(name)) return false;
+    if (!name.equalsIgnoreCase(lastJoinName)) lastJoinSips = 0;
+    pendingJoinName = name;
+    pendingJoinLanguage = "EN".equals(language) ? "EN" : "FR";
+    lastJoinName = "";
+    return true;
+  }
+
+  public GameEngine.Player nextJoinVoter() {
+    if (!"JOIN_VOTE".equals(screen)) return null;
+    for (int step = 0; step < players.size(); step++) {
+      int i = (active + step) % players.size();
+      if (i < joinVotes.length && joinVotes[i] < 0) return players.get(i);
+    }
+    return null;
+  }
+
+  public boolean castJoinVote(String name, boolean yes) {
+    int i = indexOf(name);
+    if (!"JOIN_VOTE".equals(screen) || i < 0 || i >= joinVotes.length
+        || joinVotes[i] >= 0) return false;
+    joinVotes[i] = yes ? 1 : 0;
+    boolean complete = true;
+    for (int vote : joinVotes) if (vote < 0) complete = false;
+    if (complete) resolveJoinVote();
+    else joinVoteDeadline = clock.getAsLong() + 12000;
+    return true;
+  }
+
+  public boolean joinVoteTimedOut() {
+    if (!"JOIN_VOTE".equals(screen) || clock.getAsLong() < joinVoteDeadline) return false;
+    resolveJoinVote();
+    return true;
+  }
+
+  private void resolveJoinVote() {
+    int yes = 0, no = 0;
+    for (int vote : joinVotes) { if (vote == 1) yes++; else if (vote == 0) no++; }
+    lastJoinName = pendingJoinName;
+    lastJoinAccepted = yes > no;
+    joinDecisionUntil = clock.getAsLong() + 5000;
+    if (lastJoinAccepted) {
+      String previous = screen;
+      if (!addPlayer(pendingJoinName, pendingJoinLanguage, players.size())) lastJoinAccepted = false;
+      screen = previous;
+      if (lastJoinAccepted) {
+        Player guest = players.get(players.size() - 1);
+        guest.sips += lastJoinSips;
+        guest.drinks += lastJoinSips;
+        extendHiddenForNewPlayer();
+      }
+    }
+    if (!lastJoinAccepted) lastJoinSips++;
+    pendingJoinName = "";
+    joinVotes = new int[0];
+    joinVoteDeadline = 0;
+    startSelection();
+  }
+
+  private void extendHiddenForNewPlayer() {
+    int count = players.size(), old = hiddenKind.length;
+    hiddenProbe = java.util.Arrays.copyOf(hiddenProbe, count);
+    hiddenKind = java.util.Arrays.copyOf(hiddenKind, count);
+    hiddenStep = java.util.Arrays.copyOf(hiddenStep, count);
+    hiddenSeed = java.util.Arrays.copyOf(hiddenSeed, count);
+    hiddenWonMask = java.util.Arrays.copyOf(hiddenWonMask, count);
+    hiddenMistakes = java.util.Arrays.copyOf(hiddenMistakes, count);
+    hiddenSolvedTurn = java.util.Arrays.copyOf(hiddenSolvedTurn, count);
+    for (int i = old; i < count; i++) {
+      hiddenKind[i] = -1;
+      hiddenSolvedTurn[i] = -1;
+    }
+  }
+
   public void newParty() {
     players.clear();
     active = turn = 0;
@@ -187,6 +272,13 @@ public final class GameEngine {
     reportVotes = new int[0];
     reportDeadline = 0;
     rulePenaltyApplied = false;
+    pendingJoinName = lastJoinName = "";
+    pendingJoinLanguage = "FR";
+    lastJoinAccepted = false;
+    lastJoinSips = 0;
+    joinVotes = new int[0];
+    joinVoteDeadline = 0;
+    joinDecisionUntil = 0;
     deadline = 0;
     juryPhase = false;
     bluffTruth = -1;
@@ -216,6 +308,13 @@ public final class GameEngine {
   }
 
   public void startSelection() {
+    if (!pendingJoinName.isEmpty()) {
+      screen = "JOIN_VOTE";
+      joinVotes = new int[players.size()];
+      java.util.Arrays.fill(joinVotes, -1);
+      joinVoteDeadline = clock.getAsLong() + 12000;
+      return;
+    }
     deadline = 0;
     started = clock.getAsLong();
     voteWinner = -1;
@@ -1097,6 +1196,7 @@ public final class GameEngine {
       j.put("hiddenWonMask", privateValues(hiddenWonMask, secretViewer, 0));
       j.put("hiddenMistakes", privateValues(hiddenMistakes, secretViewer, 0));
       j.put("hiddenSolvedTurn", privateValues(hiddenSolvedTurn, secretViewer, -1));
+      if ("JOIN_VOTE".equals(screen)) j.put("joinVotes", masked(joinVotes));
       boolean actor = current() != null && current().name.equals(recipient);
       int guesser = players.isEmpty() ? -1 : (active + 1) % players.size();
       boolean drawGuesser = game == 5 && drawingReady && guesser >= 0
@@ -1243,6 +1343,14 @@ public final class GameEngine {
       j.put("reportVotes", new JSONArray(reportVotes));
       j.put("reportDeadline", reportDeadline);
       j.put("rulePenaltyApplied", rulePenaltyApplied);
+      j.put("pendingJoinName", pendingJoinName);
+      j.put("pendingJoinLanguage", pendingJoinLanguage);
+      j.put("lastJoinName", lastJoinName);
+      j.put("lastJoinAccepted", lastJoinAccepted);
+      j.put("lastJoinSips", lastJoinSips);
+      j.put("joinVotes", new JSONArray(joinVotes));
+      j.put("joinVoteDeadline", joinVoteDeadline);
+      j.put("joinDecisionUntil", joinDecisionUntil);
       JSONArray ps = new JSONArray();
       for (Player p : players) ps.put(p.json(includePhotos));
       j.put("players", ps);
@@ -1359,6 +1467,14 @@ public final class GameEngine {
     reportVotes = readInts(j.optJSONArray("reportVotes"));
     reportDeadline = j.optLong("reportDeadline");
     rulePenaltyApplied = j.optBoolean("rulePenaltyApplied");
+    pendingJoinName = j.optString("pendingJoinName", "");
+    pendingJoinLanguage = j.optString("pendingJoinLanguage", "FR");
+    lastJoinName = j.optString("lastJoinName", "");
+    lastJoinAccepted = j.optBoolean("lastJoinAccepted");
+    lastJoinSips = j.optInt("lastJoinSips");
+    joinVotes = readInts(j.optJSONArray("joinVotes"));
+    joinVoteDeadline = j.optLong("joinVoteDeadline");
+    joinDecisionUntil = j.optLong("joinDecisionUntil");
     deck.clear();
     JSONArray d = j.optJSONArray("deck");
     if (d != null) for (int i = 0; i < d.length(); i++) deck.add(d.optInt(i));

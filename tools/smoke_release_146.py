@@ -46,8 +46,8 @@ def main():
     add_player("Pixel")
     add_player("Nova")
     assert [p["name"] for p in roster()] == ["Pixel", "Nova"]
-    tap(200, HEIGHT - 227)  # Free mode.
-    tap(200, HEIGHT - 96)
+    tap(200, HEIGHT - 248)  # Free mode.
+    tap(292, HEIGHT - 178)
     wait_screen("LIBRARY")
     tap(110, 219)  # Quiz.
     wait_screen("TRANSITION")

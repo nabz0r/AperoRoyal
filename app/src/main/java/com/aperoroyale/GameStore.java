@@ -216,6 +216,26 @@ public final class GameStore extends SQLiteOpenHelper {
     } finally { db.endTransaction(); }
   }
 
+  public void recordJoinPenalty(String name) {
+    SQLiteDatabase db = getWritableDatabase();
+    db.beginTransaction();
+    try {
+      ContentValues v = new ContentValues();
+      v.put("ts", System.currentTimeMillis());
+      v.put("player", name);
+      v.put("game", "ADMISSION");
+      v.put("won", 0);
+      v.put("sips", 1);
+      v.put("points", 0);
+      v.put("role", "ADMISSION");
+      db.insert("history", null, v);
+      db.execSQL("INSERT OR IGNORE INTO stats(name) VALUES(?)", new Object[] {name});
+      db.execSQL("UPDATE stats SET drinks=drinks+1,sips=sips+1 WHERE name=?",
+          new Object[] {name});
+      db.setTransactionSuccessful();
+    } finally { db.endTransaction(); }
+  }
+
   public ArrayList<String[]> gameBreakdown() {
     ArrayList<String[]> rows = new ArrayList<>();
     try (Cursor c = getReadableDatabase().rawQuery(
