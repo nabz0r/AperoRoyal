@@ -99,6 +99,8 @@ public final class GameEngine {
   public int[] crewChoices = {}, crewPoints = {}, drawGuesses = {};
   public boolean betPlaced = false;
   public long deadline = 0, started = 0;
+  /** A short grace period after a real majority has answered; never outlives the hard deadline. */
+  public long audienceClosingAt = 0;
   public boolean lastWon = false, drawingReady = false;
   /** A performance may be declined without a drink or a score penalty. */
   public boolean roundPassed = false;
@@ -282,6 +284,7 @@ public final class GameEngine {
     joinVoteDeadline = 0;
     joinDecisionUntil = 0;
     deadline = 0;
+    audienceClosingAt = 0;
     juryPhase = false;
     bluffTruth = -1;
     roundPassed = false;
@@ -320,6 +323,7 @@ public final class GameEngine {
       return;
     }
     deadline = 0;
+    audienceClosingAt = 0;
     started = clock.getAsLong();
     voteWinner = -1;
     if (!queuedRuleOwner.isEmpty()) {
@@ -779,6 +783,7 @@ public final class GameEngine {
   public void resumeGame() {
     if (!"GAME".equals(screen)) return;
     started = clock.getAsLong();
+    audienceClosingAt = 0;
     if (juryPhase) {
       deadline = started + 20000;
       return;
@@ -787,17 +792,18 @@ public final class GameEngine {
         switch (game) {
           case 0 -> 16;
           case 1 -> 40;
-          case 2 -> 23;
+          case 2 -> 28;
           case 3 -> 15;
           case 4 -> 10;
-          case 5 -> drawingReady ? 12 + 8 * Math.max(0, players.size() - 2) : 40;
+          case 5 -> drawingReady ? 12 + 8 * Math.max(0, players.size() - 2) : 50;
           case 6 -> 26;
           case 7 -> 16;
           case 8 -> 40;
           case 9 -> variant >= 3 ? 24 : 30;
           default -> 0;
         };
-    if ("TURBO".equals(mode) && seconds > 0) seconds = Math.max(10, seconds - 4);
+    if ("TURBO".equals(mode) && seconds > 0)
+      seconds = Math.max(10, seconds - (players.size() <= 2 ? 2 : 4));
     if (bonusId == 3 && seconds > 0) seconds += 5;
     if (seconds > 0 && game != 7) seconds += Math.min(6, supportCount() * 2);
     deadline = seconds == 0 ? 0 : started + seconds * 1000L;
@@ -952,6 +958,7 @@ public final class GameEngine {
     java.util.Arrays.fill(juryVotes, -1);
     if (active < juryVotes.length) juryVotes[active] = 2;
     deadline = clock.getAsLong() + 20000;
+    audienceClosingAt = 0;
     return true;
   }
 
@@ -965,9 +972,34 @@ public final class GameEngine {
   public boolean castJury(String name, boolean yes) {
     int i = indexOf(name);
     if (!"GAME".equals(screen) || !juryPhase || i < 0 || i == active
-        || i >= juryVotes.length || juryVotes[i] >= 0) return false;
+        || i >= juryVotes.length || juryVotes[i] >= 0
+        || (deadline > 0 && clock.getAsLong() >= visibleDeadline())) return false;
     juryVotes[i] = yes ? 1 : 0;
+    scheduleAudienceClose(juryAnsweredCount());
     return true;
+  }
+
+  public int juryAnsweredCount() {
+    int count = 0;
+    for (int i = 0; i < juryVotes.length; i++)
+      if (i != active && (juryVotes[i] == 0 || juryVotes[i] == 1)) count++;
+    return count;
+  }
+
+  private void scheduleAudienceClose(int answered) {
+    int audience = players.size() - 1;
+    if (audience <= 1 || answered < (audience + 1) / 2 || audienceClosingAt > 0) return;
+    long close = clock.getAsLong() + 7000;
+    if (close < deadline) audienceClosingAt = close;
+  }
+
+  public boolean audienceReadyToClose() {
+    return "GAME".equals(screen) && audienceClosingAt > 0
+        && clock.getAsLong() >= audienceClosingAt;
+  }
+
+  public long visibleDeadline() {
+    return audienceClosingAt > 0 ? Math.min(deadline, audienceClosingAt) : deadline;
   }
 
   public boolean juryComplete() {
@@ -982,7 +1014,7 @@ public final class GameEngine {
     for (int i = 0; i < juryVotes.length; i++) if (i != active && juryVotes[i] == 1) yes++;
     for (int i = 0; i < juryVotes.length; i++) if (i != active && juryVotes[i] == 0) no++;
     if (game == 8) return yes + no > 0 && (yes > no ? 1 : 0) != bluffTruth;
-    return yes > (players.size() - 1) / 2;
+    return yes > no;
   }
 
   public boolean beginDrawGuess() {
@@ -998,9 +1030,18 @@ public final class GameEngine {
   public boolean drawGuess(String name, int choice) {
     int i = indexOf(name);
     if (!"GAME".equals(screen) || game != 5 || !drawingReady || i < 0 || i == active
-        || i >= drawGuesses.length || drawGuesses[i] >= 0 || choice < 0 || choice > 3) return false;
+        || i >= drawGuesses.length || drawGuesses[i] >= 0 || choice < 0 || choice > 3
+        || (deadline > 0 && clock.getAsLong() >= visibleDeadline())) return false;
     drawGuesses[i] = choice;
+    scheduleAudienceClose(drawValidGuessCount());
     return true;
+  }
+
+  public int drawValidGuessCount() {
+    int count = 0;
+    for (int i = 0; i < drawGuesses.length; i++)
+      if (i != active && drawGuesses[i] >= 0 && drawGuesses[i] < 4) count++;
+    return count;
   }
 
   public int drawAnsweredCount() {
@@ -1020,11 +1061,12 @@ public final class GameEngine {
   }
 
   public boolean drawWin() {
-    return drawCorrectCount() > 0 && drawCorrectCount() * 2 >= players.size() - 1;
+    return drawCorrectCount() > 0 && drawCorrectCount() * 2 >= drawValidGuessCount();
   }
 
   public void finish(boolean won) {
     if (!"GAME".equals(screen)) return;
+    audienceClosingAt = 0;
     lastWon = won;
     Player p = current();
     if (p == null) return;
@@ -1329,6 +1371,7 @@ public final class GameEngine {
       j.put("drawGuesses", new JSONArray(drawGuesses));
       j.put("betPlaced", betPlaced);
       j.put("deadline", deadline);
+      j.put("audienceClosingAt", audienceClosingAt);
       j.put("started", started);
       j.put("lastWon", lastWon);
       j.put("roundPassed", roundPassed);
@@ -1448,6 +1491,7 @@ public final class GameEngine {
     drawGuesses = readInts(j.optJSONArray("drawGuesses"));
     betPlaced = j.optBoolean("betPlaced");
     deadline = j.optLong("deadline");
+    audienceClosingAt = j.optLong("audienceClosingAt");
     started = j.optLong("started");
     lastWon = j.optBoolean("lastWon");
     roundPassed = j.optBoolean("roundPassed");

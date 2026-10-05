@@ -131,6 +131,8 @@ public final class ArcadeView extends View {
 
     void setUiLanguage(String language);
 
+    void toggleTableTalk();
+
     void stats();
 
     void home();
@@ -941,6 +943,9 @@ public final class ArcadeView extends View {
             : vt("Ton vote reste secret. À toi de choisir !", "Your vote stays secret. Your turn to choose!");
     block(c, instruction,
         200, 510, 338, 18, WHITE, true);
+    if (((MainActivity) getContext()).tableTalkEnabled() && H >= 800)
+      block(c, RoundStories.handoffSpark(g, viewerEnglish()),
+          200, 557, 322, 12, CYAN, true);
     text(c, vt("CHRONO EN PAUSE", "TIMER PAUSED"), 200, H - 215, 14, YELLOW, true);
     button(c, "skipPass", vt("ABSENT ? PASSER SON TOUR", "AWAY? SKIP THEIR TURN"),
         36, H - 192, 328, 56, PINK);
@@ -1189,11 +1194,13 @@ public final class ArcadeView extends View {
       settingRow(c, "stats", g.t("Classement", "Leaderboard"), "↗", 380, CYAN);
       settingRow(c, "interfaceLanguage", g.t("Langue des menus", "Menu language"),
           "EN".equals(g.menuLanguage) ? "ENGLISH" : "FRANÇAIS", 442, YELLOW);
-      panel(c, 28, 525, 344, 110, PANEL, YELLOW);
-      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 557, 13, YELLOW, true);
-      block(c, g.t("Un seul téléphone ? Passe-le à chaque tour. Plusieurs ? Rejoins la salle depuis l'accueil.",
-          "One phone? Pass it each turn. More phones? Join the room from home."),
-          200, 589, 304, 12, WHITE, true);
+      settingRow(c, "tableTalk", g.t("Relances de table", "Table sparks"),
+          a.tableTalkEnabled() ? "ON" : "OFF", 504, CYAN);
+      panel(c, 28, 584, 344, 89, PANEL, YELLOW);
+      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 610, 13, YELLOW, true);
+      block(c, g.t("Des questions libres entre les tours, sans interrompre le jeu.",
+          "Optional conversation cues between turns, without stopping play."),
+          200, 644, 304, 12, WHITE, true);
     }
     button(c, "back", g.t("RETOUR", "BACK"), 28, H - 93, 344, 58, PANEL);
   }
@@ -1503,6 +1510,9 @@ public final class ArcadeView extends View {
     block(c, g.t("Passe le téléphone. Le chrono attend que tu sois prêt.",
         "Pass the phone. The clock waits until you're ready."),
         200, 615, 305, 16, WHITE, true);
+    if (((MainActivity) getContext()).tableTalkEnabled() && H >= 800)
+      block(c, RoundStories.handoffSpark(g, viewerEnglish()),
+          200, H - 160, 316, 12, CYAN, true);
     MainActivity app = (MainActivity) getContext();
     boolean ownPhone = actions.client() ? actor.name.equals(app.network.localName)
         : !app.network.isRemote(actor.name);
@@ -1557,7 +1567,7 @@ public final class ArcadeView extends View {
     GameSprites.icon(c, p, g.game, 72, 211, 3f,
         g.game == 3 ? g.taps : g.progress, System.currentTimeMillis());
     if (g.deadline > 0) {
-      long sec = Math.max(0, (g.deadline - ((MainActivity) getContext()).hostNow() + 999) / 1000);
+      long sec = Math.max(0, (g.visibleDeadline() - ((MainActivity) getContext()).hostNow() + 999) / 1000);
       text(c, sec + "s", 339, 208, 20, YELLOW, true);
     }
     if (g.juryPhase) { jury(c); buzz(c, a); return; }
@@ -1661,6 +1671,9 @@ public final class ArcadeView extends View {
     for (int i = 0; i < g.juryVotes.length; i++) if (i != g.active && g.juryVotes[i] >= 0) cast++;
     text(c, cast + " / " + Math.max(1, g.players.size() - 1) + " "
         + g.t("AVIS", "VOTES"), 200, 464, 18, CYAN, true);
+    if (g.audienceClosingAt > 0)
+      text(c, vt("MAJORITÉ REÇUE • VERDICT BIENTÔT", "QUORUM REACHED • VERDICT SOON"),
+          200, 487, 11, YELLOW, true);
     if (judge != null) {
       block(c, judge.name + (g.game == 8
           ? vt(" : vrai ou inventé ?", ": true or made up?")
@@ -2016,6 +2029,10 @@ public final class ArcadeView extends View {
     if (g.secretId == g.game + 1 && g.ruleId < 0)
       text(c, vt("★ SECRET DÉBLOQUÉ ★", "★ SECRET UNLOCKED ★"),
           200, 623, 13, YELLOW, true);
+    else if (((MainActivity) getContext()).tableTalkEnabled()
+        && RoundStories.hasTableSpark(g) && H >= 820)
+      block(c, "✦ " + RoundStories.tableSpark(g, viewerEnglish()),
+          200, 620, 308, 12, YELLOW, true);
     button(c, "board", vt("CLASSEMENT", "LEADERBOARD"), 35, H - 157, 330, 49, PANEL);
     GameEngine.Player nextPlayer = g.players.get(Math.floorMod(
         g.active + (g.ruleId == 2 ? -1 : 1), g.players.size()));
@@ -2422,6 +2439,7 @@ public final class ArcadeView extends View {
       case "langFR" -> actions.setUiLanguage("FR");
       case "langEN" -> actions.setUiLanguage("EN");
       case "interfaceLanguage" -> actions.setUiLanguage("EN".equals(g.menuLanguage) ? "FR" : "EN");
+      case "tableTalk" -> actions.toggleTableTalk();
       case "add" -> actions.addPlayer();
       case "resetRoster" -> actions.clearRoster();
       case "host" -> actions.startHost();

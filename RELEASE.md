@@ -1,3 +1,26 @@
+# Apéro Royale 1.7.0 — Le temps de la table
+
+- [Télécharger l'APK Android signé 1.7.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.7.0.apk) · `com.aperoroyale` · versionCode `19` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `b9bab69759d42bc14d81101e5eccd061484c3d127640903834d8c569be24fed5`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.6.0
+
+## Nouveautés
+
+- Jury et galerie : après une majorité de réponses, sept secondes de grâce laissent les derniers amis jouer ; une réponse absente ne devient pas un refus. Le passage de main sur un téléphone suspend aussi ce décompte.
+- Dessin a 50 secondes de création au lieu de 40 ; Blind Test a 28 secondes au lieu de 23 ; Turbo à deux retire deux secondes au lieu de quatre. Les manches terminées tôt avancent aussitôt.
+- Relances de conversation liées au mini-jeu, en FR/EN, aux résultats et passages de téléphone. Elles se coupent dans **Options → Partie**. [Captures des options et des jeux](README.md#dix-défis-dix-ambiances).
+- [Comparaison documentée de 30 000 soirées avant et 30 000 après](docs/RELEASE_170_RYTHME.md), avec les CSV par graine et les limites des agents virtuels.
+
+## Vérifications
+
+- `APERO_SIM_PARTIES=10000 APERO_PEOPLE_PARTIES=10000 APERO_ORGANISM_PARTIES=10000 ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:lintVitalRelease --offline --rerun-tasks` : 56 tests, zéro échec ou erreur. Les trois campagnes organiques de 10 000 soirées passent avec les simulations réseau et joueurs virtuels.
+- Android 16 émulé : dix mini-jeux terminés avec deux profils alternés, paris, interventions des amis, résultats, historique et captures. Android 8 et Android 16 émulés : mise à jour signée depuis 1.6.0 acceptée, 1.7.0 installée et activité au premier plan.
+- Signature APK vérifiée avec `apksigner` ; `aapt` confirme versionCode 19, versionName 1.7.0 et minSdk 26. SHA-256 ci-dessus calculé sur le fichier publié.
+
+**Limites.** Les simulations ne prouvent ni l'amusement ni la viralité ; la légère hausse du plus long silence simulé dans certaines configurations est visible dans le rapport. La latence sur de vrais téléphones, le relais Internet public et le Bluetooth restent à valider. Les plateformes musicales jouent dans leur application et le Blind Test utilise des motifs originaux hors ligne.
+
+---
+
 # Apéro Royale 1.6.0 — La nuit est à vous
 
 - [Télécharger l'APK Android signé 1.6.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.6.0.apk) · `com.aperoroyale` · versionCode `18` · Android 8.0+ (API 26)

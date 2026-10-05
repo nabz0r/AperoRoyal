@@ -63,6 +63,7 @@ public final class MainActivity extends Activity
   private Runnable pendingBluetooth;
   private int lastBeatCue = -1, lastBeatTurn = -1;
   private int musicProvider = MusicLinks.ORIGINAL;
+  private boolean tableTalk = true;
   private int localDialogDepth = 0;
   private long localDialogStartedAt = 0;
 
@@ -92,6 +93,7 @@ public final class MainActivity extends Activity
     audio.setVolume(getPreferences(MODE_PRIVATE).getFloat("musicVolume", .18f));
     soundEffects = getPreferences(MODE_PRIVATE).getBoolean("soundEffects", true);
     haptics = getPreferences(MODE_PRIVATE).getBoolean("haptics", true);
+    tableTalk = getPreferences(MODE_PRIVATE).getBoolean("tableTalk", true);
     network = new PartyNetwork(this);
     musicProvider = getPreferences(MODE_PRIVATE).getInt("musicProvider", MusicLinks.ORIGINAL);
     if (musicProvider < 0 || musicProvider >= MusicLinks.COUNT)
@@ -146,6 +148,8 @@ public final class MainActivity extends Activity
     if (!network.connected && timersActive && "GAME".equals(game.screen) && game.game == 4
         && game.chosenCup >= 0 && System.currentTimeMillis() >= game.revealUntil)
       finishGame(game.cupIsSafe());
+    if (!network.connected && timersActive && !passPending && game.audienceReadyToClose())
+      finishGame(game.game == 5 ? game.drawWin() : game.juryVerdict());
     if (!network.connected && timersActive && !passPending
         && "GAME".equals(game.screen)
         && game.deadline > 0
@@ -178,6 +182,7 @@ public final class MainActivity extends Activity
       long paused = Math.max(0, System.currentTimeMillis() - backgroundAt);
       if (game.started > 0) game.started += paused;
       if (game.deadline > 0) game.deadline += paused;
+      if (game.audienceClosingAt > 0) game.audienceClosingAt += paused;
       if (game.reportDeadline > 0) game.reportDeadline += paused;
       if (game.revealUntil > 0) game.revealUntil += paused;
       if (paused > 0 && view != null) save();
@@ -606,6 +611,8 @@ public final class MainActivity extends Activity
     if ("GAME".equals(game.screen) && (game.juryPhase ||
         (game.game == 5 && game.drawingReady) || game.game == 9) && game.deadline > 0)
       game.deadline += paused;
+    if ("GAME".equals(game.screen) && game.audienceClosingAt > 0)
+      game.audienceClosingAt += paused;
     if ("GAME".equals(game.screen) && game.game == 9) game.started += paused;
     if ("RULE_VOTE".equals(game.screen) && game.reportDeadline > 0)
       game.reportDeadline += paused;
@@ -1055,6 +1062,7 @@ public final class MainActivity extends Activity
         if (!timed) return;
         if (game.started > 0) game.started += paused;
         if (game.deadline > 0) game.deadline += paused;
+        if (game.audienceClosingAt > 0) game.audienceClosingAt += paused;
         if (game.reportDeadline > 0) game.reportDeadline += paused;
         if (game.revealUntil > 0) game.revealUntil += paused;
         save();
@@ -1532,11 +1540,19 @@ public final class MainActivity extends Activity
     view.invalidate();
   }
 
+  @Override
+  public void toggleTableTalk() {
+    tableTalk = !tableTalk;
+    getPreferences(MODE_PRIVATE).edit().putBoolean("tableTalk", tableTalk).apply();
+    view.invalidate();
+  }
+
   public boolean musicEnabled() { return audio.enabled(); }
   public int musicStyle() { return audio.style(); }
   public float musicVolume() { return audio.volume(); }
   public boolean effectsEnabled() { return soundEffects; }
   public boolean hapticsEnabled() { return haptics; }
+  public boolean tableTalkEnabled() { return tableTalk; }
   public int musicProvider() { return musicProvider; }
   public boolean hasMusicLink() { return !musicLink().isEmpty(); }
   public String settingsOrigin() { return settingsOrigin; }
@@ -1562,6 +1578,7 @@ public final class MainActivity extends Activity
       long paused = Math.max(0, System.currentTimeMillis() - settingsPausedAt);
       game.started += paused;
       if (game.deadline > 0) game.deadline += paused;
+      if (game.audienceClosingAt > 0) game.audienceClosingAt += paused;
       if (game.reportDeadline > 0) game.reportDeadline += paused;
       if (game.revealUntil > 0) game.revealUntil += paused;
       save();

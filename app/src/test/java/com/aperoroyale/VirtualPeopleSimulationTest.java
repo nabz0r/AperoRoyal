@@ -324,7 +324,15 @@ public final class VirtualPeopleSimulationTest {
       for (Event event : schedule(actor, false, 2.3)) {
         if (!"GAME".equals(room.screen)) break;
         int i = event.person;
-        if (topology == 0) room.deadline += event.handoff;
+        if (topology == 0) {
+          room.deadline += event.handoff;
+          if (room.audienceClosingAt > 0) room.audienceClosingAt += event.handoff;
+        }
+        if (room.audienceClosingAt > 0 && event.at >= room.audienceClosingAt) {
+          clock.reach(room.audienceClosingAt);
+          room.finish(game == 5 ? room.drawWin() : room.juryVerdict());
+          break;
+        }
         if (event.at >= room.deadline) {
           clock.reach(room.deadline + 1);
           break;
@@ -354,6 +362,10 @@ public final class VirtualPeopleSimulationTest {
       }
       if ("GAME".equals(room.screen) && (game == 5 ? room.drawGuessComplete() : room.juryComplete()))
         room.finish(game == 5 ? room.drawWin() : room.juryVerdict());
+      if ("GAME".equals(room.screen) && room.audienceClosingAt > 0) {
+        clock.reach(room.audienceClosingAt);
+        room.finish(game == 5 ? room.drawWin() : room.juryVerdict());
+      }
       if ("GAME".equals(room.screen)) {
         clock.reach(room.deadline + 1);
         roundExpired = true;

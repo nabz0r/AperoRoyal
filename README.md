@@ -4,15 +4,15 @@
 
 **Dix défis, 2 à 6 amis, une table qui a des histoires à raconter.** Apéro Royale est un jeu de soirée Android en français et en anglais. Un téléphone suffit : on le passe à chaque action privée. Avec plusieurs téléphones, chacun vote, piège, dessine, devine ou juge depuis le sien.
 
-[**Télécharger l’APK Android signé · 1.6.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.6.0.apk) · Android 8.0+ · [Notes de version](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK Android signé · 1.7.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.7.0.apk) · Android 8.0+ · [Notes de version](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-**Un bar de nuit, pas une cour de récré.** Personnages adultes, affiches de bistrot et d’arcade, cuivre et aubergine, dix scènes illustrées. Le résultat révèle les alliés, les sceptiques et les auteurs du chaos. Les petits jeux secrets restent cachés dans les temps d’attente.
+**Un bar de nuit, pas une cour de récré.** Personnages adultes, affiches de bistrot et d’arcade, cuivre et aubergine, dix scènes illustrées. Le résultat révèle les alliés, les sceptiques et les auteurs du chaos. Des relances de conversation FR/EN surgissent entre certains tours et se coupent dans les options. Les petits jeux secrets restent cachés dans les temps d’attente.
 
 <table>
 <tr><td><img src="docs/screenshots/avatar-choice.png" alt="Création d'un personnage adulte" width="240"></td><td><img src="docs/screenshots/settings-party.png" alt="Réglage de la langue des menus" width="240"></td><td><img src="docs/screenshots/games/trivia-result.png" alt="Révélation collective d'une manche" width="240"></td></tr>
-<tr><td>12 portraits ou votre photo</td><td>Menus FR/EN, joueurs bilingues</td><td>La manche devient une anecdote</td></tr>
+<tr><td>12 portraits ou votre photo</td><td>Menus FR/EN et relances réglables</td><td>La manche devient une anecdote</td></tr>
 </table>
 
 ## Une soirée en trois gestes
@@ -30,7 +30,7 @@ La règle de base est simple : **tu perds le défi, tu prends les gorgées virtu
 
 ## Dix défis, dix ambiances
 
-Chaque défi a sa scène illustrée, son geste d’arcade et un guide FR/EN dans l’app. L’entrée annonce l’enjeu ; le dévoilement raconte qui a participé. Les commandes restent faciles à toucher quand la soirée bat son plein.
+Chaque défi a sa scène illustrée, son geste d’arcade et un guide FR/EN dans l’app. L’entrée annonce l’enjeu ; le dévoilement raconte qui a participé. Les commandes restent faciles à toucher quand la soirée bat son plein. Le jury et la galerie du dessin accordent sept secondes aux derniers avis après une majorité de réponses ; les absents ne votent pas « non » par défaut.
 
 | Défi | Ce qui se passe autour de la table |
 | --- | --- |
@@ -83,7 +83,7 @@ En cas de refus, le nouvel arrivant prend **une gorgée virtuelle inscrite au cl
 
 ## Une radio qui vous laisse choisir
 
-Bande originale plus espacée, style Chill ou Arcade, volume, effets et vibrations se règlent séparément. Les jingles et les verdicts prennent la place de la musique pendant les moments clés. Vous pouvez aussi choisir **Spotify, Deezer, Apple Music ou Amazon Music**, mémoriser un lien de playlist et ouvrir votre application musicale depuis la radio ♫. Le jeu ne pilote pas ces services et n’utilise pas leurs catalogues pour le Blind Test : celui-ci joue des motifs originaux, même hors ligne.
+Bande originale plus espacée, style Chill ou Arcade, volume, effets et vibrations se règlent séparément. Les jingles et les verdicts prennent la place de la musique pendant les moments clés. Les relances de table se règlent dans **Options → Partie**. Vous pouvez aussi choisir **Spotify, Deezer, Apple Music ou Amazon Music**, mémoriser un lien de playlist et ouvrir votre application musicale depuis la radio ♫. Le jeu ne pilote pas ces services et n’utilise pas leurs catalogues pour le Blind Test : celui-ci joue des motifs originaux, même hors ligne.
 
 <table>
 <tr><td><img src="docs/screenshots/settings-music.png" alt="Réglages audio" width="230"></td><td><img src="docs/screenshots/settings-sources.png" alt="Sources musicales" width="230"></td><td><img src="docs/screenshots/radio-dock.png" alt="Radio Apéro" width="230"></td></tr>
@@ -105,7 +105,7 @@ Apéro Royale fonctionne sans compte, publicité ni télémétrie. Les profils, 
 
 ### Un laboratoire qui suit le rythme de la soirée
 
-Le [nouveau stress test organique](docs/LABO_ORGANIQUE_2026.md) a fait jouer **30 000 soirées virtuelles et 720 000 manches** au moteur réel. Chaque joueur simulé garde ses goûts, ses liens et sa fatigue ; le rapport compare sa réaction et sa récupération à son propre point de départ. Il révèle le compromis entre passage de téléphone, attente et rythme soutenu, avec trois hypothèses de récupération et les données CSV reproductibles. C'est un instrument de design : **aucune biométrie n'est collectée et aucun chiffre ne prétend mesurer le plaisir humain**.
+Le [stress test organique](docs/LABO_ORGANIQUE_2026.md) a fait jouer **30 000 soirées virtuelles et 720 000 manches** au moteur réel, puis a rejoué **30 000 soirées** avec les règles 1.7.0 et les mêmes graines. Chaque joueur simulé garde ses goûts, ses liens et sa fatigue ; le rapport compare sa réaction et sa récupération à son propre point de départ. [La comparaison avant/après](docs/RELEASE_170_RYTHME.md) donne les résultats des dix jeux et des topologies de téléphone. C'est un instrument de design : **aucune biométrie n'est collectée et aucun chiffre ne prétend mesurer le plaisir humain**.
 
 Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principales sont dans app/src/main/java/com/aperoroyale. GameEngine gère les tours, GameStore conserve la partie dans SQLite, ArcadeView et GameSprites dessinent les scènes, ArcadeAudio joue la musique et les effets. La clé de signature n’est pas dans le dépôt.
 
@@ -114,8 +114,8 @@ Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principale
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ~~~
 
-[Direction artistique et stress test 1.6.0](docs/RELEASE_160_DESIGN.md) · [Laboratoire organique](docs/LABO_ORGANIQUE_2026.md) · [Stress test social](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
+[Rythme et stress test 1.7.0](docs/RELEASE_170_RYTHME.md) · [Direction artistique 1.6.0](docs/RELEASE_160_DESIGN.md) · [Laboratoire organique](docs/LABO_ORGANIQUE_2026.md) · [Stress test social](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
 
 ---
 
-**English:** Apéro Royale 1.6.0 is a French/English Android party arcade for 2–6 friends, on one phone or several. Menus have their own FR/EN choice and turns follow each player’s language. Twelve adult portraits, optional photos, ten illustrated challenges and social round reveals give the table something to talk about. A late friend can spectate, play hidden games, and face an admission vote at the next break. Profiles and the leaderboard persist. The signed APK is linked at the top; streaming services open in their own apps, while the music quiz uses original offline motifs.
+**English:** Apéro Royale 1.7.0 is a French/English Android party arcade for 2–6 friends, on one phone or several. Menus have their own FR/EN choice and turns follow each player’s language. Twelve adult portraits, optional photos, ten illustrated challenges, social round reveals and optional table prompts give the room something to talk about. Jury and drawing votes allow a short grace period after a majority responds. A late friend can spectate, play hidden games, and face an admission vote at the next break. Profiles and the leaderboard persist. The signed APK is linked at the top; streaming services open in their own apps, while the music quiz uses original offline motifs.

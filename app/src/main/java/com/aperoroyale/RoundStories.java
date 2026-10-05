@@ -22,6 +22,44 @@ public final class RoundStories {
     return cues[Math.floorMod(game, cues.length)][en ? 1 : 0];
   }
 
+  /** Optional conversation fuel. It never blocks the next round or affects scoring. */
+  public static boolean hasTableSpark(GameEngine g) {
+    int interval = g.players.size() <= 2 || "TURBO".equals(g.mode) ? 3 : 4;
+    return (g.turn + 1) % interval == 0;
+  }
+
+  public static String tableSpark(GameEngine g, boolean en) {
+    String[][] sparks = {
+        {"Qui défendrait sa mauvaise réponse avec le plus d'aplomb ?", "Who would defend a wrong answer with the most confidence?"},
+        {"Quel titre de tabloïd donnerais-tu à cette performance ?", "What tabloid headline would you give that performance?"},
+        {"Quel tube devrait être banni du bar après minuit ?", "Which song should the bar ban after midnight?"},
+        {"Qui a le plus souri en préparant ce piège ?", "Who smiled the most while setting that trap?"},
+        {"À qui confierais-tu ton dernier sous-verre ?", "Who would you trust with your last coaster?"},
+        {"Quel titre absurde mérite ce dessin ?", "What ridiculous title does that drawing deserve?"},
+        {"Quel détail de cette soirée personne ne retiendra demain ?", "What detail of tonight will nobody remember tomorrow?"},
+        {"Qui mérite le droit de choisir le prochain disque ?", "Who deserves to choose the next record?"},
+        {"Quelle excuse serait trop belle pour être vraie ?", "Which excuse would be too good to be true?"},
+        {"À qui léguerais-tu l'objet maudit ?", "Who should inherit the cursed object?"}
+    };
+    return sparks[Math.floorMod(g.game, sparks.length)][en ? 1 : 0];
+  }
+
+  public static String handoffSpark(GameEngine g, boolean en) {
+    String[][] cues = {
+        {"Pendant le passage : chacun parie sur la réponse.", "While passing it: everyone predicts the answer."},
+        {"Pendant le passage : inventez le nom de cette pose.", "While passing it: give the pose a name."},
+        {"Pendant le passage : qui reconnaîtra le jingle en premier ?", "While passing it: who will name the jingle first?"},
+        {"Pendant le passage : annoncez le saboteur de la salle.", "While passing it: name the room's saboteur."},
+        {"Pendant le passage : défendez votre verre préféré.", "While passing it: defend your favorite cup."},
+        {"Pendant le passage : trouvez un titre à la galerie.", "While passing it: name the gallery."},
+        {"Pendant le passage : inventez un aide-mémoire douteux.", "While passing it: invent a dubious memory trick."},
+        {"Pendant le passage : battez la mesure sur la table.", "While passing it: tap a beat on the table."},
+        {"Pendant le passage : préparez votre meilleur poker face.", "While passing it: prepare your best poker face."},
+        {"Pendant le passage : à qui passeriez-vous le dernier fil ?", "While passing it: who gets the last wire?"}
+    };
+    return cues[Math.floorMod(g.game, cues.length)][en ? 1 : 0];
+  }
+
   public static String[] forRound(GameEngine g, boolean en) {
     String actor = g.current() == null ? (en ? "Someone" : "Quelqu'un") : g.current().name;
     if (g.roundPassed) return new String[] {
@@ -64,7 +102,7 @@ public final class RoundStories {
           (en ? "Subject: " : "Sujet : ") + drawAnswer(g, en),
           (en ? "Guessed it: " : "Ont trouvé : ")
               + names(g, g.drawGuesses, g.target, en)
-              + "  ·  " + g.drawCorrectCount() + "/" + g.drawAnsweredCount()
+              + "  ·  " + g.drawCorrectCount() + "/" + g.drawValidGuessCount()
       };
       case 6 -> new String[] {
           en ? "The friends' chain" : "La chaîne des amis",

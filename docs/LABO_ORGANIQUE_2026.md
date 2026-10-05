@@ -2,6 +2,8 @@
 
 ### 30 000 soirées virtuelles · 720 000 manches · zéro faux capteur
 
+**Suite 1.7.0 :** les mêmes trois graines ont été rejouées après les changements de rythme. [Lire la comparaison avant/après, les dix jeux et les nouveaux CSV](RELEASE_170_RYTHME.md).
+
 L'idée est simple : une soirée n'est pas une suite de clics indépendants. Le même pari peut réveiller une personne, épuiser une autre et laisser une troisième attendre son tour. Ce laboratoire fait jouer des agents persistants au **vrai `GameEngine`**, puis relit chaque partie comme une trajectoire individuelle. Il emprunte à *The Sims* l'idée de besoins et de mémoire d'une soirée, et à la recherche physiologique la distinction **état de départ → réaction → récupération**.
 
 > **Ce test ne mesure aucune biométrie.** « Activation », « réserve » et « silence » sont des variables synthétiques sans unité médicale. Elles ne sont ni fréquence cardiaque, ni variabilité cardiaque, ni alcoolémie, ni diagnostic, ni score de plaisir. Le jeu ne collecte aucun signal corporel.
