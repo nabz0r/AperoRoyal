@@ -72,17 +72,21 @@ public final class ArcadeAudio {
                   short[] pcm = new short[samplesPerStep];
                   if (enabled && !suspended && !externalRadio) {
                     int theme = gameTheme;
-                    int phrase = (step / 32) % 4;
+                    int phrase = (step / 64) % 4;
                     int shift = currentScene == 2 ? THEME_SHIFT[Math.floorMod(theme, 10)] : 0;
                     int note = SCORE[currentScene][step % 32];
+                    // Menus breathe; a short tune or a friend's voice must own the foreground.
+                    if (currentScene != 2 && step % 16 != 4 && step % 16 != 12) note = 0;
+                    if (currentScene == 2 && (theme == 2 || theme == 7 || step % 2 != 0)) note = 0;
                     if (note != 0) note += shift + (phrase == 1 ? 12 : phrase == 3 ? -5 : 0);
                     double lead = note == 0 ? 0 : frequency(note);
                     int root = BASS[currentScene][(step / 4) % 8] + shift
                         + (phrase == 2 ? 5 : 0);
                     double bass = frequency(root);
-                    boolean kickStep = step % 4 == 0;
-                    boolean snareStep = step % 4 == 2;
-                    boolean hatStep = step % 2 == 1;
+                    boolean kickStep = currentScene == 2 && step % 8 == 0;
+                    boolean snareStep = currentScene == 2 && step % 8 == 4;
+                    boolean hatStep = currentScene == 2 && style == 1
+                        && (theme == 3 || theme == 9) && step % 2 == 1;
                     for (int i = 0; i < pcm.length; i++) {
                       double time = (step * (long) samplesPerStep + i) / (double) RATE;
                       double within = i / (double) RATE;
@@ -108,16 +112,16 @@ public final class ArcadeAudio {
                       double snare = snareStep && within < .16 ? noise * Math.exp(-28 * within) : 0;
                       double hat = hatStep && within < .07 ? noise * Math.exp(-55 * within) : 0;
                       double duck = System.currentTimeMillis() < duckUntil ? .17 : 1;
-                      double activity = currentScene == 2 ? 1 : currentScene == 1 ? .72 : .55;
-                      if (currentScene == 2 && theme == 7) activity = .12;
-                      double sample = (bassWave * .07 * Math.exp(-2.4 * within)
-                          + pad * (style == 0 ? .012 : .009)
-                          + leadWave * leadEnvelope * (style == 0 ? .028 : .052)
-                          + arpeggio * (style == 0 ? .010 : .022)
-                          + kick * (style == 0 ? .064 : .105) * activity
-                          + snare * (style == 0 ? .019 : .044) * activity
-                          + hat * (style == 0 ? .008 : .024) * activity) * duck * volume
-                          * (currentScene == 2 && theme == 7 ? .16 : 1);
+                      double activity = currentScene == 2 ? .62 : currentScene == 1 ? .32 : .22;
+                      if (currentScene == 2 && (theme == 2 || theme == 7 || theme == 8))
+                        activity = .14;
+                      double sample = (bassWave * .052 * Math.exp(-1.7 * within)
+                          + pad * (style == 0 ? .017 : .013)
+                          + leadWave * leadEnvelope * (style == 0 ? .019 : .031)
+                          + arpeggio * (style == 0 ? .006 : .012)
+                          + kick * (style == 0 ? .040 : .067) * activity
+                          + snare * (style == 0 ? .011 : .025) * activity
+                          + hat * .008 * activity) * duck * volume;
                       pcm[i] = (short) (Math.max(-1, Math.min(1, sample)) * Short.MAX_VALUE);
                     }
                   }
@@ -173,7 +177,7 @@ public final class ArcadeAudio {
   public void click() {
     long now = System.currentTimeMillis();
     if (now - lastClick.getAndSet(now) < 45) return;
-    effects.execute(() -> playNote(79, 45, 0.13f));
+    effects.execute(() -> playNote(79, 42, 0.08f));
   }
 
   public void turn() {
@@ -197,6 +201,17 @@ public final class ArcadeAudio {
   public void lose() {
     effects.execute(() -> {
       for (int n : new int[] {60, 57, 53, 48}) playNote(n, 120, 0.14f);
+    });
+  }
+
+  /** A compact game-specific punctuation, with room for the table to react. */
+  public void result(int game, boolean won) {
+    int shift = THEME_SHIFT[Math.floorMod(game, THEME_SHIFT.length)];
+    duck(1500);
+    effects.execute(() -> {
+      int[] phrase = won ? new int[] {60, 67, 72} : new int[] {60, 57, 53};
+      for (int i = 0; i < phrase.length; i++)
+        playNote(phrase[i] + shift, i == 2 ? 155 : 86, i == 2 ? .15f : .11f);
     });
   }
 

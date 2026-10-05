@@ -1,3 +1,27 @@
+# Apéro Royale 1.6.0 — La nuit est à vous
+
+- [Télécharger l'APK Android signé 1.6.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.6.0.apk) · `com.aperoroyale` · versionCode `18` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `546b32adc76395ea4e7a9f9b393258e5c7a9b8f5f8f53fdf58c3d94df70bfce8`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.5.0
+
+## Nouveautés
+
+- La direction artistique suit les [deux références de soirée](docs/RELEASE_160_DESIGN.md) : 12 portraits adultes originaux, dix décors illustrés de bar et d'arcade, palette aubergine, laiton, ambre et pétrole. Un portrait peut être partagé par plusieurs profils ; la photo importée reste disponible.
+- La langue des menus se choisit immédiatement sur l'accueil ou dans **Options → Partie** et persiste sur l'appareil. Les manches gardent la langue du joueur actif. Le portrait choisi apparaît dès la création du profil.
+- Les dix jeux reçoivent des consignes et un dévoilement social : bonne réponse et alliés, jury, oreilles fines, auteurs des cibles, protecteurs, galerie, chaîne, mesure, crédules et parcours de la bombe. Positions et Bluff peuvent être passés sans point ni gorgée.
+- La bande originale et les effets deviennent plus discrets, avec des pauses pendant les jeux d'écoute et de parole. L'indice d'un jeu secret se fait discret dans les temps d'attente, tandis que les secrets restent jouables.
+- [Captures de l'accueil, des profils, des options et des dix jeux](README.md) ; [conception, sources et limites des simulations](docs/RELEASE_160_DESIGN.md).
+
+## Vérifications
+
+- `APERO_SIM_PARTIES=10000 APERO_PEOPLE_PARTIES=10000 ./gradlew testDebugUnitTest assembleRelease lintVitalRelease --offline --rerun-tasks` : 48 tests, zéro échec. Modèles distincts : 10 000 salles multi-appareils / 40 000 manches, 10 000 soirées avec horloge / 180 000 manches, 10 000 soirées de joueurs virtuels / 240 000 manches.
+- Android 16 émulé, deux profils sur un téléphone : les dix jeux terminés avec alternance, mises, actions des amis, résultats, classement et captures. Android 16 et Android 8 émulés en Wi-Fi : salle jointe, première manche et résultat synchronisés, contribution de l'invité reçue par l'hôte dans Culture G.
+- APK signée v2 vérifiée ; même certificat que 1.5.0, versionCode 18 et minSdk 26. Mise à jour depuis 1.5.0 installée et lancée sur Android 8 ; installation et lancement sur Android 16.
+
+**Limites.** Les simulations ne prouvent ni l'amusement ni la viralité ; l'essai Wi-Fi ne mesure pas la latence de téléphones physiques. Le relais Internet public et le Bluetooth n'ont pas été revalidés avec de vrais appareils pour cette version. Les plateformes musicales jouent dans leur application et le Blind Test utilise des motifs originaux hors ligne.
+
+---
+
 # Apéro Royale 1.5.0 — La table prend forme
 
 - [Télécharger l'APK Android signé 1.5.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.5.0.apk) · `com.aperoroyale` · versionCode `17` · Android 8.0+ (API 26)

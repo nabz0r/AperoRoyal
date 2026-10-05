@@ -75,16 +75,16 @@ public final class GameSprites {
   };
 
   private static final int[][] COLORS = {
-    {0xfff7a445, 0xff47d8bb, 0xffffe6a1},
-    {0xffff6980, 0xff9764e5, 0xffffc39a},
-    {0xffaa75fb, 0xff62d7c8, 0xffeec5ff},
-    {0xff37dbe5, 0xff247ab5, 0xffffff75},
-    {0xffffca56, 0xffe5645c, 0xffffeead},
-    {0xffc993ff, 0xffff70a8, 0xfff4e6ff},
-    {0xff59b7ff, 0xff8e7bff, 0xffffdf7b},
-    {0xff9dde6b, 0xfff5a655, 0xffe5ffd0},
-    {0xfff187a5, 0xffa84176, 0xffffd7ca},
-    {0xffff685c, 0xff69d9e2, 0xffffdb91}
+    {0xffd8a767, 0xff6f9f95, 0xfff4dec0},
+    {0xffc77470, 0xff725a7d, 0xffedbb92},
+    {0xffb2949e, 0xff6e9388, 0xffe5c8a6},
+    {0xff7ab8a9, 0xff5f8aa3, 0xffddbe80},
+    {0xffcaa069, 0xff9b5c5c, 0xffe9cf95},
+    {0xffa688b6, 0xffbd776f, 0xfff5dfc3},
+    {0xff729cb1, 0xff9389ab, 0xffe4d6a7},
+    {0xff90b898, 0xffcb9876, 0xffefdfbd},
+    {0xffc8869e, 0xff754c62, 0xffeed2c2},
+    {0xffcc7268, 0xff8ba8aa, 0xffe8c897}
   };
 
   public static int accent(int game) { return COLORS[Math.floorMod(game, 10)][0]; }
@@ -169,35 +169,89 @@ public final class GameSprites {
 
   public static void stage(Canvas c, Paint p, int game, float x, float y, float w, float h,
       int progress, long now) {
-    int[] palette = COLORS[Math.floorMod(game, 10)];
+    int index = Math.floorMod(game, 10);
+    int[] palette = COLORS[index];
     c.save();
     c.clipRect(x, y, x + w, y + h);
-    p.setShader(new LinearGradient(x, y, x + w, y + h,
-        mix(0xff15192d, palette[1], .20f), mix(0xff0e1127, palette[0], .15f),
-        Shader.TileMode.CLAMP));
+    p.setShader(new LinearGradient(x, y, x, y + h,
+        0x24180f1a, 0x8c100f17, Shader.TileMode.CLAMP));
     c.drawRect(x, y, x + w, y + h, p);
     p.setShader(null);
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(1);
-    p.setColor(withAlpha(palette[0], 36));
-    for (int i = 0; i < 9; i++) {
-      float ly = y + 42 + i * 58;
-      c.drawLine(x, ly, x + w, ly, p);
-    }
-    for (int i = 0; i < 8; i++) {
-      float lx = x + i * 52 + ((now / 80 + game * 13) % 52);
-      c.drawLine(lx, y, lx - 75, y + h, p);
+    p.setStrokeWidth(2);
+    p.setColor(withAlpha(palette[0], 100));
+    switch (index) {
+      case 0 -> { // crooked television frame and quiz marquee
+        c.drawRoundRect(x + 14, y + 68, x + w - 14, y + h - 55, 13, 13, p);
+        for (int i = 0; i < 9; i++) {
+          p.setColor(withAlpha(palette[i % 2], 110));
+          c.drawCircle(x + 35 + i * (w - 70) / 8, y + 43, 2.5f, p);
+        }
+      }
+      case 1 -> { // stage curtains and an audience line
+        for (int side = 0; side < 2; side++) {
+          float edge = side == 0 ? x + 18 : x + w - 18;
+          c.drawArc(edge - 57, y + 10, edge + 57, y + h - 60,
+              side == 0 ? -72 : 72, side == 0 ? 145 : -145, false, p);
+        }
+        c.drawArc(x + 45, y + h - 112, x + w - 45, y + h + 65, 180, 180, false, p);
+      }
+      case 2 -> { // vinyl grooves
+        for (int i = 0; i < 5; i++)
+          c.drawCircle(x + w - 11, y + h - 30, 33 + i * 18, p);
+        for (int i = 0; i < 7; i++)
+          c.drawLine(x + 20 + i * 43, y + 46, x + 20 + i * 43, y + 53 + i % 3 * 8, p);
+      }
+      case 3 -> { // alley markers
+        for (int i = 0; i < 7; i++) {
+          float py = y + 58 + i * 65;
+          c.drawLine(x + 10, py, x + 30, py + 12, p);
+          c.drawLine(x + w - 10, py, x + w - 30, py + 12, p);
+        }
+      }
+      case 4 -> { // six coaster rings
+        for (int i = 0; i < 6; i++)
+          c.drawCircle(x + 66 + i % 3 * (w - 132) / 2,
+              y + h - 178 + i / 3 * 82, 29, p);
+      }
+      case 5 -> { // gallery frames
+        for (int i = 0; i < 3; i++) {
+          float px = x + 20 + i * (w - 40) / 3;
+          c.drawRoundRect(px, y + 54, px + (w - 60) / 3, y + 142, 3, 3, p);
+        }
+      }
+      case 6 -> { // memory cards around the frame
+        for (int i = 0; i < 4; i++) {
+          float px = x + 20 + i * (w - 40) / 4;
+          c.drawRoundRect(px, y + h - 100, px + (w - 60) / 4, y + h - 28, 4, 4, p);
+        }
+      }
+      case 7 -> { // dancing sound bars
+        for (int i = 0; i < 8; i++) {
+          float bx = x + 16 + i * (w - 32) / 8;
+          float bh = 8 + (i * 17 + now / 180) % 29;
+          c.drawLine(bx, y + h - 35, bx, y + h - 35 - bh, p);
+        }
+      }
+      case 8 -> { // court-like velvet spotlights
+        c.drawArc(x + 10, y + 18, x + w - 10, y + h - 18, 198, 145, false, p);
+        c.drawLine(x + w / 2, y + 20, x + w / 2, y + 54, p);
+      }
+      case 9 -> { // comic timer halo and harmless wires
+        for (int i = 0; i < 10; i++) {
+          double angle = i * Math.PI / 5;
+          float cx = x + w / 2, cy = y + h * .48f;
+          c.drawLine(cx + (float) Math.cos(angle) * 125,
+              cy + (float) Math.sin(angle) * 125,
+              cx + (float) Math.cos(angle) * 135,
+              cy + (float) Math.sin(angle) * 135, p);
+        }
+      }
+      default -> { }
     }
     p.setStyle(Paint.Style.FILL);
-    p.setColor(withAlpha(palette[2], 25));
-    c.drawCircle(x + w * .75f, y + h * .44f, 92 + (progress % 5) * 5, p);
-    p.setColor(withAlpha(palette[0], 72));
-    c.drawRect(x, y, x + w, y + 7, p);
-    for (int i = 0; i < 10; i++) {
-      p.setColor(i <= progress % 10 ? palette[0] : withAlpha(palette[0], 52));
-      float bx = x + 17 + i * 31;
-      c.drawRoundRect(new RectF(bx, y + h - 16, bx + 21, y + h - 11), 2, 2, p);
-    }
+    p.setColor(withAlpha(palette[0], 90));
+    c.drawRect(x + 8, y + h - 8, x + w - 8, y + h - 6, p);
     c.restore();
   }
 

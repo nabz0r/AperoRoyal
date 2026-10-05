@@ -24,6 +24,7 @@ import android.view.View;
 import android.view.KeyEvent;
 import android.view.Gravity;
 import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -37,6 +38,7 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /** Activity owns the host authority, persistence, sound and external integrations. */
 public final class MainActivity extends Activity
@@ -77,6 +79,8 @@ public final class MainActivity extends Activity
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     store = new GameStore(this);
     savedSession = store.load(game);
+    String deviceLanguage = "en".equals(Locale.getDefault().getLanguage()) ? "EN" : "FR";
+    game.menuLanguage = getPreferences(MODE_PRIVATE).getString("menuLanguage", deviceLanguage);
     if (savedSession && !game.players.isEmpty()) {
       GameEngine retained = new GameEngine();
       if (store.loadRoster(retained) == 0) store.saveRoster(game);
@@ -208,27 +212,39 @@ public final class MainActivity extends Activity
     GameEngine.Player p = game.current();
     long duration = Math.max(0, System.currentTimeMillis() - game.started);
     game.finish(won);
-    if (p != null) store.record(p, game.game, won,
+    if (p != null && !game.roundPassed) store.record(p, game.game, won,
         game.roundPoints, game.roundSips > 0 ? 1 : 0, game.roundSips, duration);
-    for (int i = 0; i < game.players.size() && i < game.predictions.length; i++) {
+    for (int i = 0; !game.roundPassed && i < game.players.size() && i < game.predictions.length; i++) {
       if (i == game.active || game.predictions[i] < 0 || game.predictions[i] > 1) continue;
       boolean correct = (game.predictions[i] == 1) == won;
       store.recordPrediction(game.players.get(i), game.game, correct,
           correct ? game.predictions[i] == 0 ? 50 : 35 : 0,
           correct || game.ruleId == 1 ? 0 : 1);
     }
-    for (int i = 0; i < game.players.size() && i < game.crewPoints.length; i++)
+    for (int i = 0; !game.roundPassed && i < game.players.size() && i < game.crewPoints.length; i++)
       if (i != game.active && game.crewPoints[i] > 0)
         store.recordCrew(game.players.get(i), game.game,
             (game.game == 0 || game.game == 2) && game.crewChoices[i] == game.target
                 || game.game == 5 && game.drawGuesses[i] == game.target,
             game.crewPoints[i]);
-    if (soundEffects) {
-      if (won) audio.win();
-      else audio.lose();
+    if (soundEffects && !game.roundPassed) {
+      audio.result(game.game, won);
     }
     haptic();
     save();
+  }
+
+  @Override
+  public void answer(int choice) {
+    if (!game.lockAnswer(choice)) return;
+    finishGame(choice == game.target);
+  }
+
+  @Override
+  public void passPerformance() {
+    if (network.connected) { network.command("PERFORMANCE_PASS", 0); return; }
+    GameEngine.Player actor = game.current();
+    if (actor != null && game.passPerformance(actor.name)) finishGame(false);
   }
 
   @Override
@@ -653,24 +669,40 @@ public final class MainActivity extends Activity
     }
     EditText name = input("Pseudo / Nickname");
     Spinner language = spinner(new String[] {"FR", "EN"});
-    String[] labels = {"CAT", "FROG", "DUCK", "ALIEN", "ROBOT", "DISCO"};
-    ArrayList<Integer> available = new ArrayList<>();
-    ArrayList<String> names = new ArrayList<>();
-    for (int i = 0; i < 6; i++) {
-      boolean used = false;
-      for (GameEngine.Player player : game.players) if (player.avatar == i) used = true;
-      if (!used) { available.add(i); names.add(labels[i]); }
+    language.setSelection("EN".equals(game.menuLanguage) ? 1 : 0);
+    String[] labels = game.english()
+        ? new String[] {"VINEYARD ELDER", "CREATIVE DIRECTOR", "NIGHT HOST",
+            "CUMBIA DJ", "ANTIQUE DEALER", "BARTENDER", "DIVA", "POET",
+            "CHEF", "RECORD DIGGER", "CHAMELEON", "PHOTOGRAPHER"}
+        : new String[] {"VIGNERON", "DIRECTRICE CRÉATIVE", "MAÎTRE DE NUIT",
+            "DJ CUMBIA", "ANTIQUAIRE", "BARMAN", "DIVA", "POÈTE",
+            "CHEF", "DIGGEUR", "CAMÉLÉON", "PHOTOGRAPHE"};
+    Spinner avatar = spinner(labels);
+    avatar.setSelection(game.players.size() % 12);
+    ImageView portrait = new ImageView(this);
+    portrait.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    portrait.setBackgroundColor(Color.rgb(31, 25, 29));
+    portrait.setLayoutParams(new LinearLayout.LayoutParams(-1,
+        (int) (156 * getResources().getDisplayMetrics().density)));
+    Bitmap sheet = BitmapFactory.decodeResource(getResources(), R.drawable.avatar_sheet);
+    if (sheet != null) {
+      portrait.setImageBitmap(avatarCrop(sheet, avatar.getSelectedItemPosition()));
+      avatar.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+          portrait.setImageBitmap(avatarCrop(sheet, position));
+        }
+        @Override public void onNothingSelected(AdapterView<?> parent) {}
+      });
     }
-    Spinner avatar = spinner(names.toArray(new String[0]));
-    LinearLayout box = column(name, language, avatar);
+    LinearLayout box = column(name, language, portrait, avatar);
     new AlertDialog.Builder(this)
         .setTitle(game.t("Nouveau joueur", "New player"))
         .setView(box)
         .setNegativeButton(game.t("Annuler", "Cancel"), null)
         .setPositiveButton(game.t("CRÉER", "CREATE"), (d, w) ->
-            createPlayer(name, language, available.get(avatar.getSelectedItemPosition()), false))
+            createPlayer(name, language, avatar.getSelectedItemPosition(), false))
         .setNeutralButton(game.t("CRÉER + PHOTO", "CREATE + PHOTO"), (d, w) ->
-            createPlayer(name, language, available.get(avatar.getSelectedItemPosition()), true))
+            createPlayer(name, language, avatar.getSelectedItemPosition(), true))
         .show();
   }
 
@@ -700,22 +732,16 @@ public final class MainActivity extends Activity
     grid.setColumnCount(3);
     grid.setPadding(16, 16, 16, 16);
     AlertDialog dialog = new AlertDialog.Builder(this)
-        .setTitle(game.t("Choisis ton sprite", "Choose your sprite"))
+        .setTitle(game.t("Choisis ton personnage", "Choose your character"))
         .setView(grid)
         .setNegativeButton(game.t("Fermer", "Close"), null)
         .create();
-    for (int avatar = 0; avatar < 6; avatar++) {
-      boolean taken = false;
-      for (int i = 0; i < game.players.size(); i++)
-        if (i != index && game.players.get(i).avatar == avatar) taken = true;
-      if (taken) continue;
-      int cellW = sheet.getWidth() / 3, cellH = sheet.getHeight() / 2;
-      Bitmap crop = Bitmap.createBitmap(sheet, (avatar % 3) * cellW,
-          (avatar / 3) * cellH, cellW, cellH);
+    for (int avatar = 0; avatar < 12; avatar++) {
+      Bitmap crop = avatarCrop(sheet, avatar);
       ImageView tile = new ImageView(this);
       tile.setImageBitmap(crop);
       tile.setScaleType(ImageView.ScaleType.CENTER_CROP);
-      tile.setBackgroundColor(Color.rgb(25, 32, 65));
+      tile.setBackgroundColor(Color.rgb(31, 25, 29));
       tile.setPadding(6, 6, 6, 6);
       GridLayout.LayoutParams params = new GridLayout.LayoutParams();
       params.width = (int) (92 * getResources().getDisplayMetrics().density);
@@ -732,6 +758,12 @@ public final class MainActivity extends Activity
       });
     }
     dialog.show();
+  }
+
+  private static Bitmap avatarCrop(Bitmap sheet, int avatar) {
+    int cellW = sheet.getWidth() / 3, cellH = sheet.getHeight() / 4;
+    return Bitmap.createBitmap(sheet, (avatar % 3) * cellW,
+        (avatar / 3) * cellH, cellW, cellH);
   }
 
   @Override
@@ -1493,6 +1525,13 @@ public final class MainActivity extends Activity
     view.invalidate();
   }
 
+  @Override
+  public void setUiLanguage(String language) {
+    game.menuLanguage = "EN".equals(language) ? "EN" : "FR";
+    getPreferences(MODE_PRIVATE).edit().putString("menuLanguage", game.menuLanguage).apply();
+    view.invalidate();
+  }
+
   public boolean musicEnabled() { return audio.enabled(); }
   public int musicStyle() { return audio.style(); }
   public float musicVolume() { return audio.volume(); }
@@ -1585,7 +1624,7 @@ public final class MainActivity extends Activity
   @Override
   public void joined(String name, String language) {
     boolean added = "LOBBY".equals(game.screen)
-        ? game.addPlayer(name, language, game.players.size() % 6)
+        ? game.addPlayer(name, language, game.players.size() % 12)
         : game.requestJoin(name, language);
     if (added) {
       save();
@@ -1690,6 +1729,10 @@ public final class MainActivity extends Activity
       }
       return;
     }
+    if ("PERFORMANCE_PASS".equals(command)) {
+      if (game.passPerformance(name)) finishGame(false);
+      return;
+    }
     if ("REFLEX".equals(command)) {
       if (game.reflexTap(name, value)) {
         if (game.taps >= game.reflexGoal()) finishGame(true);
@@ -1730,9 +1773,7 @@ public final class MainActivity extends Activity
     }
     if ("AVATAR".equals(command)) {
       int i = game.indexOf(name);
-      if ("LOBBY".equals(game.screen) && i >= 0 && value >= 0 && value < 6) {
-        for (int other = 0; other < game.players.size(); other++)
-          if (other != i && game.players.get(other).avatar == value) return;
+      if ("LOBBY".equals(game.screen) && i >= 0 && value >= 0 && value < 12) {
         game.players.get(i).avatar = value;
         game.players.get(i).photo = "";
         save();

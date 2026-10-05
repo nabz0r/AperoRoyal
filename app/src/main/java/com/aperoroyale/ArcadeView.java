@@ -31,6 +31,10 @@ public final class ArcadeView extends View {
 
     void finishGame(boolean won);
 
+    void answer(int choice);
+
+    void passPerformance();
+
     void enterGame();
 
     void readyTurn();
@@ -124,6 +128,8 @@ public final class ArcadeView extends View {
     void changeMusicStyle();
 
     void changeMusicVolume();
+
+    void setUiLanguage(String language);
 
     void stats();
 
@@ -381,8 +387,8 @@ public final class ArcadeView extends View {
     if (sceneAtlas == null) return;
     int col = Math.floorMod(game, 5), row = Math.floorMod(game, 10) / 5;
     int sw = sceneAtlas.getWidth(), sh = sceneAtlas.getHeight();
-    int left = col * sw / 5, right = (col + 1) * sw / 5;
-    int top = row * sh / 2, bottom = (row + 1) * sh / 2;
+    int left = col * sw / 5 + 2, right = (col + 1) * sw / 5 - 2;
+    int top = row * sh / 2 + 2, bottom = (row + 1) * sh / 2 - 2;
     c.save();
     c.clipRect(x, y, x + w, y + h);
     p.setShader(null);
@@ -391,15 +397,12 @@ public final class ArcadeView extends View {
     c.drawBitmap(sceneAtlas, new Rect(left, top, right, bottom),
         new RectF(x, y, x + w, y + h), p);
     p.setShader(new LinearGradient(x, y, x, y + h,
-        Color.argb(170, 8, 11, 22), Color.argb(225, 8, 11, 22), Shader.TileMode.CLAMP));
+        Color.argb(104, 15, 13, 20), Color.argb(185, 10, 11, 17), Shader.TileMode.CLAMP));
     c.drawRect(x, y, x + w, y + h, p);
     p.setShader(null);
     p.setColor(GameSprites.accent(game));
     c.drawRect(x, y, x + w, y + 2, p);
     c.drawRect(x, y, x + 2, y + h, p);
-    float scan = y + (System.currentTimeMillis() % 4200L) / 4200f * h;
-    p.setColor((25 << 24) | (GameSprites.accent(game) & 0x00ffffff));
-    c.drawRect(x, scan, x + w, scan + 3, p);
     c.restore();
   }
 
@@ -557,6 +560,7 @@ public final class ArcadeView extends View {
     c.drawCircle(48, top + 34, 3 + pulse * 1.5f, p);
     text(c, g.t("10 JEUX · À VOUS DE JOUER", "10 GAMES · YOUR MOVE"),
         176, top + 39, 11, YELLOW, true);
+    languageSwitch(c, 302, top + 17);
     display(c, g.t("LA NUIT", "THE NIGHT"), 43, top + heroHeight - 91, 31, WHITE, false);
     display(c, g.t("EST À VOUS.", "IS YOURS."), 43, top + heroHeight - 54, 34, YELLOW, false);
     text(c, g.t("2–6 amis  /  un ou plusieurs téléphones", "2–6 friends  /  one or more phones"),
@@ -587,6 +591,18 @@ public final class ArcadeView extends View {
       avatar(c, g.players.get(i), 238 + i * 36, navY + 101, .45f);
     text(c, g.t("CHAQUE TOUR APPARTIENT À QUELQU'UN", "EVERY TURN BELONGS TO SOMEONE"),
         200, H - 20, 11, MUTED, true);
+  }
+
+  private void languageSwitch(Canvas c, float x, float y) {
+    for (int i = 0; i < 2; i++) {
+      boolean selected = (i == 1) == "EN".equals(g.menuLanguage);
+      float left = x + i * 35;
+      p.setColor(selected ? YELLOW : Color.argb(185, 28, 31, 36));
+      c.drawRoundRect(left, y, left + 32, y + 27, 4, 4, p);
+      text(c, i == 0 ? "FR" : "EN", left + 16, y + 19, 12, selected ? BG : WHITE, true);
+      hits.add(new Hit(i == 0 ? "langFR" : "langEN",
+          new RectF(left - 3, y - 6, left + 35, y + 36), i == 0 ? "Français" : "English"));
+    }
   }
 
   private void homeTile(Canvas c, String id, String icon, String caption,
@@ -705,6 +721,9 @@ public final class ArcadeView extends View {
 
   private boolean viewerEnglish() {
     MainActivity a = (MainActivity) getContext();
+    if ("HOME".equals(g.screen) || "LOBBY".equals(g.screen) || "SETTINGS".equals(g.screen)
+        || "GUIDE".equals(g.screen) || "STATS".equals(g.screen)
+        || "LIBRARY".equals(g.screen)) return "EN".equals(g.menuLanguage);
     if (actions.client()) {
       int local = g.indexOf(a.network.localName);
       if (local >= 0) return "EN".equals(g.players.get(local).language);
@@ -753,9 +772,9 @@ public final class ArcadeView extends View {
       text(c, en ? "NEXT ROUND" : "PROCHAIN TOUR", 205, 305, 12, MUTED, true);
     } else {
       panel(c, 25, 185, 350, 157, PANEL, GameSprites.accent(g.game));
+      scene(c, g.game, 28, 188, 344, 151);
       GameSprites.stage(c, p, g.game, 28, 188, 344, 151, g.progress,
           System.currentTimeMillis());
-      scene(c, g.game, 28, 188, 344, 151);
       text(c, en ? "LIVE NOW" : "EN DIRECT", 200, 217, 11, CYAN, true);
       block(c, title(g.game), 200, 260, 315, 18, WHITE, true);
       GameEngine.Player actor = g.current();
@@ -957,8 +976,8 @@ public final class ArcadeView extends View {
     GameEngine.Player actor = g.current();
     if (actor == null) return;
     long left = Math.max(0, (g.deadline - ((MainActivity) getContext()).hostNow() + 999) / 1000);
-    GameSprites.stage(c, p, g.game, 25, 170, 350, H - 278, 0, System.currentTimeMillis());
     scene(c, g.game, 25, 170, 350, H - 278);
+    GameSprites.stage(c, p, g.game, 25, 170, 350, H - 278, 0, System.currentTimeMillis());
     GameSprites.icon(c, p, g.game, 200, 270, 5, 0, System.currentTimeMillis());
     text(c, actor.name.toUpperCase(Locale.ROOT), 200, 395, 27, WHITE, true);
     block(c, vt("Tu le couvres ou tu le défies ?", "Back them or challenge them?"),
@@ -991,8 +1010,8 @@ public final class ArcadeView extends View {
     GameEngine.Player voter = app.localCrew();
     if (actions.passPending()) { passScreen(c, voter); return; }
     header(c, vt("LA SALLE ENTRE EN JEU", "THE ROOM JOINS IN"));
-    GameSprites.stage(c, p, g.game, 24, 164, 352, H - 248, 0, System.currentTimeMillis());
     scene(c, g.game, 24, 164, 352, H - 248);
+    GameSprites.stage(c, p, g.game, 24, 164, 352, H - 248, 0, System.currentTimeMillis());
     GameEngine.Player actor = g.current();
     long left = Math.max(0, (g.deadline - app.hostNow() + 999) / 1000);
     text(c, (actor == null ? "?" : actor.name) + "  •  " + left + "s", 200, 199, 19, YELLOW, true);
@@ -1168,49 +1187,51 @@ public final class ArcadeView extends View {
             "Choose a mode in the lobby before starting."), 200, 271, 310, 12, MUTED, true);
       settingRow(c, "guide", g.t("Guide des 10 jeux", "All 10 game guides"), "↗", 318, CYAN);
       settingRow(c, "stats", g.t("Classement", "Leaderboard"), "↗", 380, CYAN);
-      panel(c, 28, 477, 344, 121, PANEL, YELLOW);
-      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 511, 13, YELLOW, true);
+      settingRow(c, "interfaceLanguage", g.t("Langue des menus", "Menu language"),
+          "EN".equals(g.menuLanguage) ? "ENGLISH" : "FRANÇAIS", 442, YELLOW);
+      panel(c, 28, 525, 344, 110, PANEL, YELLOW);
+      text(c, g.t("AUTOUR DE LA TABLE", "AROUND THE TABLE"), 200, 557, 13, YELLOW, true);
       block(c, g.t("Un seul téléphone ? Passe-le à chaque tour. Plusieurs ? Rejoins la salle depuis l'accueil.",
           "One phone? Pass it each turn. More phones? Join the room from home."),
-          200, 546, 304, 12, WHITE, true);
+          200, 589, 304, 12, WHITE, true);
     }
     button(c, "back", g.t("RETOUR", "BACK"), 28, H - 93, 344, 58, PANEL);
   }
 
   private static final String[][] GUIDE_RULES = {
-    {"Tous répondent d'abord en secret. Le joueur actif voit la tendance, puis choisit sa réponse en seize secondes.",
-      "Everyone answers privately first. The actor sees the room's trend, then answers in sixteen seconds."},
-    {"Prends la pose absurde affichée et tiens bon. Le groupe décide si le défi est réussi.",
-      "Strike the silly pose on screen and hold it. The group decides if you pulled it off."},
-    {"Tous écoutent le motif original et votent. Le joueur actif écoute à son tour puis peut suivre la salle.",
-      "Everyone listens to the original motif and votes. The actor hears it next and can follow the room."},
-    {"Chaque pote place une cible dans un coin. Le joueur actif doit toucher leur parcours avant le chrono.",
-      "Each friend places a target in a corner. The actor must clear their course before time runs out."},
-    {"Les potes protègent un gobelet chacun. Le joueur actif choisit : soutien visible, pièges secrets et gorgée épargnée si protégé.",
-      "Friends shield a cup each. The actor chooses with visible support, secret traps and one sip spared if shielded."},
-    {"Dessine la consigne secrète. Tous les autres devinent, chacun en privé ; la moitié doit trouver pour gagner.",
-      "Draw the secret prompt. Everyone else guesses privately; at least half must get it right to win."},
-    {"Chaque pote ajoute un symbole. Le joueur actif découvre la chaîne créée par le groupe puis la rejoue.",
-      "Each friend adds a symbol. The actor sees the group's chain, then plays it back."},
-    {"Chaque pote place un temps sur huit. Les quatre temps retenus forment la mesure à frapper.",
-      "Each friend picks one of eight beats. The four chosen beats become the pattern to tap."},
-    {"Raconte une anecdote vraie ou inventée, puis verrouille ton secret. Si la majorité du jury se trompe, tu gagnes.",
-      "Tell a true or made-up story, then lock your secret. Fool the jury majority to win."},
-    {"Touche la bombe le nombre de fois affiché, puis choisis à qui la passer. Quand chacun l'a tenue, coupe un fil au risque de perdre, ou continue le relais.",
-      "Tap the bomb the displayed number of times, then choose who gets it. Once everyone held it, risk cutting a wire or keep passing."}
+    {"Les amis répondent en secret. L'acteur peut suivre la salle ou assumer son intuition ; le dévoilement nomme ceux qui avaient raison.",
+      "Friends answer in secret. The actor may follow the room or trust their gut; the reveal names those who got it right."},
+    {"Incarne la scène affichée, seul ou avec un complice volontaire. Le jury décide. Tu peux passer sans points ni gorgée.",
+      "Act out the scene solo or with a willing partner. The jury decides. You may pass with no points or sip."},
+    {"Chacun écoute un jingle original et choisit sa version. L'acteur peut suivre la salle ; les oreilles fines sont nommées à la fin.",
+      "Everyone hears an original jingle and makes a choice. The actor may follow the room; sharp ears get named at the end."},
+    {"Chaque ami place une cible. L'acteur traverse leur parcours tactile avant la fin ; on révèle les auteurs de la course.",
+      "Each friend places a target. The actor clears their touch course in time; the route makers are revealed."},
+    {"Les amis protègent chacun un gobelet. L'acteur choisit parmi six ; la protection peut réduire sa mise si le verre est piégé.",
+      "Each friend shields a cup. The actor picks one of six; a shield can reduce the wager when the cup is cursed."},
+    {"L'artiste dessine une consigne secrète. Chaque ami devine en privé ; la galerie révèle le sujet et ceux qui l'ont reconnu.",
+      "The artist draws a secret prompt. Friends guess privately; the gallery reveals the subject and who recognized it."},
+    {"Chaque ami ajoute un symbole. L'acteur voit la chaîne puis la rejoue ; le résultat montre qui l'avait commencée.",
+      "Each friend adds a symbol. The actor sees and replays the chain; the result shows who began it."},
+    {"Les amis choisissent des temps sur huit. L'acteur frappe les quatre temps retenus ; la mesure est révélée à tous.",
+      "Friends choose beats out of eight. The actor taps the four chosen beats; the room sees its rhythm at the reveal."},
+    {"Raconte une anecdote vraie ou inventée. Le jury vote en secret ; à la fin, on voit qui a cru ton histoire. Passer est permis.",
+      "Tell a true or invented story. The jury votes privately; the reveal names the believers. Passing is always allowed."},
+    {"La bombe circule réellement entre les amis. Chaque porteur choisit le suivant ; le fil final et le trajet sont dévoilés.",
+      "The bomb really moves between friends. Each holder picks the next; the final wire and route are revealed."}
   };
 
   private static final String[][] GUIDE_TIPS = {
-    {"Le groupe peut hurler des indices absurdes.", "The group may shout outrageously bad hints."},
-    {"Le jury n'a pas le droit de rire avant de voter.", "The judges must keep a straight face before voting."},
-    {"Chante faux pour brouiller les pistes.", "Sing badly to throw everyone off."},
-    {"Place une cible piégeuse, puis encourage le sprinteur !", "Place a tricky target, then cheer on the runner!"},
-    {"La mise augmente aussi les pièges.", "Your wager also increases the traps."},
-    {"Le dessinateur ne parle pas pendant le quiz.", "The artist stays silent during the guess."},
-    {"Mélange les couleurs pour dérouter ton pote.", "Mix the colors to confuse your friend."},
-    {"Tout le monde marque le tempo avec les mains.", "Everyone claps along to the beat."},
-    {"Exige une voix de personnage pour le récit.", "Demand a character voice for the story."},
-    {"Crie le prénom du prochain joueur !", "Shout the next player's name!"}
+    {"La mauvaise réponse défendue avec aplomb vaut parfois la meilleure blague.", "A confidently defended wrong answer may be the best joke."},
+    {"La meilleure pose tient aussi depuis une chaise ; le partenaire choisit de participer.", "The best pose also works from a chair; a partner chooses to join."},
+    {"Baissez la radio pendant le jingle : les voix reprendront après.", "Turn the radio down for the jingle; the voices return after."},
+    {"Trace une cible perfide, puis encourage la personne qui court.", "Set a tricky target, then cheer for the runner."},
+    {"La mise augmente le risque ; les amis peuvent aussi protéger ton verre.", "The wager raises the stakes; friends may shield your cup."},
+    {"Le titre donné au dessin raté peut survivre à la soirée.", "A name for a bad drawing may outlive the party."},
+    {"Associez les symboles à des objets posés sur la table.", "Tie the symbols to objects on the table."},
+    {"Un petit silence avant le temps juste vaut mieux que crier par-dessus la musique.", "A beat of silence helps more than shouting over the music."},
+    {"Le jury peut poser une question à voix haute avant de voter.", "The jury may ask one question aloud before voting."},
+    {"Regarde le prochain porteur avant de lui tendre la bombe.", "Look at the next holder before handing over the bomb."}
   };
 
   private void guide(Canvas c) {
@@ -1348,22 +1369,14 @@ public final class ArcadeView extends View {
       }
       if (g.hiddenWonMask[i] == 7) return;
       float pulse = (float) Math.sin(System.currentTimeMillis() / 310.0);
-      p.setColor(Color.argb(30 + Math.round(18 * (1 + pulse)), 216, 177, 103));
-      c.drawRoundRect(274, 337, 355, 425, 12, 12, p);
-      p.setColor(Color.rgb(18, 24, 34));
-      c.drawRect(284, 348, 347, 420, p);
-      p.setColor(YELLOW);
-      c.drawRect(297, 375, 309, 381, p);
-      c.drawRect(326, 375, 338, 381, p);
-      p.setStyle(Paint.Style.STROKE);
-      p.setStrokeWidth(2);
-      c.drawArc(303, 384, 332, 406, 10, 160, false, p);
-      p.setStyle(Paint.Style.FILL);
+      p.setColor(Color.argb(24 + Math.round(15 * (1 + pulse)), 216, 177, 103));
+      c.drawCircle(371, 119, 17, p);
+      text(c, "✦", 371, 126, 14, YELLOW, true);
       for (int dot = 0; dot < g.hiddenProbe[i]; dot++) {
         p.setColor(CYAN);
-        c.drawCircle(302 + dot * 16, 411, 2.5f, p);
+        c.drawCircle(347 + dot * 8, 142, 1.5f, p);
       }
-      hits.add(new Hit("hidden:-1", new RectF(268, 329, 360, 432),
+      hits.add(new Hit("hidden:-1", new RectF(339, 96, 399, 151),
           vt("Une présence dans la ruelle", "Something in the alley")));
       return;
     }
@@ -1435,7 +1448,7 @@ public final class ArcadeView extends View {
     int i = g.indexOf(app.network.localName);
     if (i < 0 || i >= g.hiddenKind.length) return false;
     if (g.hiddenKind[i] < 0) {
-      if (x >= 268 && x <= 360 && y >= 329 && y <= 432) {
+      if (x >= 339 && x <= 399 && y >= 96 && y <= 151) {
         actions.hiddenTap(-1);
         actions.click();
         return true;
@@ -1455,40 +1468,24 @@ public final class ArcadeView extends View {
   }
 
   private void transition(Canvas c) {
-    header(c, g.voteWinner >= 0 ? g.t("LA SALLE A CHOISI", "THE ROOM HAS SPOKEN")
-        : g.t("TOURNIQUET DE LA MORT", "WHEEL OF CHAOS"));
+    header(c, g.t("LA PROCHAINE SCÈNE", "THE NEXT SCENE"));
     GameEngine.Player player = g.current();
     if (player == null) return;
-    long now = System.currentTimeMillis();
-    float angle = (now % 2700) / 2700f * 360;
-    c.save();
-    c.rotate(angle, 200, H * .44f);
-    p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(17);
-    p.setColor(PINK);
-    c.drawCircle(200, H * .44f, 94, p);
-    p.setColor(CYAN);
-    c.drawCircle(200, H * .44f, 70, p);
-    p.setStyle(Paint.Style.FILL);
-    for (int i = 0; i < 8; i++) {
-      double a = i * Math.PI / 4;
-      p.setColor(i % 2 == 0 ? YELLOW : PINK);
-      c.drawCircle((float) (200 + 82 * Math.cos(a)), (float) (H * .44 + 82 * Math.sin(a)), 8, p);
-    }
-    c.restore();
-    avatar(c, player, 200, H * .44f, 1.3f);
-    GameSprites.icon(c, p, g.game, 292, H * .44f + 12, 3.3f, 0, now);
-    text(c, player.name.toUpperCase(Locale.ROOT), 200, H * .44f + 142, 28, WHITE, true);
-    text(c, "→ " + title(g.game), 200, H * .44f + 179, 19, CYAN, true);
-    text(c, "✦ " + bonusName(), 200, H * .44f + 204, 13, YELLOW, true);
-    if (g.game == 1 || g.game == 8 || g.game == 9)
-      text(c, g.t("TOUTE LA SALLE JOUE", "EVERYONE JOINS THIS ROUND"),
-          200, H * .44f + 226, 14, WHITE, true);
-    if (g.voteWinner >= 0 && g.offers.length == 3) {
-      text(c, g.voteCount() + " / " + g.players.size() + " " + g.t("VOTES", "VOTES"),
-          200, H * .44f + 252, 16, MUTED, true);
-    }
-    button(c, "enter", g.t("PASSER AU JOUEUR", "PASS TO PLAYER"), 32, H - 110, 336, 65, YELLOW);
+    panel(c, 22, 153, 356, H - 275, PANEL, GameSprites.accent(g.game));
+    scene(c, g.game, 26, 157, 348, H - 283);
+    GameSprites.stage(c, p, g.game, 26, 157, 348, H - 283, 0, System.currentTimeMillis());
+    text(c, g.voteWinner >= 0 ? g.t("LE CHOIX DE LA TABLE", "THE ROOM'S CHOICE")
+        : g.t("LE HASARD A CHOISI", "CHANCE HAS SPOKEN"),
+        200, 200, 13, YELLOW, true);
+    avatar(c, player, 200, 304, 1.45f);
+    panel(c, 37, 392, 326, 190, Color.argb(225, 28, 24, 29), GameSprites.accent(g.game));
+    display(c, player.name.toUpperCase(Locale.ROOT), 200, 431, 29, WHITE, true);
+    block(c, title(g.game), 200, 478, 294, 21, YELLOW, true);
+    block(c, RoundStories.opening(g.game, g.english()),
+        200, 521, 292, 15, WHITE, true);
+    text(c, "✦ " + bonusName(), 200, 612, 13, CYAN, true);
+    button(c, "enter", g.t("PASSER AU JOUEUR", "PASS TO PLAYER"),
+        32, H - 104, 336, 61, YELLOW);
   }
 
   private void handoff(Canvas c) {
@@ -1496,8 +1493,8 @@ public final class ArcadeView extends View {
     if (actor == null) return;
     header(c, g.t("TON TOUR ARRIVE", "YOUR TURN IS HERE"));
     panel(c, 27, 154, 346, H - 304, PANEL, GameSprites.accent(g.game));
-    GameSprites.stage(c, p, g.game, 31, 159, 338, H - 314, 0, System.currentTimeMillis());
     scene(c, g.game, 31, 159, 338, H - 314);
+    GameSprites.stage(c, p, g.game, 31, 159, 338, H - 314, 0, System.currentTimeMillis());
     text(c, g.t("TOUR ", "TURN ") + (g.turn + 1), 200, 205, 20, YELLOW, true);
     avatar(c, actor, 200, 292, 1.23f);
     display(c, actor.name.toUpperCase(Locale.ROOT), 200, 399, 37, WHITE, true);
@@ -1526,7 +1523,7 @@ public final class ArcadeView extends View {
       {"MÉMOIRE FLASH", "FLASH MEMORY"},
       {"RYTHME OU RIEN", "BEAT OR BUST"},
       {"BLUFF ROYAL", "ROYAL BLUFF"},
-      {"BOMBE À BULLES", "BUBBLE BOMB"}
+      {"LE DERNIER FIL", "THE LAST WIRE"}
     };
     boolean enForViewer = actions.client() || "VOTE".equals(g.screen) || "LIBRARY".equals(g.screen)
         || "GUIDE".equals(g.screen);
@@ -1554,9 +1551,9 @@ public final class ArcadeView extends View {
     text(c, "TURBO".equals(g.mode) ? "⚡ #" + (g.turn + 1) : "#" + (g.turn + 1),
         355, 150, 16, YELLOW, true);
     panel(c, 20, 169, 360, H - 261, PANEL, GameSprites.accent(g.game));
+    scene(c, g.game, 23, 172, 354, H - 267);
     GameSprites.stage(c, p, g.game, 23, 172, 354, H - 267,
         g.game == 3 || g.game == 9 ? g.taps : g.progress, System.currentTimeMillis());
-    scene(c, g.game, 23, 172, 354, H - 267);
     GameSprites.icon(c, p, g.game, 72, 211, 3f,
         g.game == 3 ? g.taps : g.progress, System.currentTimeMillis());
     if (g.deadline > 0) {
@@ -1644,8 +1641,13 @@ public final class ArcadeView extends View {
     block(c, q[g.english() ? 1 : 0], 200, 280, 315, 23, WHITE, true);
     GameSprites.icon(c, p, 1, 200, 498, 5.2f, g.variant, System.currentTimeMillis());
     text(c, "✦  ✦  ✦", 200, 609, 24, PINK, true);
+    block(c, g.t("Fais la pose seul, avec un complice volontaire, ou invente-la assis.",
+        "Strike it solo, invite a willing partner, or invent it from your chair."),
+        200, 568, 310, 14, YELLOW, true);
     button(c, "juryStart", g.t("LE JURY DÉCIDE", "LET THE JURY DECIDE"),
-        42, H - 178, 316, 65, CYAN);
+        42, H - 183, 316, 57, CYAN);
+    button(c, "passPerformance", g.t("PASSER SANS GORGÉE", "PASS WITHOUT A SIP"),
+        42, H - 117, 316, 43, PANEL);
   }
 
   private void jury(Canvas c) {
@@ -1929,9 +1931,11 @@ public final class ArcadeView extends View {
         MUTED,
         true);
     button(c, "bluffTrue", g.t("VRAI", "TRUE"),
-        38, H - 174, 152, 65, CYAN);
+        38, H - 183, 152, 59, CYAN);
     button(c, "bluffFalse", g.t("INVENTÉ", "MADE UP"),
-        210, H - 174, 152, 65, PINK);
+        210, H - 183, 152, 59, PINK);
+    button(c, "passPerformance", g.t("PASSER SANS GORGÉE", "PASS WITHOUT A SIP"),
+        42, H - 115, 316, 42, PANEL);
   }
 
   private void bomb(Canvas c) {
@@ -1984,59 +1988,40 @@ public final class ArcadeView extends View {
   }
 
   private void result(Canvas c) {
-    header(c, vt("FIN DU TOUR", "ROUND OVER"));
+    header(c, vt("L'HISTOIRE DE CE TOUR", "THE STORY OF THIS ROUND"));
     GameEngine.Player a = g.current();
     if (a == null) return;
-    text(
-        c,
-        g.lastWon ? vt("VICTOIRE !", "VICTORY!") : vt("CUL SEC… VIRTUEL !", "VIRTUAL SIP!"),
-        200,
-        204,
-        27,
-        g.lastWon ? CYAN : PINK,
-        true);
-    avatar(c, a, 200, 295, 1.3f);
-    GameSprites.icon(c, p, g.game, 315, 292, 2.8f, g.lastWon ? 9 : 0,
+    scene(c, g.game, 20, 166, 360, 471);
+    panel(c, 33, 179, 334, 65, Color.argb(225, 26, 24, 29), GameSprites.accent(g.game));
+    avatar(c, a, 68, 212, .75f);
+    text(c, a.name, 112, 217, 23, WHITE, false);
+    GameSprites.icon(c, p, g.game, 338, 213, 1.75f, g.lastWon ? 9 : 0,
         System.currentTimeMillis());
-    text(c, a.name, 200, 385, 25, WHITE, true);
-    if (g.game == 4) rouletteReveal(c);
-    else glass(
-        c,
-        200,
-        478,
-        g.lastWon ? 1 : Math.max(.05f, 1 - (System.currentTimeMillis() - g.started) / 1400f));
-    text(c, g.lastWon ? "+" + g.roundPoints + " PTS"
-        : (g.roundSips == 0 ? vt("AUCUNE GORGÉE", "NO SIP")
-            : "+" + g.roundSips + " " + vt("GORGÉES", "SIPS")),
-        200, 582, 24, YELLOW, true);
-    int right = 0, wrong = 0;
-    for (int i = 0; i < g.predictions.length; i++) if (i != g.active && g.predictions[i] >= 0) {
-      if ((g.predictions[i] == 1) == g.lastWon) right++; else wrong++;
-    }
-    String reveal = switch (g.game) {
-      case 1 -> vt("LE JURY A TRANCHÉ", "THE JURY HAS SPOKEN");
-      case 8 -> g.bluffTruth == 1
-          ? vt("L'HISTOIRE ÉTAIT VRAIE", "THE STORY WAS TRUE")
-          : vt("L'HISTOIRE ÉTAIT INVENTÉE", "THE STORY WAS MADE UP");
-      case 9 -> vt("RELAIS DE BOMBE TERMINÉ", "BOMB RELAY COMPLETE");
-      default -> g.crewPoints.length > 0
-          ? vt("LES POTES ONT JOUÉ • ", "FRIENDS PLAYED • ")
-              + (g.game == 5 ? g.drawAnsweredCount() : g.crewCount())
-              + " / " + (g.players.size() - 1)
-          : vt("PRONOS : ", "PREDICTIONS: ") + right + vt(" JUSTES", " RIGHT")
-              + "  •  " + wrong + vt(" RATÉS", " WRONG");
-    };
-    text(c, reveal,
-        200, 632, 14, CYAN, true);
+    String verdict = g.roundPassed ? vt("ON PASSE, ON CONTINUE", "PASS, THEN PLAY ON")
+        : g.lastWon ? vt("LA TABLE S'EN SOUVIENDRA", "ONE FOR THE TABLE")
+            : vt("ÇA SE RACONTERA DEMAIN", "A STORY FOR TOMORROW");
+    block(c, verdict, 200, 307, 310, 23, g.roundPassed ? YELLOW : g.lastWon ? CYAN : PINK, true);
+    String tally = g.roundPassed ? vt("SANS PÉNALITÉ", "NO PENALTY")
+        : g.lastWon ? "+" + g.roundPoints + " PTS"
+            : g.roundSips == 0 ? vt("AUCUNE GORGÉE", "NO SIP")
+                : "+" + g.roundSips + " " + vt("GORGÉE(S) VIRTUELLE(S)", "VIRTUAL SIP(S)");
+    text(c, tally, 200, 362, 18, YELLOW, true);
+    String[] story = RoundStories.forRound(g, viewerEnglish());
+    panel(c, 33, 399, 334, 201, Color.argb(235, 25, 25, 30), GameSprites.accent(g.game));
+    text(c, vt("APRÈS LE DÉVOILEMENT", "AFTER THE REVEAL"),
+        52, 429, 12, MUTED, false);
+    block(c, story[0], 200, 464, 302, 18, YELLOW, true);
+    block(c, story[1], 200, 512, 300, 15, WHITE, true);
+    block(c, story[2], 200, 559, 300, 13, CYAN, true);
     if (g.secretId == g.game + 1 && g.ruleId < 0)
       text(c, vt("★ SECRET DÉBLOQUÉ ★", "★ SECRET UNLOCKED ★"),
-          200, 660, 14, YELLOW, true);
-    button(c, "board", vt("CLASSEMENT", "LEADERBOARD"), 35, H - 180, 330, 54, PANEL);
+          200, 623, 13, YELLOW, true);
+    button(c, "board", vt("CLASSEMENT", "LEADERBOARD"), 35, H - 157, 330, 49, PANEL);
     GameEngine.Player nextPlayer = g.players.get(Math.floorMod(
         g.active + (g.ruleId == 2 ? -1 : 1), g.players.size()));
     button(
         c, "next", vt("AU TOUR DE ", "NEXT: ") + nextPlayer.name.toUpperCase(Locale.ROOT),
-        35, H - 110, 330, 62, g.lastWon ? CYAN : PINK);
+        35, H - 99, 330, 58, g.lastWon ? CYAN : PINK);
     hiddenWaiting(c);
   }
 
@@ -2136,8 +2121,8 @@ public final class ArcadeView extends View {
 
   private void avatar(Canvas c, int type, float x, float y, float scale) {
     if (avatarSheet != null) {
-      int index = Math.floorMod(type, 6);
-      int cellW = avatarSheet.getWidth() / 3, cellH = avatarSheet.getHeight() / 2;
+      int index = Math.floorMod(type, 12);
+      int cellW = avatarSheet.getWidth() / 3, cellH = avatarSheet.getHeight() / 4;
       int sourceX = (index % 3) * cellW, sourceY = (index / 3) * cellH;
       c.save();
       Path crop = new Path();
@@ -2434,6 +2419,9 @@ public final class ArcadeView extends View {
       }
       case "settingsMusic" -> { settingsTab = 0; invalidate(); }
       case "settingsParty" -> { settingsTab = 1; invalidate(); }
+      case "langFR" -> actions.setUiLanguage("FR");
+      case "langEN" -> actions.setUiLanguage("EN");
+      case "interfaceLanguage" -> actions.setUiLanguage("EN".equals(g.menuLanguage) ? "FR" : "EN");
       case "add" -> actions.addPlayer();
       case "resetRoster" -> actions.clearRoster();
       case "host" -> actions.startHost();
@@ -2453,7 +2441,8 @@ public final class ArcadeView extends View {
       case "readyTurn" -> actions.readyTurn();
       case "predictYes" -> actions.predict(true);
       case "predictNo" -> actions.predict(false);
-      case "trustCrew" -> { if (g.crewLead() >= 0) actions.finishGame(g.crewLead() == g.target); }
+      case "trustCrew" -> { if (g.crewLead() >= 0) actions.answer(g.crewLead()); }
+      case "passPerformance" -> actions.passPerformance();
       case "ruleReport" -> actions.reportRule();
       case "ruleYes" -> actions.ruleVote(true);
       case "ruleNo" -> actions.ruleVote(false);
@@ -2506,7 +2495,7 @@ public final class ArcadeView extends View {
         if (id.startsWith("answer:")) {
           int selected = Integer.parseInt(id.substring(7));
           if (g.game == 5) actions.drawGuess(selected);
-          else actions.finishGame(selected == g.target);
+          else actions.answer(selected);
         } else if (id.startsWith("cup:")) {
           int cup = Integer.parseInt(id.substring(4));
           actions.selectCup(cup);

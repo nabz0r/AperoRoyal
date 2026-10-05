@@ -2,7 +2,6 @@ package com.aperoroyale;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Random;
 import java.util.function.LongSupplier;
 import org.json.JSONArray;
@@ -101,6 +100,8 @@ public final class GameEngine {
   public boolean betPlaced = false;
   public long deadline = 0, started = 0;
   public boolean lastWon = false, drawingReady = false;
+  /** A performance may be declined without a drink or a score penalty. */
+  public boolean roundPassed = false;
   public String note = "";
   public int[] sequence = {};
   public String screenPromptFr = "", screenPromptEn = "";
@@ -108,7 +109,11 @@ public final class GameEngine {
   public float targetX = 200, targetY = 390;
   public final ArrayList<float[]> strokes = new ArrayList<>();
   public int loserCup = 0;
+  /** Public relay order, shown only after the bomb round resolves. */
+  public int[] bombRoute = {};
   public String mode = "VOTE";
+  /** Device-local menu language; turns continue to use each player's own language. */
+  public String menuLanguage = "FR";
   /** Consecutive rounds without an action from every player. */
   public int passiveStreak = 0;
   public int[] offers = {}, votes = {};
@@ -142,8 +147,11 @@ public final class GameEngine {
   }
 
   public boolean english() {
+    if ("HOME".equals(screen) || "LOBBY".equals(screen) || "SETTINGS".equals(screen)
+        || "GUIDE".equals(screen) || "STATS".equals(screen) || "LIBRARY".equals(screen))
+      return "EN".equals(menuLanguage);
     Player p = current();
-    return p == null ? "en".equals(Locale.getDefault().getLanguage()) : "EN".equals(p.language);
+    return p == null ? "EN".equals(menuLanguage) : "EN".equals(p.language);
   }
 
   public String t(String fr, String en) {
@@ -154,13 +162,7 @@ public final class GameEngine {
     name = name.trim();
     if (name.isEmpty() || players.size() >= 6 || name.length() > 16) return false;
     for (Player p : players) if (p.name.equalsIgnoreCase(name)) return false;
-    int chosen = Math.floorMod(avatar, 6);
-    for (int tries = 0; tries < 6; tries++) {
-      boolean used = false;
-      for (Player player : players) if (player.avatar == chosen) { used = true; break; }
-      if (!used) break;
-      chosen = (chosen + 1) % 6;
-    }
+    int chosen = Math.floorMod(avatar, 12);
     players.add(new Player(name, language, chosen));
     screen = "LOBBY";
     return true;
@@ -282,6 +284,8 @@ public final class GameEngine {
     deadline = 0;
     juryPhase = false;
     bluffTruth = -1;
+    roundPassed = false;
+    bombRoute = new int[0];
     juryVotes = predictions = crewChoices = crewPoints = drawGuesses = new int[0];
     revision = 0;
   }
@@ -575,11 +579,13 @@ public final class GameEngine {
     revealUntil = 0;
     juryPhase = false;
     bluffTruth = -1;
+    roundPassed = false;
     juryVotes = new int[0];
     predictions = new int[0];
     crewChoices = crewPoints = drawGuesses = new int[0];
     betPlaced = false;
     bombNext = active;
+    bombRoute = new int[] {active};
     bombVisitedMask = 0;
     bombAwaitingPass = false;
     bombCutAttempted = false;
@@ -924,6 +930,20 @@ public final class GameEngine {
 
   public boolean cupIsSafe() { return chosenCup >= 0 && !cupIsCursed(chosenCup); }
 
+  public boolean lockAnswer(int choice) {
+    if (!"GAME".equals(screen) || (game != 0 && game != 2)
+        || choice < 0 || choice >= 4 || selected >= 0) return false;
+    selected = choice;
+    return true;
+  }
+
+  public boolean passPerformance(String name) {
+    if (!"GAME".equals(screen) || (game != 1 && game != 8) || juryPhase
+        || current() == null || !current().name.equals(name)) return false;
+    roundPassed = true;
+    return true;
+  }
+
   public boolean beginJury() {
     if (!"GAME".equals(screen) || (game != 1 && game != 8) || juryPhase
         || (game == 8 && bluffTruth < 0)) return false;
@@ -1008,10 +1028,12 @@ public final class GameEngine {
     lastWon = won;
     Player p = current();
     if (p == null) return;
-    p.games++;
+    if (!roundPassed) p.games++;
     roundPoints = 0;
     roundSips = 0;
-    if (won) {
+    if (roundPassed) {
+      // A graceful exit is a completed turn, never a drinking challenge.
+    } else if (won) {
       p.wins++;
       int speed = (game == 0 || game == 2) && deadline > 0
           ? Math.min(80, (int) Math.max(0, (deadline - clock.getAsLong()) / 1000L) * 5) : 0;
@@ -1026,14 +1048,14 @@ public final class GameEngine {
       roundPoints = -Math.min(p.score, 25 * wager);
       p.score += roundPoints;
     }
-    for (int i = 0; i < players.size() && i < predictions.length; i++) {
+    for (int i = 0; !roundPassed && i < players.size() && i < predictions.length; i++) {
       if (i == active || predictions[i] < 0 || predictions[i] > 1) continue;
       Player spectator = players.get(i);
       if ((predictions[i] == 1) == won) spectator.score += predictions[i] == 0 ? 50 : 35;
       else if (ruleId != 1) { spectator.drinks++; spectator.sips++; }
     }
     crewPoints = new int[players.size()];
-    for (int i = 0; i < players.size(); i++) {
+    for (int i = 0; !roundPassed && i < players.size(); i++) {
       if (i == active) continue;
       boolean chose = i < crewChoices.length && crewChoices[i] >= 0;
       boolean guessed = i < drawGuesses.length && drawGuesses[i] >= 0;
@@ -1043,7 +1065,7 @@ public final class GameEngine {
       crewPoints[i] = correct ? 35 : won ? 20 : 10;
       players.get(i).score += crewPoints[i];
     }
-    if (won) {
+    if (won && !roundPassed) {
       boolean secret = switch (game) {
         case 0 -> deadline - clock.getAsLong() >= 8000;
         case 1, 8 -> juryPhase && juryComplete() && juryVerdict();
@@ -1085,6 +1107,8 @@ public final class GameEngine {
     if (!"GAME".equals(screen) || game != 9 || !bombAwaitingPass
         || !players.get(bombNext).name.equals(name) || !canPassBombTo(targetPlayer)) return false;
     bombNext = targetPlayer;
+    bombRoute = java.util.Arrays.copyOf(bombRoute, bombRoute.length + 1);
+    bombRoute[bombRoute.length - 1] = targetPlayer;
     bombAwaitingPass = false;
     return true;
   }
@@ -1307,11 +1331,13 @@ public final class GameEngine {
       j.put("deadline", deadline);
       j.put("started", started);
       j.put("lastWon", lastWon);
+      j.put("roundPassed", roundPassed);
       j.put("drawingReady", drawingReady);
       j.put("note", note);
       j.put("targetX", targetX);
       j.put("targetY", targetY);
       j.put("loserCup", loserCup);
+      j.put("bombRoute", new JSONArray(bombRoute));
       j.put("mode", mode);
       j.put("passiveStreak", passiveStreak);
       j.put("offers", new JSONArray(offers));
@@ -1424,11 +1450,13 @@ public final class GameEngine {
     deadline = j.optLong("deadline");
     started = j.optLong("started");
     lastWon = j.optBoolean("lastWon");
+    roundPassed = j.optBoolean("roundPassed");
     drawingReady = j.optBoolean("drawingReady");
     note = j.optString("note");
     targetX = (float) j.optDouble("targetX", 200);
     targetY = (float) j.optDouble("targetY", 390);
     loserCup = j.optInt("loserCup");
+    bombRoute = readInts(j.optJSONArray("bombRoute"));
     mode = j.optString("mode", "VOTE");
     passiveStreak = Math.max(0, j.optInt("passiveStreak"));
     offers = readInts(j.optJSONArray("offers"));
@@ -1541,7 +1569,7 @@ public final class GameEngine {
       "Quelle planète pleut des diamants selon les modèles ?", "Neptune", "Mars", "Mercure", "Vénus"
     },
     {"Quel animal dort debout ?", "Cheval", "Poulpe", "Pingouin", "Taupe"},
-    {"Combien de cerveaux a une pieuvre ?", "9", "1", "2", "6"},
+    {"Combien de bras a une pieuvre ?", "8", "6", "10", "12"},
     {"Quelle est la couleur de la peau de l'ours polaire ?", "Noire", "Blanche", "Rose", "Bleue"},
     {"Quel oiseau sait voler en marche arrière ?", "Colibri", "Corbeau", "Flamant", "Manchot"},
     {"Combien d'os possède généralement un adulte ?", "206", "106", "306", "406"},
@@ -1560,7 +1588,7 @@ public final class GameEngine {
     {"Which fruit is botanically a berry?", "Banana", "Strawberry", "Raspberry", "Cherry"},
     {"Which planet may rain diamonds?", "Neptune", "Mars", "Mercury", "Venus"},
     {"Which animal can sleep standing?", "Horse", "Octopus", "Penguin", "Mole"},
-    {"How many brains does an octopus have?", "9", "1", "2", "6"},
+    {"How many arms does an octopus have?", "8", "6", "10", "12"},
     {"What color is a polar bear's skin?", "Black", "White", "Pink", "Blue"},
     {"Which bird can fly backward?", "Hummingbird", "Crow", "Flamingo", "Penguin"},
     {"How many bones does an adult usually have?", "206", "106", "306", "406"},
@@ -1574,87 +1602,69 @@ public final class GameEngine {
     {"Which planet has the most visible rings?", "Saturn", "Mars", "Earth", "Venus"}
   };
   public static final String[][] POSES = {
-    {
-      "Une main sur la tête, l'autre sur le genou d'un voisin. Tiens 15 secondes !",
-      "One hand on your head, the other on a friend's knee. Hold 15 seconds!"
-    },
-    {
-      "Imite un flamant rose en chantant ton prénom. 15 secondes !",
-      "Be a flamingo while singing your name. 15 seconds!"
-    },
-    {
-      "Fais la statue disco sur une jambe. 15 secondes !",
-      "Strike a disco pose on one leg. 15 seconds!"
-    },
-    {
-      "Danse au ralenti sans bouger les pieds. 15 secondes !",
-      "Dance in slow motion without moving your feet. 15 seconds!"
-    },
-    {
-      "Fais un selfie invisible avec tout le monde. Pose dramatique !",
-      "Take an invisible selfie with everyone. Dramatic pose!"
-    },
-    {
-      "Marche comme un crabe royal jusqu'à la porte et reviens.",
-      "Crab walk to the door and back like royalty."
-    },
-    {"Rejoue la démarche du pote à ta droite. Qu'il valide !", "Copy the walk of the friend on your right. Get their verdict!"},
-    {"Pose de couverture d'album avec deux voisins.", "Pose for an album cover with two friends."},
-    {"Fais une entrée de star au ralenti, applaudissements obligatoires.", "Make a slow-motion star entrance. Demand applause."},
-    {"Mets-toi en statue de musée. Les autres te donnent un titre.", "Become a museum statue. Let the others name the artwork."},
-    {"Imite un barman qui sert un cocktail invisible.", "Mime a bartender serving an invisible cocktail."},
-    {"Fais le robot qui manque de batterie pendant dix secondes.", "Be a robot running out of battery for ten seconds."},
-    {"Danse avec un partenaire imaginaire sans quitter ta place.", "Dance with an imaginary partner without leaving your spot."},
-    {"Deviens le commentateur sportif du prochain geste d'un ami.", "Commentate a friend's next move like a sports announcer."},
-    {"Mime ton humeur du lundi à huit heures. Le groupe doit deviner.", "Mime your Monday 8 a.m. mood. The group must guess."},
-    {"Pose en super-héros dont le pouvoir est de faire l'apéro.", "Pose as a superhero whose power is hosting parties."},
-    {"Fais une révérence royale à la personne de ton choix.", "Give a royal bow to someone of your choosing."},
-    {"Transforme une chaise en trône avec une pose grandiose.", "Turn a chair into a throne with a grand pose."}
+    {"Entre comme si tu venais d'acheter le bistrot. La table t'invente un titre.", "Enter as if you just bought the bar. Let the table invent your title."},
+    {"Pose de pochette d'album après une rupture spectaculaire. Un complice peut jouer l'ex.", "Strike an album-cover pose after a dramatic breakup. A friend may play the ex."},
+    {"Tu viens de voir l'addition. Fige la réaction la plus digne possible.", "You have just seen the bill. Freeze your most dignified reaction."},
+    {"Un paparazzi invisible arrive. Offre-lui ta pire pose de célébrité.", "An invisible paparazzo arrives. Give them your worst celebrity pose."},
+    {"Joue un serveur qui sait un secret et refuse de le dire.", "Play a waiter who knows a secret and refuses to tell."},
+    {"Présente un sous-verre comme un bijou hors de prix.", "Present a coaster as if it were priceless jewelry."},
+    {"Tu croises ton ancien patron au karaoké. Tout est dans le regard.", "You meet your old boss at karaoke. Let your face do the talking."},
+    {"Avec un volontaire, posez pour la photo officielle d'un duo improbable.", "With a willing friend, pose for the official photo of an unlikely duo."},
+    {"Mime une entrée de star dans une salle qui n'a rien demandé.", "Make a star entrance into a room that asked for none of it."},
+    {"Deviens une statue de musée. La table lui donne un titre scandaleux mais tendre.", "Become a museum statue. The room gives it a scandalous but kind title."},
+    {"Joue le DJ dont le vinyle vient de s'arrêter au pire moment.", "Play a DJ whose record stops at the worst possible moment."},
+    {"Pose d'agent secret qui a oublié son mot de passe.", "Pose as a secret agent who forgot the password."},
+    {"Tu viens de réussir un coup de bluff. Cache ton sourire victorieux.", "You just pulled off a bluff. Hide your victorious grin."},
+    {"Accepte un prix imaginaire pour une compétence totalement inutile.", "Accept an imaginary award for a completely useless skill."},
+    {"La table te surprend en train de répéter un discours au miroir.", "The room catches you rehearsing a speech in the mirror."},
+    {"Prends la pose d'un détective qui a enfin compris… presque.", "Strike the pose of a detective who almost has it figured out."},
+    {"Fais une révérence à la personne qui t'a sauvé la soirée.", "Bow to the person who saved your evening."},
+    {"Transforme ta chaise en trône de fin de nuit, sans la déplacer.", "Make your chair a late-night throne without moving it."}
   };
   public static final String[][] DRAW = {
-    {"Une licorne en boîte de nuit", "A unicorn at a nightclub"},
-    {"Un canard DJ", "A DJ duck"},
-    {"Un astronaute en slip", "An astronaut in underwear"},
-    {"Un avocat qui danse", "A dancing avocado"},
-    {"Une pizza qui pleure", "A crying pizza"},
-    {"Un robot amoureux", "A robot in love"},
-    {"Un chat qui gouverne la ville", "A cat ruling the city"},
-    {"Une licorne en métro", "A unicorn on the subway"},
-    {"Un croissant bodybuilder", "A bodybuilder croissant"},
-    {"Un lama qui fait du skate", "A llama on a skateboard"},
-    {"Une boule disco triste", "A sad disco ball"},
-    {"Une grenouille en costume", "A frog in a suit"},
-    {"Un taco astronaute", "An astronaut taco"},
-    {"Un fantôme au karaoké", "A ghost at karaoke"},
-    {"Un dragon qui souffle des bulles", "A dragon blowing bubbles"},
-    {"Un pigeon DJ", "A DJ pigeon"},
-    {"Une chaussette couronnée", "A crowned sock"}
+    {"Le dernier métro en limousine", "The last train as a limousine"},
+    {"Une carte bancaire qui fuit l'addition", "A credit card fleeing the bill"},
+    {"Un DJ devant un vinyle cassé", "A DJ with a broken record"},
+    {"Un sous-verre avec une couronne", "A coaster wearing a crown"},
+    {"Un bouquet qui cache un micro", "A bouquet hiding a microphone"},
+    {"Un taxi refusant une célébrité", "A taxi rejecting a celebrity"},
+    {"Un miroir donnant des conseils", "A mirror giving advice"},
+    {"Des lunettes de soleil à minuit", "Sunglasses at midnight"},
+    {"Une clé oubliée sur le comptoir", "A forgotten key on the bar"},
+    {"Un photomaton en panne de pose", "A photo booth with no poses left"},
+    {"Une boule disco en réunion", "A disco ball in a meeting"},
+    {"Un téléphone jaloux d'un vinyle", "A phone jealous of a record"},
+    {"Une invitation au mauvais nom", "An invitation with the wrong name"},
+    {"Un détective dans une cabine DJ", "A detective in a DJ booth"},
+    {"Un chapeau sur un verre vide", "A hat on an empty glass"},
+    {"Un billet de concert trempé", "A soaked concert ticket"},
+    {"Une chaise réservée à personne", "A chair reserved for nobody"}
   };
   public static final String[][] BLUFF = {
-    {"Raconte une rencontre improbable pendant une soirée.", "Tell us about an unlikely encounter at a party."},
-    {"Décris ton pire raté en cuisine.", "Describe your biggest kitchen disaster."},
-    {"Raconte un surnom que quelqu'un t'a donné.", "Tell us about a nickname someone gave you."},
-    {"Raconte une fois où tu as fait semblant de comprendre un jeu.", "Tell us about a time you pretended to understand a game."},
-    {"Décris un objet perdu au pire moment.", "Describe an item you lost at the worst moment."},
-    {"Raconte un toast qui a tourné bizarrement.", "Tell us about a toast that went strangely wrong."},
-    {"Raconte une petite victoire dont tu étais trop fier.", "Tell us about a tiny win you were too proud of."},
-    {"Décris un cadeau que tu n'as pas su comment recevoir.", "Describe a gift you did not know how to react to."},
-    {"Raconte une conversation avec un inconnu mémorable.", "Tell us about a memorable conversation with a stranger."},
-    {"Raconte une fois où tu t'es trompé de personne.", "Tell us about a time you mistook someone for somebody else."},
-    {"Décris un trajet qui a pris une tournure absurde.", "Describe a journey that took an absurd turn."},
-    {"Raconte une excuse beaucoup trop créative.", "Tell us about an excuse that was far too creative."},
-    {"Raconte ton talent le plus inutile.", "Tell us about your most useless talent."},
-    {"Décris le meilleur hasard de ta semaine.", "Describe the best coincidence of your week."},
-    {"Raconte une mésaventure avec une photo de groupe.", "Tell us about a mishap with a group photo."},
-    {"Décris une règle de maison complètement inattendue.", "Describe a completely unexpected house rule."},
-    {"Raconte une scène digne d'un jeu vidéo dans la vraie vie.", "Tell us about a real-life moment that felt like a video game."}
+    {"Raconte comment tu as salué quelqu'un dont tu avais oublié le prénom.", "Tell how you greeted someone whose name you had forgotten."},
+    {"Décris le plus étrange objet retrouvé au fond d'une poche après une soirée.", "Describe the strangest thing found in a pocket after a night out."},
+    {"Raconte une addition que personne ne voulait comprendre.", "Tell the story of a bill nobody wanted to understand."},
+    {"Décris un compliment qui a pris une tournure imprévue.", "Describe a compliment that took an unexpected turn."},
+    {"Raconte le texto envoyé à la mauvaise personne.", "Tell us about a text sent to the wrong person."},
+    {"Décris une excuse trop élégante pour quitter une soirée.", "Describe an overly elegant excuse to leave a party."},
+    {"Raconte un rendez-vous arrivé dans le mauvais lieu.", "Tell us about a date that reached the wrong place."},
+    {"Décris un débat absurde qui a duré beaucoup trop longtemps.", "Describe an absurd debate that lasted far too long."},
+    {"Raconte une rencontre improbable au comptoir.", "Tell us about an unlikely encounter at the bar."},
+    {"Décris une petite victoire que tu as célébrée comme un trophée.", "Describe a tiny win you celebrated like a trophy."},
+    {"Raconte quand tu as fait semblant de connaître la chanson.", "Tell us when you pretended to know the song."},
+    {"Décris une photo de groupe devenue une enquête.", "Describe a group photo that turned into an investigation."},
+    {"Raconte une règle de maison annoncée très sérieusement.", "Tell us about a house rule announced with a straight face."},
+    {"Décris un objet emprunté qui a vécu sa propre aventure.", "Describe a borrowed object that had its own adventure."},
+    {"Raconte un discours improvisé dont tu as regretté le début.", "Tell us about an improvised speech whose opening you regretted."},
+    {"Décris une arrivée tardive que tout le monde a remarquée.", "Describe a late entrance nobody could ignore."},
+    {"Raconte un moment où la table entière a gardé le même secret.", "Tell us about a moment when the whole table kept the same secret."}
   };
   public static final String[][] TUNES = {
-    {"Une montée", "Rising notes"},
-    {"Une descente", "Falling notes"},
-    {"De grands sauts", "Big jumps"},
-    {"Des échos espacés", "Spaced echoes"},
-    {"Des notes doublées", "Double notes"},
-    {"Un rythme cassé", "A broken rhythm"}
+    {"Générique qui grimpe", "Rising opening theme"},
+    {"Descente d'escalier", "Staircase descent"},
+    {"Ascenseur fou", "Wild elevator leaps"},
+    {"Appel à l'écho", "Distant echo call"},
+    {"Duo de cloches", "Twin bells"},
+    {"Vinyle rayé", "Skipping record"}
   };
 }

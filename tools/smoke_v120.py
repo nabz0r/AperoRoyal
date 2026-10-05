@@ -176,6 +176,9 @@ def main():
     add_player("Pixel")
     add_player("Nova")
     assert len(state()["players"]) == 2
+    with Path("docs/screenshots/lobby-two.png").open("wb") as f:
+        f.write(subprocess.check_output([ADB, "-s", SERIAL,
+            "exec-out", "screencap", "-p"]))
     tap(200, HEIGHT - 248)
     assert state()["mode"] == "FREE"
     tap(292, HEIGHT - 178)
@@ -202,6 +205,10 @@ def main():
             f.write(subprocess.check_output([ADB, "-s", SERIAL, "exec-out", "screencap", "-p"]))
         play(game, s)
         s = wait_screen("RESULT", timeout=28)
+        if game in (0, 5, 9):
+            with (shots / (slugs[game] + "-result.png")).open("wb") as f:
+                f.write(subprocess.check_output([ADB, "-s", SERIAL,
+                    "exec-out", "screencap", "-p"]))
         print(f"{game + 1:02d} {s['players'][s['active']]['name']} {s['lastWon']} "
               f"score={s['players'][s['active']]['score']} sips={s['players'][s['active']]['sips']}", flush=True)
         tap(200, HEIGHT - 78)
