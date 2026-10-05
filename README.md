@@ -4,7 +4,7 @@
 
 ![Nouvel accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.4.8**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.8.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.9**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.9.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 **La table vous retrouve.** Créez les profils une fois : pseudos, langues FR/EN, sprites et photos restent disponibles pour la soirée suivante. Un menu de pause permet d'annuler un défi sans score ni gorgée, de revenir au salon ou à l'accueil, puis de reprendre. La Radio Apéro s'ouvre d'un toucher, avec sources, playlist favorite et commandes du lecteur Android actif. [Voir la refonte 1.4.6 et les références Play Store](docs/RELEASE_146_DESIGN.md).
 
@@ -36,6 +36,8 @@ En local, **☰** suspend les chronos et donne accès à *Annuler ce défi*, *Re
 **Laboratoire d’expérience 1.4.7.** [3 000 soirées synthétiques et 36 000 manches](docs/LABO_EXPERIENCE_2026.md) explorent des groupes rapides, hésitants ou interrompus, sur un ou plusieurs téléphones. Le modèle révèle un risque de cadence du Vote partagé à quatre à six et distingue gestes, attente et préparation ; ses durées sont des hypothèses, pas des observations de plaisir. Le salon suggère Turbo pour accélérer une soirée à quatre ou plus sur un téléphone. Un vote non envoyé devient désormais une abstention après son délai, afin que la salle puisse continuer. Le passage local du téléphone suspend ce décompte. Le nouvel écran affiche les secondes restantes.
 
 **Horloge de soirée 1.4.8.** [Trois exécutions de 100 000 soirées, soit 5,4 millions de manches](docs/LABO_EXTREME_2026.md), branchent une horloge virtuelle sur les vrais délais du moteur. Elles croisent 2–6 amis, un, deux ou plusieurs téléphones, interruptions corrélées et réponses absentes. Le groupe peut désormais [passer la participation d'un ami absent](docs/screenshots/handoff-skip.png). Le délai de contribution repart après chaque ami ; Positions, Dessin et Bluff laissent plus de temps à la création. Les durées simulées sont des scénarios de risque, **pas des mesures d'amusement ou de réseau réel**.
+
+**Des joueurs virtuels 1.4.9.** [90 000 soirées avec des agents à mémoire](docs/LABO_GENS_VIRTUELS_2026.md) font voter, miser, juger et réagir des profils aux goûts, relations, réussites et fatigues distincts. Les mêmes cohortes comparent les anciens et nouveaux chronos sur **4,32 millions de manches simulées** au total. Le Blind Test gagne cinq secondes et Mémoire quatre : les fins forcées diminuent dans le modèle. Ces personnages sont des hypothèses de conception, **pas des invités réels ni une mesure de plaisir**.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -121,6 +123,7 @@ Android natif Java, JDK 17, Android SDK 36 et Gradle 8.14.3. Aucun serveur n’e
 ./gradlew test assembleDebug
 ./gradlew testDebugUnitTest --tests com.aperoroyale.PartyExperienceSimulationTest
 ./gradlew testDebugUnitTest --tests com.aperoroyale.ExperienceRiskLabTest
+./gradlew testDebugUnitTest --tests com.aperoroyale.VirtualPeopleSimulationTest
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turns.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turbo.py
@@ -143,8 +146,8 @@ keyPassword=your-password
 
 Illustrations originales dans [`art/source`](art/source), décors des mini-jeux sous [`app/src/main/res/drawable-nodpi`](app/src/main/res/drawable-nodpi) et captures réelles d’émulateur sous [`docs/screenshots`](docs/screenshots). Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
 
-**Pour guider la prochaine version :** [laboratoire extrême à horloge virtuelle](docs/LABO_EXTREME_2026.md), [premier laboratoire d'expérience](docs/LABO_EXPERIENCE_2026.md), [diagnostic des dix mini-jeux](docs/REFONTE_DIX_MINI_JEUX.md) et [audit produit initial](docs/AUDIT_PRODUIT_2026.md). Ces documents distinguent les mécaniques déjà livrées des hypothèses à tester avec de vrais groupes.
+**Pour guider la prochaine version :** [laboratoire de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md), [laboratoire extrême à horloge virtuelle](docs/LABO_EXTREME_2026.md), [diagnostic des dix mini-jeux](docs/REFONTE_DIX_MINI_JEUX.md) et [audit produit initial](docs/AUDIT_PRODUIT_2026.md). Ces documents distinguent les mécaniques déjà livrées des hypothèses à tester avec de vrais groupes.
 
 ---
 
-**English:** Apéro Royale 1.4.8 is a French/English Android party arcade for 2–6 friends on one or several phones over Wi-Fi, paired Bluetooth or an Internet room code. Local profiles and the leaderboard survive new parties. A shared phone can skip an absent friend's private turn without inventing a vote. Group contribution time renews after each player, and the social drawing, pose and bluff challenges allow more creation time. A virtual-clock lab ran 300,000 synthetic parties across three seeds and publishes its assumptions; it does not claim to measure human enjoyment or real network latency. The signed APK is linked above.
+**English:** Apéro Royale 1.4.9 is a French/English Android party arcade for 2–6 friends on one or several phones over Wi-Fi, paired Bluetooth or an Internet room code. Local profiles and the leaderboard survive new parties. A shared phone can skip an absent friend's private turn without inventing a vote. The Blind Test and Memory timers allow more time. A new lab runs stateful virtual people through 90,000 parties per timer version and publishes its assumptions and cohort data; it does not claim to predict human enjoyment or real network latency. The signed APK is linked above.

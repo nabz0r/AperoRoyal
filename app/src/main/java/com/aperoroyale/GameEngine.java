@@ -682,11 +682,11 @@ public final class GameEngine {
         switch (game) {
           case 0 -> 16;
           case 1 -> 40;
-          case 2 -> 18;
+          case 2 -> 23;
           case 3 -> 15;
           case 4 -> 10;
           case 5 -> drawingReady ? 12 + 8 * Math.max(0, players.size() - 2) : 40;
-          case 6 -> 22;
+          case 6 -> 26;
           case 7 -> 16;
           case 8 -> 40;
           case 9 -> variant >= 3 ? 24 : 30;

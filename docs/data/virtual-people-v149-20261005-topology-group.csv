@@ -1,0 +1,13 @@
+topology/group,parties,rounds,mean_s,timeout_pct,missed_action_pct,repeat_game_pct,raw_preference_vote_pct,three_sip_bet_pct,low_energy_observations_pct,low_mood_energy_observations_pct,actor_win_pct,sips_per_round,peer_actions_per_round
+shared/friends,2500,60000,34.6,4.0,7.6,0.0,81.5,27.3,9.2,13.9,53.2,0.7,3.7
+shared/mixed,2500,60000,34.5,3.9,7.5,0.0,81.9,26.8,9.5,13.8,52.6,0.7,3.7
+shared/competitive,2500,60000,38.4,9.1,7.8,0.0,81.9,23.5,9.7,22.7,48.9,0.8,3.6
+shared/distracted,2500,60000,51.1,44.9,17.4,0.0,82.0,10.1,74.2,86.2,30.8,0.8,2.9
+two/friends,2500,60000,21.7,1.4,7.5,0.0,81.2,31.1,9.5,9.1,57.1,0.7,3.7
+two/mixed,2500,60000,21.7,1.4,7.3,0.0,81.7,30.7,9.2,9.0,56.5,0.7,3.7
+two/competitive,2500,60000,24.7,3.6,7.6,0.0,82.5,29.3,9.3,12.6,55.3,0.7,3.7
+two/distracted,2500,60000,36.1,26.9,16.8,0.0,81.9,18.5,70.2,61.3,42.9,0.8,3.0
+each/friends,2500,60000,19.5,1.6,7.4,0.0,81.1,30.8,9.1,9.2,56.9,0.7,3.7
+each/mixed,2500,60000,19.5,1.4,7.4,0.0,82.0,30.4,9.4,8.9,56.6,0.7,3.7
+each/competitive,2500,60000,22.2,3.4,7.4,0.0,82.1,29.2,9.6,12.5,55.2,0.7,3.7
+each/distracted,2500,60000,32.5,26.4,16.7,0.0,82.0,19.1,69.8,60.0,43.1,0.8,3.1

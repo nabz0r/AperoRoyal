@@ -1,3 +1,25 @@
+# Apéro Royale 1.4.9 — Les joueurs virtuels
+
+- [Télécharger l'APK Android signé 1.4.9](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.9.apk) · `com.aperoroyale` · versionCode `16` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `80ea3f06465d0c6399f765f3bc73292aae77e8758af055c21ed5cc58661bb031`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.8
+
+## Nouveautés
+
+- [Laboratoire de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) : agents avec goûts, aptitudes, relations, confiance, humeur, fatigue et mémoire des défis. Ils votent, misent, contribuent, jugent et peuvent manquer une action ; les effets d'une manche modifient leurs choix ultérieurs. Trois graines couvrent 90 000 soirées de 24 manches par variante, soit 4,32 millions de manches pour la comparaison avant/après.
+- Blind Test : 23 secondes au lieu de 18 ; Mémoire : 26 au lieu de 22, avant les modificateurs existants. Dans **ce modèle**, les fins forcées passent de 30,0–30,5 % à 14,4–14,6 % pour Blind Test et de 20,9–21,3 % à 12,1–12,4 % pour Mémoire. Les deux réglages restent à essayer avec de vrais amis.
+- Données de cohortes avant/après, hypothèses et exporteur reproductible publiés. Les agents ne mesurent ni le plaisir, ni les conversations, ni le Wi-Fi/Bluetooth/Internet réel.
+
+## Vérifications
+
+- `testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite ; 39 tests, zéro échec. Six longues exécutions de 30 000 soirées ont passé sans état bloqué.
+- APK signée v2 vérifiée ; `aapt` confirme versionCode 16 et minSdk 26.
+- APK installée et lancée sur émulateurs Android 8.0 et Android 16 ; l'activité principale reste au premier plan. Les parcours UI détaillés de la version précédente ne sont pas rejoués ici, car les changements visibles portent sur deux chronos.
+
+**Limites.** Le modèle est une expérience de conception, sans calibration sur des personnes réelles. Ses pourcentages ne sont pas des prédictions de réussite, d'amusement ou de fidélisation.
+
+---
+
 # Apéro Royale 1.4.8 — L'horloge de soirée
 
 - [Télécharger l'APK Android signé 1.4.8](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.8.apk) · `com.aperoroyale` · versionCode `15` · Android 8.0+ (API 26)
