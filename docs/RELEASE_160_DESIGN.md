@@ -1,54 +1,54 @@
-# 1.6.0 — La nuit est à vous
+# v1.6.0 — The night is yours
 
-## Direction
+## Art direction
 
-Les deux images de référence de la soirée fixent le ton : des adultes autour d'une table, le bar et l'arcade au fond, une lumière chaude, un trait illustré et un humour de situation. La hiérarchie est **les personnes, leur geste, la réaction des amis, puis l'interface**. Les dix mini-jeux conservent une lecture immédiate à une main, mais ne donnent plus l'impression d'un catalogue pour enfants.
+The party references established the mood: adults around a table, a bar and arcade behind them, warm light, expressive illustration and humor driven by the situation. The visual hierarchy is **people → action → friends' reaction → interface**. The ten challenges still need one-handed readability, with the atmosphere of a night out rather than a children's game catalog.
 
-Douze portraits originaux représentent des rôles de soirée (vigneron, directrice créative, DJ, antiquaire, diva, chef, photographe…). Ce sont des personnages de fiction, sans rôle attribué par origine ni genre. Un portrait peut être choisi plusieurs fois ; l'import d'une photo reste possible. Chaque jeu reçoit un fragment d'une fresque nocturne distincte et un signe de jeu (enseignes, rideau, vinyle, sous-verres, galerie, cartes, rythme, faisceau, fil). Le résultat garde l'illustration lisible et met le visage du joueur en avant.
+Twelve original portraits represent fictional party characters: a winegrower, creative director, DJ, antiques dealer, diva, chef, photographer and others. No personality is assigned by ethnicity or gender. A portrait may be chosen by several players; optional photo import remains possible. Each game uses a distinct fragment of the night scene and a relevant visual cue: signage, curtain, vinyl, coasters, gallery, cards, rhythm, beam or wire. The result keeps the artwork legible and the player's face prominent.
 
-Le [jeu officiel Narcos: Cartel Wars & Strategy sur l'App Store](https://apps.apple.com/gb/app/narcos-cartel-wars-strategy/id1143052259) met en avant des personnages à recruter, des alliances et des événements. **Notre interprétation** de cette référence porte sur la clarté des rôles, la collection de visages et l'anticipation des révélations ; ce jeu de stratégie ne constitue ni une preuve de viralité pour un party game, ni une source d'illustrations ou de personnages à reprendre. Les références Android et les limites de leurs avis publics figurent dans [l'analyse sociale](STRESS_TEST_SOCIAL_2026.md).
+The historical design discussion drew inspiration from recognizable roles and character anticipation in other games. It did not use third-party illustrations or claim that a strategy game's audience proves virality for a party game.
 
-## Ce qui a changé dans les dix défis
+## Changes across all ten games
 
-| Jeu | Geste autour de la table | Dévoilement 1.6.0 |
+| Game | Action around the table | v1.6.0 reveal |
 | --- | --- | --- |
-| Culture G | Réponses privées des amis ; l'acteur suit la salle ou assume sa réponse. | Bonne réponse et noms de ceux qui avaient vu juste. Une question contestable sur la pieuvre a été remplacée. |
-| Positions | Cartes de jeu de rôle de bistrot, solo, assis ou avec un complice volontaire. | Vote du jury et noms des soutiens ; passage possible sans points ni gorgée. |
-| Blind Test | Les motifs originaux deviennent des jingles de fiction ; chacun propose son choix. | Intitulé du jingle et oreilles fines nommées. Aucun catalogue tiers n'est utilisé. |
-| Réflexe | Chaque ami pose une cible sur le parcours. | Nombre de cibles touchées et auteurs du parcours. |
-| Roulette | Les amis protègent des sous-verres ; l'acteur choisit son risque. | Sous-verre, issue et protecteurs du choix. |
-| Dessin | Sujets plus situés dans la soirée ; les amis devinent en privé. | Sujet et noms des personnes qui ont reconnu le dessin. |
-| Mémoire | Les amis composent la chaîne de symboles. | Progression et premières contributions attribuées. |
-| Rythme | La salle compose la mesure à rejouer. | Mesure et personnes qui l'ont composée. |
-| Bluff | Alibis de bistrot, vrais ou inventés, défendus devant le jury. | Vérité et noms des personnes convaincues ; passage sans pénalité. |
-| Le dernier fil | La bombe circule entre les mains avant le fil final. | Parcours nominatif et fil choisi, conservés à la reprise. |
+| Trivia | Friends answer privately; the actor can follow the room or choose alone. | Correct answer and the friends who got it. A disputed octopus question was replaced. |
+| Poses | Bar-scene role cards played solo, seated or with a willing partner. | Jury votes and named supporters; passing without points or sips is allowed. |
+| Music Quiz | Original motifs become fictional jingles; everyone submits a choice. | Jingle title and friends with sharp ears. No third-party catalog. |
+| Reflex | Every friend places a target on the course. | Targets hit and the friends who built the course. |
+| Roulette | Friends protect coasters; the actor chooses a risk. | Chosen coaster, outcome and its protectors. |
+| Drawing | Prompts feel situated in the party; friends guess privately. | Subject and the people who recognized the drawing. |
+| Memory | Friends compose a symbol chain. | Progress and the first attributed contributions. |
+| Rhythm | The room composes a measure to repeat. | Measure and its composers. |
+| Bluff | True or invented bar alibis defended before the jury. | Truth and believers; a penalty-free pass is possible. |
+| Last Wire | The bomb travels between players before the final cut. | Named relay route and chosen wire, retained after resume. |
 
-Le guide dans l'app explique chaque geste en FR/EN. La langue des menus se choisit sur l'accueil et dans **Options → Partie** ; elle est conservée sur l'appareil. La langue d'un tour reste celle du joueur actif. Les deux commandes sont indépendantes.
+In-app help explains each action in FR/EN. Menu language can be selected on the home screen or under **Settings → Party** and persists on the device. A round still follows the active player's profile language; these controls are independent.
 
-La bande sonore originale a été réorchestrée vers des phrases plus courtes et plus espacées. Le jeu baisse son ambiance pendant le jingle, le rythme et le bluff. Les sons de touche et le verdict sont moins insistants, avec une ponctuation propre au jeu. Les réglages de musique, style, volume, SFX et vibrations restent séparés.
+The original audio was reorganized into shorter, more widely spaced phrases. Background music softens during the jingle, rhythm and bluff challenges. Tap and verdict sounds are less insistent, with game-specific accents. Music, style, volume, SFX and haptics remain separate settings.
 
-## Vérifications reproductibles
-
-Commande :
+## Reproduction and verification
 
 ```sh
-APERO_SIM_PARTIES=10000 APERO_PEOPLE_PARTIES=10000 ./gradlew testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline --rerun-tasks
+APERO_SIM_PARTIES=10000 APERO_PEOPLE_PARTIES=10000 \
+./gradlew testDebugUnitTest assembleDebug assembleRelease lintVitalRelease \
+  --offline --rerun-tasks
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ```
 
-| Épreuve | Résultat |
+| Check | Historical result |
 | --- | --- |
-| Tests JUnit | 48 tests, zéro échec, dont cinq nouveaux tests de langue, portraits partagés, passage, réponses verrouillées, sauvegarde du relais et récits FR/EN des dix jeux. |
-| Salles multi-appareils **simulées** | 10 000 soirées, 40 000 manches, 160 000 instantanés privés FR/EN, 80 000 actions interdites rejetées et 400 reprises. |
-| Horloge et interruptions **simulées** | 10 000 soirées de 18 manches, 180 000 manches, avec 2 à 6 joueurs, trois modes et différentes absences. |
-| Joueurs virtuels **hypothétiques** | 10 000 soirées de 24 manches, 240 000 manches ; goûts, relations, humeur et fatigue influencent les choix. |
-| Android 16, un téléphone | Deux profils, dix jeux, alternance des acteurs, mises, actions des amis, historique et captures des dix scènes : `tools/smoke_v120.py`. |
-| Deux émulateurs en Wi-Fi simulé | Android 16 héberge, Android 8 rejoint avec IP/PIN. La salle et le premier résultat se synchronisent ; à la manche suivante, l'invité choisit une réponse de Culture G sur son écran et l'hôte reçoit « 1 réponse » avec le choix majoritaire. Le lien passe par une redirection locale du port du simulateur. |
+| JUnit | 48 tests passed, including language choice, shared portraits, passing, locked answers, relay persistence and FR/EN reveal stories. |
+| **Simulated** multi-device rooms | 10,000 parties, 40,000 rounds, 160,000 private FR/EN snapshots, 80,000 forbidden actions rejected and 400 restores. |
+| **Simulated** clock and interruptions | 10,000 parties of 18 rounds, or 180,000 rounds, spanning 2–6 players, three modes and modeled absences. |
+| **Hypothetical** virtual players | 10,000 parties of 24 rounds, or 240,000 rounds, with assumed tastes, relationships, moods and fatigue. |
+| Android 16, one phone | Two profiles, ten games, alternating actors, stakes, friend actions, history and screenshots via `tools/smoke_v120.py`. |
+| Two emulators on simulated local Wi-Fi | Android 16 hosted and Android 8 joined with address/PIN. The lobby and first result synchronized; a remote Trivia answer reached the host in the next round. The link used the emulator's local port forwarding. |
 
-Dans le modèle de joueurs virtuels, le temps moyen d'une manche dépend fortement du mode et du nombre de téléphones : environ **19,5 s** avec chacun son téléphone pour une table « mixed » contre **34,6 s** sur un téléphone partagé, et **51,3 s** dans le scénario partagé « distracted ». Ces nombres viennent des comportements supposés du test. Ils signalent où observer les vrais passages d'appareil ; ils ne mesurent ni des personnes, ni une latence réseau réelle. Les résultats détaillés sont écrits dans les rapports JUnit de Gradle.
+In the virtual-player model, mean round duration depended strongly on mode and device layout: roughly **19.5 s** with a phone per player for a “mixed” group versus **34.6 s** on one shared phone, and **51.3 s** for the modeled shared “distracted” scenario. These numbers arise from test assumptions. They identify where to observe real handoffs; they are neither human timing measurements nor real network latency.
 
-## Ce que cette release ne démontre pas
+## What the release did not demonstrate
 
-Une simulation ne peut pas prouver qu'une anecdote sera drôle, qu'un portrait plaira, que les sons seront agréables dans un vrai bar ou que dix jeux deviendront viraux. Les parcours matériels détaillés ci-dessus concernent des téléphones **émulés**. Le réseau Wi-Fi, Bluetooth et Internet conserve l'architecture et les tests des versions précédentes ; cette release ne prétend pas mesurer sa latence sur plusieurs téléphones physiques. Les services musicaux externes s'ouvrent dans leur propre application ; le jeu ne pilote pas leurs catalogues. Le relais Internet public reste un service de test.
+A simulation cannot prove that an anecdote is funny, a portrait is appealing, the audio works in a real bar or the games will spread. The device journeys above used emulators. This release did not measure Wi-Fi, Bluetooth or Internet latency on physical phones. External music services open in their own apps; Apéro Royale does not control their catalogs. The default Internet relay is a public test service.
 
-Prochain test humain utile : observer plusieurs tables sans leur expliquer les scènes à l'avance, noter les règles que les amis inventent spontanément, les hésitations, les phrases reprises le lendemain, puis garder aussi les sessions où personne ne rit. C'est la seule façon d'arbitrer la promesse sociale de cette version.
+A useful next human test is to observe several tables without explaining each scene first. Record improvised rules, hesitation, phrases repeated the next day and sessions where nobody laughs. Those observations can test the social promise more honestly than a simulated “fun score.”

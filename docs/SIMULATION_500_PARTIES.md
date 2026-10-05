@@ -1,31 +1,31 @@
-# Simulation de 500 soirées — Apéro Royale 1.4.1
+# 500-party simulation — v1.4.1
 
-Le test reproductible [`PartySimulationTest`](../app/src/test/java/com/aperoroyale/PartySimulationTest.java) exécute le **vrai moteur de jeu** avec 500 graines différentes, de deux à six joueurs, en modes Vote, Libre et Turbo. Chaque soirée dure de 12 à 20 manches. Le test alterne acteurs, mises, pronostics, votes, jury, roulette, réflexes, bombe, règles secrètes et signalements de règle. Il sauvegarde et restaure régulièrement l'état en JSON, comme lors d'une reprise ou d'une synchronisation, puis vérifie tours, scores, compteurs et secrets des instantanés invités. [L'audit de rythme et de participation de 1.4.2](SIMULATION_EXPERIENCE_500.md) ajoute un second jeu de 500 soirées, avec hypothèses de temps explicites et diagnostic des dix défis.
+The reproducible [`PartySimulationTest`](../app/src/test/java/com/aperoroyale/PartySimulationTest.java) drives the **production game engine** through 500 seeded parties of 2–6 players in Vote, Free and Turbo modes. Each party lasts 12–20 rounds. The test exercises actors, wagers, predictions, voting, jury, roulette, reflex, bomb relays, secret rules and disputed-rule votes. It regularly saves and restores JSON state, then checks turn order, scores, counters and privacy in guest snapshots. The [v1.4.2 participation audit](SIMULATION_EXPERIENCE_500.md) adds another 500 parties with explicit time assumptions.
 
-## Résultat après corrections
+## Result after fixes
 
-| Mesure | Résultat |
+| Measure | Result |
 | --- | ---: |
-| Soirées simulées | 500 |
-| Manches terminées | 7 990 |
-| Victoires / défaites | 4 041 / 3 949 |
-| Pronostics expirés | 1 012 |
-| Jurys arrivés au délai | 396 |
-| Règles secrètes choisies | 498, dont 166 en Turbo |
-| Signalements soumis au vote | 436 |
-| Restaurations JSON contrôlées | 40 190 |
+| Simulated parties | 500 |
+| Completed rounds | 7,990 |
+| Wins / losses | 4,041 / 3,949 |
+| Expired predictions | 1,012 |
+| Jury deadlines | 396 |
+| Secret rules selected | 498, including 166 in Turbo |
+| Disputed rules sent to a vote | 436 |
+| JSON restores checked | 40,190 |
 
-Chaque mini-jeu apparaît au moins une fois. Aucun tour perdu, score négatif, victoire au-delà du nombre de manches, répétition immédiate en Vote/Turbo ou secret divulgué dans les instantanés vérifiés. Les suites de décisions et les tirages du test sont semés ; deux exécutions complètes ont produit les mêmes nombres le 4 octobre 2026. Il ne s'agit pas de mesures de parties humaines.
+Every mini-game appeared. The checked runs had no missing turns, negative scores, win counts above round counts, immediate Vote/Turbo repeats or disclosed guest secrets. Seeded decisions produced the same totals on two complete runs on October 4, 2026. These are **not observations of human parties**.
 
-## Problèmes trouvés et corrigés
+## Bugs caught and fixed
 
-1. **Turbo sautait le choix d'une règle secrète.** Après un déblocage, `startSelection()` lançait directement le défi suivant : le propriétaire du secret n'avait plus d'écran où choisir la règle. Le moteur passe maintenant par `RULE_PICK` et n'enchaîne qu'après le choix. L'écran est utilisable sur le téléphone du propriétaire ou depuis son téléphone invité.
-2. **Le délai du jury ignorait ses votes dans `GameEngine.checkTimeout()`.** Un verdict positif devenait une défaite lorsque cette méthode traitait l'expiration. Elle utilise maintenant `juryVerdict()` pour les défis de pose et de bluff. Le chemin d'horloge de l'activité appliquait déjà ce verdict ; ce correctif garde le moteur cohérent avec lui.
+1. **Turbo skipped a newly unlocked secret rule.** `startSelection()` launched the next challenge before the owner had a rule-picking screen. The engine now goes through `RULE_PICK` first, on the owner's phone or their guest device.
+2. **The jury timeout ignored cast votes in `GameEngine.checkTimeout()`.** A positive verdict could become a loss when that path handled expiry. It now uses `juryVerdict()` for Poses and Bluff, matching the activity's existing clock path.
 
-Les deux cas ont des tests ciblés dans [`GameEngineRulesTest`](../app/src/test/java/com/aperoroyale/GameEngineRulesTest.java). Le test des 500 soirées reste dans la suite pour détecter une régression.
+Both cases have focused tests in [`GameEngineRulesTest`](../app/src/test/java/com/aperoroyale/GameEngineRulesTest.java). The 500-party test remains in the suite as a regression check.
 
-## Portée de la preuve
+## Evidence boundary
 
-La simulation exerce les règles et la sérialisation du moteur, **pas 500 sessions d'interface Android ni 500 connexions réseau réelles**. Les gestes, l'audio, SQLite, les appareils physiques, les pertes de paquets et le relais Internet demandent leurs propres essais. Le parcours Android des dix jeux à deux profils complète cette simulation, mais ne prouve pas à lui seul la qualité de l'expérience en soirée.
+The simulation exercises engine rules and serialization, **not 500 Android UI sessions or live network connections**. Touch, audio, SQLite, physical devices, packet loss and the Internet relay need separate tests. The ten-game Android journey with two profiles complements this test without proving party quality.
 
-Commande : `./gradlew testDebugUnitTest --tests com.aperoroyale.PartySimulationTest`
+Run: `./gradlew testDebugUnitTest --tests com.aperoroyale.PartySimulationTest`

@@ -1,37 +1,31 @@
-# Audit 1.4.5 — 10 000 soirées sur appareils distincts
+# v1.4.5 audit — 10,000 modeled multi-device parties
 
-## Ce qui a été simulé
+## What the test simulated
 
-`TenThousandDevicePartiesTest` crée **10 000 salles indépendantes**, de 2 à 6 joueurs, avec profils FR et EN alternés. Chaque salle traverse quatre manches en mode Vote, Libre ou Turbo. Les dix mini-jeux sont sélectionnés ; un appareil virtuel distinct reçoit pour chaque joueur son propre instantané réseau. L’hôte reste seul arbitre des réponses, secrets, tours et règles.
+`TenThousandDevicePartiesTest` creates **10,000 independent rooms** with 2–6 players and alternating FR/EN profiles. Each room plays four rounds in Vote, Free or Turbo mode, covering all ten mini-games. Each virtual device receives its own network snapshot. The host remains the sole authority for answers, secrets, turns and room rules.
 
-Chaque invité éligible sonde la ruelle, joue les quatre gestes du micro-jeu découvert, tente une mauvaise case puis reçoit un nouvel état. Le test vérifie que le joueur actif ne peut pas exploiter l’attente, que la bombe en cours conserve son relais, que les objectifs et les secrets des autres ne sont pas transmis, et que les langues des profils survivent aux états privés. Un deuxième test reprend un secret après un résultat, restaure la sauvegarde et vérifie qu’une découverte remet en jeu la règle **au tour suivant**, sans changer les gorgées ou points de la manche active.
+Eligible guests inspect a waiting-room clue, play four actions in the discovered hidden game, try an invalid cell and receive another state. The test checks that an active player cannot exploit waiting mechanics, a bomb relay is preserved, other people's goals and puzzle seeds are not sent, and profile languages survive private snapshots. Another test resumes a secret after a result, restores the save and checks that a discovery offers a new rule **on the next round**, without changing the current round's sips or points.
 
-| Mesure | Résultat |
+| Measure | Result |
 | --- | ---: |
-| Soirées simulées | 10 000 |
-| Manches terminées | 40 000 |
-| Instantanés privés FR/EN inspectés | 160 000 |
-| Secrets terminés | 35 945 |
-| Poursuite / code / miroir | 12 731 / 14 731 / 8 483 |
-| Gestes interdits rejetés | 80 000 |
-| Reprises d’état hôte | 400 |
+| Modeled parties | 10,000 |
+| Completed rounds | 40,000 |
+| Private FR/EN snapshots inspected | 160,000 |
+| Hidden games completed | 35,945 |
+| Chase / code / mirror | 12,731 / 14,731 / 8,483 |
+| Forbidden actions rejected | 80,000 |
+| Host-state restores | 400 |
 
-Le test est reproductible avec :
+Run: `./gradlew testDebugUnitTest --tests com.aperoroyale.TenThousandDevicePartiesTest`
 
-```sh
-./gradlew testDebugUnitTest --tests com.aperoroyale.TenThousandDevicePartiesTest
-```
+## Design decisions from the audit
 
-## Décisions de rythme et de design
+- A hidden game starts only after the player's main action has been submitted. It cannot replace answering, voting, wagering, judging or passing the bomb.
+- Three taps on a subtle clue reveal a game; four meaningful actions replace the previous mechanical 20-tap counter.
+- Progress survives result and selection screens. One discovery per player per round prevents waiting time from becoming a leaderboard advantage.
+- Hidden-game wins give no ordinary points, since a friend whose phone waits longer should not score more. The first discovery of a secret type may offer a room-wide rule next round.
+- The waiting scene uses a night alley, four high-contrast cells and a small animated pixel cat. An EN guest sees English instructions even if the active player is FR.
 
-- Une rencontre ne démarre que lorsque l’action principale du joueur est déjà envoyée. Le secret n’empêche pas de répondre, voter, miser, juger ou passer la bombe.
-- Trois tapotements sur un indice discret découvrent un jeu. Ensuite, quatre gestes avec une logique différente remplacent l’ancien compteur mécanique de 20 tapotements.
-- Le secret continue sur les écrans de résultat et de sélection ; sa progression est enregistrée si la manche s’achève. Une seule découverte par joueur et par tour évite de transformer l’attente en course de score.
-- Les réussites ne donnent pas de points au classement : un ami dont le téléphone attend plus longtemps ne doit pas prendre l’avantage. La première réussite d’un type de secret peut proposer une nouvelle règle à toute la salle au prochain tour.
-- Le nouvel écran dessine une ruelle nocturne, quatre cases contrastées et un chat pixel animé. Le joueur EN voit le texte EN sur son téléphone même si l’acteur est FR.
+## Evidence boundary
 
-La participation pendant l’attente est un principe déjà exploité par les party games : [Jackbox décrit l’« Audience Play-Along »](https://www.jackboxgames.com/blog/the-ability-to-kick-players-and-other-new-features-coming-to-party-pack-9) et [Quiplash fait voter le public depuis ses propres appareils](https://checkout.jackboxgames.com/en-gb/products/quiplash). Ici, la découverte reste facultative et ne détourne pas la manche des amis.
-
-## Portée des preuves
-
-Les 10 000 salles tournent **dans le moteur**, sans 10 000 sockets ni 10 000 personnes. Les captures privées testent la forme des données distribuées et les règles d’autorisation, pas la latence réelle du Wi‑Fi, du Bluetooth ou d’Internet. Une session Wi‑Fi entre émulateurs Android 16 et Android 8 a vérifié le parcours complet : invité EN, hôte FR, indice découvert, code secret terminé **après** le résultat de la manche, trophée reçu, choix de règle sur le téléphone invité, règle `3` appliquée par l’hôte. Le plaisir, la fréquence naturelle de découverte et l’envie de rejouer demandent encore des essais avec des groupes réels.
+The 10,000 rooms run **inside the engine**, without 10,000 sockets or people. Private snapshots test distributed data shape and authorization rules, not Wi-Fi, Bluetooth or Internet latency. One Wi-Fi journey between Android 16 and Android 8 emulators checked an EN guest joining a FR host, finding the clue, completing a code **after** a round result, receiving a trophy, selecting a rule on the guest phone and seeing rule `3` applied by the host. Enjoyment, natural discovery rate and desire to replay still require real groups.

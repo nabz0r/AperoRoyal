@@ -1,111 +1,73 @@
-# Audit produit et feuille de route — Apéro Royale
+# Product audit and roadmap — Apéro Royale
 
-**Date :** 4 octobre 2026  
-**Base examinée :** `main` à `cf4c9f9`, version Android 1.2.1  
-**Méthode :** lecture du code, du README, des captures d'émulateur et des sources primaires ci-dessous. Aucun test avec de vrais joueurs ni mesure réseau sur appareils physiques n'a été réalisé pour cet audit.
+**Historical baseline:** 4 October 2026, Android 1.2.1 at cf4c9f9. This audit reviewed code, documentation and emulator screenshots. It did not include a real party or physical-device network measurements. The later [1.4.7 experience lab](LABO_EXPERIENCE_2026.md) revisited pacing across 3,000 modeled rooms and fixed a vote timeout that could stall a room. Read the findings below in their original version context.
 
-**Complément du 5 octobre, version 1.4.7 :** le [laboratoire de soirées synthétiques](LABO_EXPERIENCE_2026.md) réévalue les dix défis et le rythme avec 3 000 salles modélisées. Le vote manquant qui pouvait bloquer la salle a été corrigé ; les constats ci-dessous restent datés de leur base 1.2.1.
+## Product judgment
 
-## Verdict
+The baseline already offered ten challenges, FR/EN profiles, pass-and-play, wagers, votes, juries, local saves and scores, plus Wi-Fi, Bluetooth and Internet transport. Its main opportunity was to turn each round into a story shared by the table: a quick choice, meaningful participation, a reveal worth talking about and an immediate next round.
 
-Apéro Royale possède déjà une base jouable : 10 défis, profils FR/EN, passage de téléphone, paris, votes, jurys, sauvegarde locale, scores et transport Wi-Fi/Bluetooth/Internet. La priorité n'est pas d'ajouter un onzième défi. Il faut faire de chaque manche **une histoire vécue par tout le groupe** : choix rapide, participation simultanée, révélation drôle, conséquence claire, puis revanche immédiate.
+At the time of the audit, several challenges still had one performer and several spectators. Network sync reproduced that structure on more phones without always changing the social play. Visual scenes differed, but the action layout and small sprites felt similar. Three short music patterns repeated, and rhythm input did not share the audio clock.
 
-Aujourd'hui, dans la plupart des défis, une personne exécute l'action et les autres pronostiquent. Le mode multijoueur transporte cet état entre appareils, mais ne transforme pas assez le gameplay. Les décors sont distincts ; l'interface de jeu reprend presque toujours la même composition et de petits sprites. Le son est réglable, mais trois motifs de huit secondes se répètent, et le défi de rythme n'est pas calé sur le moteur audio. Ces écarts expliquent mieux le manque d'envie de rejouer qu'un simple manque d'effets.
+## Findings at the audited baseline
 
-## Ce qui fonctionne déjà
-
-- Un joueur actif différent à chaque manche, avec écran privé avant son tour ; votes et jurys peuvent aussi passer de main en main sur un seul téléphone.
-- Les dix jeux possèdent un décor, une icône animée et un guide en deux langues.
-- Mode Turbo, choix libre ou vote collectif ; profils avec avatar exclusif ou photo importée.
-- Salle en Wi-Fi, Bluetooth ou Internet ; l'hôte arbitre les commandes et conserve la session et l'historique SQLite.
-- Paris de 1 à 3 gorgées virtuelles, pronostics, règles de salle, secrets et chat pixelisé. Le microphone n'est pas nécessaire pour appliquer une règle sociale : le groupe signale et vote.
-
-## Frictions observées dans le code
-
-| Priorité | Constat vérifiable | Effet en soirée | Décision recommandée |
+| Priority | Evidence in 1.2.1 | Effect | Proposed response |
 | --- | --- | --- | --- |
-| P0 | `GameEngine.finish()` attribue l'enjeu central au joueur actif ; les autres gagnent surtout 35 points ou une pénalité via le prono. | Une partie du groupe attend la fin d'un jeu solo. | Chaque jeu doit offrir à **chaque joueur** une action, un choix ou un rôle qui change le résultat, au-delà du prono. |
-| P0 | `GameEngine.rhythmTap()` valide un indice croissant et le délai global, sans contrôler la proximité d'un temps musical. `ArcadeView` utilise une phase visuelle de 600 ms indépendante des pas audio de 250 ms. | La validation est incohérente entre appareils et peut récompenser des frappes hors rythme. | Une horloge de manche unique, fenêtre de frappe calculée par l'hôte, calibration locale ; retirer ce jeu du compétitif en ligne avant correction. |
-| P0 | `GameEngine.networkJson()` envoie `target`, `loserCup`, votes, pronostics et séquence à tous les clients. | Un client peut lire la réponse ou des choix cachés avant la révélation. | Instantanés par rôle avec seulement les champs visibles ; révéler l'élément secret au bon moment. |
-| P1 | La boucle Vote/Libre → transition → passage → pari → prono → jeu → résultat impose plusieurs écrans successifs. | La tension retombe avant l'action. | Fusionner pari et prono dans une préparation collective courte ; une seule touche pour lancer/rejouer. |
-| P1 | Le Blind Test hors ligne demande de nommer six mélodies originales inconnues. | Il teste la mémorisation d'étiquettes inventées, pas la culture musicale du groupe. | Faire deviner un son produit par un joueur, ou une catégorie/émotion/époque ; garder les services musicaux comme raccourcis d'écoute indépendants. |
-| P1 | `GameStore` utilise le pseudo comme clé de statistiques et garde le classement sur un seul appareil. | Deux personnes homonymes de soirées différentes fusionnent ; les classements divergent entre téléphones. | Identifiant de profil stable, nom affiché séparé ; classement de salle synchronisé et classement historique explicitement local. |
-| P1 | `ArcadeView` dessine tout dans un Canvas virtuel 400×820, sans arborescence d'actions accessible ; certains labels peuvent descendre à 10 unités virtuelles. | Lecture, taille de texte, TalkBack et contrôles hors toucher sont difficiles. | Exposer des éléments accessibles ou migrer les menus vers des vues natives ; vérifier 48 dp, contraste et mise à l'échelle. |
-| P2 | `ArcadeAudio` propose trois scènes de 32 pas × 250 ms ; aucune ambiance dédiée à chaque jeu, ni focus audio identifié dans ce module. | Répétition et concurrence possible avec la musique d'autres applications. | Composer des boucles plus longues et des couches par jeu, avec priorité aux signaux de jeu et gestion du focus audio. |
-| P2 | Les contenus sont intégrés en tableaux dans `GameEngine` : 17 QCM, 18 poses, 17 dessins, 17 bluffs et 6 mélodies. Le tirage de prompt n'a pas d'historique anti-répétition. | Les mêmes cartes reviennent vite dans une soirée. | Packs de contenu versionnés FR/EN, identifiants stables, tirage sans répétition sur la session. |
+| P0 | The round stake centered on the active player; others mostly gained a prediction bonus or penalty. | Friends waited through solo play. | Give every player a consequential action or role. |
+| P0 | Rhythm taps used an index and overall deadline while the visual phase and audio steps used different periods. | Timing could be inconsistent. | Use one round clock, local calibration and a host-validated window. |
+| P0 | Network snapshots contained targets, cups, votes, predictions and sequences for every client. | A modified guest client could inspect secrets early. | Send role-specific snapshots and reveal secrets at the correct phase. |
+| P1 | Vote, transition, handoff, wager, prediction, action and result formed a long sequence. | Momentum fell before the game began. | Merge setup steps and shorten the replay path. |
+| P1 | The offline music quiz named six unfamiliar original motifs. | It tested invented labels more than group music culture. | Make players create or interpret sounds; keep streaming links independent. |
+| P1 | Historical stats keyed players by nickname on one device. | Names could collide and leaderboards diverge. | Use stable profile IDs and label local versus room rankings. |
+| P1 | A 400×820 custom canvas exposed limited accessibility semantics. | Small labels and TalkBack support were weak. | Expose controls semantically and verify target size, scaling and contrast. |
+| P2 | Three 32-step audio scenes and no identified focus handling in that module. | Repetition and possible conflict with other music apps. | Add longer, quieter scene layers and audio focus behavior. |
+| P2 | Prompt arrays had 17 trivia, 18 pose, 17 drawing, 17 bluff and six melody entries with no repeat history. | Cards came back too soon. | Version content packs and draw without repeats until exhaustion. |
 
-## Refonte des dix jeux
+Several of these items were addressed in later releases. Use [release notes](../RELEASE.md) for shipped behavior; this table records the original diagnosis.
 
-Le principe commun : **tous prennent une décision ; l'un est sous les projecteurs**. Sur un téléphone, les actions privées passent de main en main avec un écran court. Sur plusieurs téléphones, elles se font en parallèle. Les chronos commencent lorsque les participants sont prêts, pas pendant le passage de l'appareil.
+## Ten-game design direction
 
-| Jeu | Version actuelle | Version cible et ressort social |
-| --- | --- | --- |
-| Culture G | QCM chronométré pour l'acteur. | Question simultanée : chacun répond ; l'acteur choisit avant la révélation s'il suit sa réponse ou celle d'un ami. Mauvaise réponse partagée, rivalité immédiate. Prévoir un mode solo de tour pour un seul téléphone. |
-| Positions à la con | L'acteur fait une pose, le jury tranche. | Duo tiré au sort : l'acteur et un complice réalisent une pose compatible avec l'espace disponible ; les autres votent sur la réussite ou choisissent un handicap léger. Option sans effort physique. |
-| Blind Test | Reconnaître un motif original ; l'ancien mode Spotify de 1.3.0 a été retiré en 1.4.0. | « Bruit de soirée » : un joueur imite/crée un son ou fredonne, les autres devinent parmi des réponses construites à partir d'une carte. Aucun micro requis sur un téléphone ; l'enregistrement local facultatif devient un mode supplémentaire. |
-| Réflexe néon | Dix cibles pour l'acteur. | Face-à-face de 8 secondes avec alternance attaque/parade. Sur Internet, remplacer le temps absolu de toucher par une séquence locale signée et comparer des résultats après coup ; ne pas donner un avantage structurel au ping. |
-| Roulette Royale | Une personne choisit un gobelet. | Chaque joueur cache un gobelet ou un « sauvetage » ; l'acteur choisit et peut proposer un échange. Révélation simultanée : le bluff et la discussion comptent davantage que le hasard pur. |
-| Dessin maudit | Un dessinateur ; le joueur suivant répond à un QCM. | Tous les autres proposent une réponse libre ou choisissent parmi des leurres créés par le groupe ; galerie et vote du dessin le plus absurde en fin de manche. |
-| Mémoire flash | Une personne répète une suite de couleurs. | Chaîne coopérative : chaque joueur ajoute un symbole à retenir ; le groupe peut dépenser une aide commune. Le perdant est celui qui casse la chaîne, avec une fin brève et drôle. |
-| Rythme ou rien | Quatre frappes de l'acteur. | Call-and-response : l'acteur invente une phrase de quatre temps, chacun la reproduit ; le score montre les écarts. Ne lancer cette version qu'après correction de l'horloge et calibration. |
-| Bluff royal | L'acteur joue un prompt ; jury oui/non. | Carte secrète « vrai ou inventé » : l'acteur raconte une anecdote, chaque autre joueur interroge puis vote ; l'acteur marque s'il trompe la majorité. Prévoir des prompts qui n'exigent pas de révéler une information personnelle. |
-| Bombe à bulles | Huit touches en relais. | Relais à choix : chaque passeur choisit entre accélérer le chrono ou transférer un handicap amusant. Sur un seul téléphone, une passe vaut une mini-phase lisible, pas une transmission physique pour un simple tap. |
+One player can take the spotlight while everyone makes a choice. On one phone, private choices pass from hand to hand behind a brief privacy screen. On several phones, they can happen in parallel. A timer begins when people are ready, never during the physical handoff.
 
-## Expérience, image et son
+| Game | Social move proposed in this audit |
+| --- | --- |
+| Trivia | Everyone answers; the featured player can trust their own answer or follow a friend before reveal. |
+| Poses | A willing duo performs an absurd pose; others add a light variation or judge it. Offer a seated, no-contact option. |
+| Sound | One player imitates or creates a party sound and others interpret it; recording stays optional. |
+| Reflex | Short attack-and-defense duel; compare locally measured runs rather than network arrival times. |
+| Roulette | Friends hide clues, decoys or protections before the featured player picks a cup. |
+| Drawing | Everyone suggests a title; the reveal becomes a gallery and vote. |
+| Memory | Players extend a shared chain, with one collective rescue. |
+| Rhythm | Call and response with measured timing differences, after clock and audio calibration. |
+| Bluff | A secret true-or-invented card, short questions and a vote, without forced personal disclosure. |
+| Bomb | Each handoff offers a real choice and a readable pause on one phone. |
 
-**Direction artistique.** Conserver le mélange nuit, néon et pixel, mais définir des composants mesurables : silhouette forte des personnages, sprite de grande taille dans l'action, états animé/repos/réaction, palette par famille de jeu, typographie des commandes et du résultat. Les captures actuelles montrent des scènes distinctes derrière une structure d'écran presque constante. La refonte doit toucher la **hiérarchie et les réactions** : visage du joueur, objet de jeu et action suivante visibles immédiatement ; moins de cadres décoratifs. Utiliser des références d'arcade sans emprunter l'identité visuelle ou les personnages d'autres licences.
+The more detailed [ten-game design notebook](REFONTE_DIX_MINI_JEUX.md) is a historical proposal, not a claim that every variant shipped.
 
-**Première minute.** Deux pseudos, deux portraits, choix « même téléphone » et premier défi en moins de 60 secondes. Mettre les réglages secondaires et la connexion à un service musical après la première manche. Pour chaque jeu, un tutoriel de dix secondes avec exemple jouable ; bouton passer pour les habitués. Les mises à jour de Jackbox montrent l'intérêt des actions pour le public et des tutoriels qu'on peut ignorer, mais il faut valider ces principes avec les joueurs d'Apéro Royale.
+## Experience and production priorities
 
-**Rythme de soirée.** Trois formats : Express 10 min, Classique 20 min, Libre. Après la révélation : scores, gorgées virtuelles, un moment à commenter, puis « manche suivante » sans tunnel de menus. Le classement doit montrer aussi les réussites drôles (meilleur bluff, meilleur dessin, sauvetage), pour éviter qu'un mauvais départ rende la suite inutile.
+**First minute.** Two names, two portraits, one-phone selection and a first challenge should be possible in under 60 seconds. Keep advanced options available without placing them before the first round. Each game's introduction should show a short playable example and allow a skip.
 
-**Audio.** Garder la musique discrète par défaut ; offrir muet, chill et arcade depuis la partie. Écrire une vraie banque de motifs/stems par famille de jeux et des jingles courts pour passage, pari, révélation et fin de manche. Les indices de rythme doivent partager **la même horloge** que le son. Le moteur actuel à 22,05 kHz et paquets de 250 ms mérite un profilage sur appareils ; Android documente les chemins audio à faible latence, sans garantie uniforme par téléphone. Gérer explicitement la perte de focus audio et le mixage avec Spotify.
+**Visual and sound.** Make the player, game object and next action obvious. Larger expressive sprites and distinct game compositions matter more than more decorative frames. Music should default to quiet, with mute, chill and arcade controls reachable mid-party. Sound cues for handoff, wager and reveal should share the rhythm game's clock where timing matters.
 
-**Confort.** Vérifier sur petits et grands écrans le contraste ≥ 4,5:1 du texte courant, les cibles tactiles ≥ 48 dp, le texte adaptable et une navigation TalkBack pour les menus et actions essentielles. Les commandes de jeu peuvent rester personnalisées, mais elles doivent exposer leur sens aux technologies d'assistance.
+**Accessibility.** Verify ordinary text against a 4.5:1 contrast target, touch targets at least 48 dp, scaling on small and large screens, and TalkBack for essential menus and actions.
 
-## Multijoueur : preuve attendue avant de promettre « fluide »
+**Network proof.** Commands should carry round ID, player ID, sequence, action and payload. The host should acknowledge and deduplicate them, reject stale turns, keep secrets in role-specific snapshots and restore a disconnected player's role. Test two and six physical devices over supported transports, app sleep, late join, simultaneous actions and host exit. A public MQTT relay is an experimental dependency, not an availability guarantee.
 
-1. Passer des coordonnées tactiles transmises par réseau à des commandes sémantiques (`vote`, `choisir_gobelet`, `répondre`) avec identifiant de manche, séquence et accusé de réception. L'hôte refuse les doublons et les commandes d'une ancienne manche.
-2. Séparer état public, état privé de l'acteur et secret de l'hôte. Tester qu'un client invité ne reçoit jamais une réponse avant sa révélation.
-3. Mesurer le délai aller-retour, montrer « reconnexion » et restaurer la place du joueur. Un code de salle reste un accès de salle ; prévoir une identité de connexion indépendante pour empêcher l'usurpation d'un pseudo après partage du code.
-4. Tester les chemins réels : 2 et 6 appareils en Wi-Fi, Bluetooth compatible et Internet ; entrée tardive, perte d'un client, veille, retour d'application, deux actions simultanées, hôte qui quitte. Le relais MQTT public actuel est adapté à l'expérimentation, pas à une garantie de disponibilité.
-5. Garder les mini-jeux de réflexe locaux ou les comparer avec une méthode qui ne confond pas adresse et latence réseau. L'hôte reste arbitre, mais la validation doit se faire sur un temps partagé fiable.
+**Content and identity.** Keep versioned FR/EN cards, no-repeat draws, stable profile IDs, a room ranking distinct from local historical stats and optional memory cards that players explicitly choose to share.
 
-## Ordre de réalisation proposé
+## Acceptance targets, not measured performance
 
-**Lot 1 — confiance, une à deux itérations.** Corriger rythme et fuite d'informations ; supprimer les doubles scores en cas de retransmission ; instrumentation des étapes et des latences ; tests automatisés de l'état caché, de la rotation et de la reprise. Aucun nouveau décor ne compense une manche injuste.
+First round under 60 seconds on one phone; at least one meaningful action per player per round; nobody idle for over 45 seconds; Express rounds 30–75 seconds; over 95% completion in observed parties; no duplicate results after reconnection; no early secret disclosure. Network targets: Wi-Fi join p95 under 10 seconds, action acknowledgments p95 under 300 ms on Wi-Fi and under 800 ms on the test Internet connection. Verify music interruption and screen-reader navigation.
 
-**Lot 2 — la soirée devient collective.** Refaire d'abord Culture G, Dessin, Bluff et Blind Test avec une action pour chacun ; simplifier la préparation de manche ; tester à deux, quatre et six personnes sur un et plusieurs appareils. Revoir les six autres à partir des observations de ces sessions.
+A panel of 6–10 groups of 2–6 people should settle whether the interactions are actually clear and funny. Track voluntary replays, explanations needed, spontaneous reactions and times when people put down their phones. These were design targets, not evidence of an already perfect game.
 
-**Lot 3 — identité visuelle et sonore.** Prototype de deux jeux avec sprites plus expressifs, interface propre au gameplay et composition sonore dédiée ; choix entre variantes par tests de compréhension et d'envie de rejouer. Étendre ensuite le système aux huit autres.
+Streaming service buttons were made optional listening shortcuts from 1.4.0 onward. Virtual sip counts must not be described as blood-alcohol measurements; water, a challenge or a pass should remain viable table choices.
 
-**Lot 4 — contenu et social.** Packs FR/EN sans répétition, classement de salle et profils stables, réactions rapides pendant les temps morts, règles secrètes mieux mises en scène. Le chat textuel en salle Internet peut venir après la stabilité de la partie : autour d'une table, les joueurs se parlent déjà.
+## Sources reviewed for the historical audit
 
-## Critères d'acceptation à mesurer
+- [Jackbox audience interaction and tutorials](https://www.jackboxgames.com/blog/party-pack-11-free-content-update); [Hear Say sound creation](https://www.jackboxgames.com/blog/introducing-the-fourth-game-in-party-pack-11-hear-say)
+- [Android accessibility](https://developer.android.com/design/ui/mobile/guides/foundations/accessibility), [low-latency audio](https://developer.android.com/games/sdk/oboe/low-latency-audio), [audio focus](https://developer.android.com/media/optimize/audio-focus)
+- [Spotify development changes](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide) and [playback reference](https://developer.spotify.com/documentation/web-api/reference/start-a-users-playback)
+- [Godot client-action validation](https://docs.godotengine.org/en/4.7/tutorials/networking/high_level_multiplayer.html), [Photon lag compensation](https://doc.photonengine.com/fusion/v2/manual/advanced/lag-compensation), [WHO alcohol fact sheet](https://www.who.int/news-room/fact-sheets/detail/alcohol)
 
-Ce sont des **objectifs de conception**, non des performances constatées : première manche en moins de 60 s sur un téléphone ; chaque joueur fait au moins une action significative par manche ; aucun participant sans interaction plus de 45 s ; une manche Express tient en 30–75 s ; taux de manches terminées > 95 % pendant un test de soirée ; reprise sans score doublé ; aucune réponse secrète reçue trop tôt ; connexion Wi-Fi p95 < 10 s et accusé d'action p95 < 300 ms, Internet p95 < 800 ms sur le réseau de test ; son coupé/repris correctement quand une autre application prend le focus ; parcours des menus au lecteur d'écran.
-
-Un panel de 6 à 10 groupes de 2–6 joueurs doit servir à trancher l'ergonomie et le plaisir. Mesurer aussi l'envie de relancer une manche, le nombre de rires/réactions spontanées, les explications nécessaires et les moments où quelqu'un repose son téléphone. Ces observations valent mieux qu'une promesse « AAA » ou « parfaite ».
-
-## Musique et consommation
-
-Depuis 1.4.0, Spotify, Deezer, Apple Music et Amazon Music sont des **raccourcis d'écoute facultatifs**. Le jeu ne pilote pas leurs titres ; une expérience sonore hors ligne amusante doit fonctionner immédiatement avec six amis. Voir la [refonte des dix jeux](REFONTE_DIX_MINI_JEUX.md) pour le concept musical collectif.
-
-Conserver le ton apéro et les mises, mais offrir par profil un plafond de gorgées virtuelles et une substitution « eau / défi / passe ». Afficher des compteurs de jeu, sans prétendre mesurer l'alcoolémie. L'OMS rappelle qu'il n'existe pas de consommation d'alcool sans risque ; ces options élargissent aussi le groupe qui peut participer sans briser la soirée.
-
-## Sources externes, consultées le 4 octobre 2026
-
-- [Jackbox Party Pack 11 : mise à jour des interactions du public, tutoriels facultatifs, contenu et audio](https://www.jackboxgames.com/blog/party-pack-11-free-content-update)
-- [Jackbox Hear Say : sons créés par les joueurs et vote du groupe](https://www.jackboxgames.com/blog/introducing-the-fourth-game-in-party-pack-11-hear-say)
-- [Android : accessibilité mobile, lisibilité, TalkBack et cibles tactiles](https://developer.android.com/design/ui/mobile/guides/foundations/accessibility)
-- [Android : audio de jeu à faible latence](https://developer.android.com/games/sdk/oboe/low-latency-audio)
-- [Android : gestion du focus audio](https://developer.android.com/media/optimize/audio-focus)
-- [Spotify : changements du mode développement en février 2026](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide)
-- [Spotify : conditions du contrôle de lecture](https://developer.spotify.com/documentation/web-api/reference/start-a-users-playback)
-- [Godot : validation des actions clientes en multijoueur](https://docs.godotengine.org/en/4.7/tutorials/networking/high_level_multiplayer.html)
-- [Photon : compensation de la latence pour les jeux rapides](https://doc.photonengine.com/fusion/v2/manual/advanced/lag-compensation)
-- [OMS : effets et risques de l'alcool](https://www.who.int/news-room/fact-sheets/detail/alcohol)
-
-## Limites de cet audit
-
-Les captures proviennent de l'émulateur du dépôt. Le ressenti artistique, la fatigue musicale, l'ergonomie en soirée et la stabilité Wi-Fi/Bluetooth/Internet n'ont pas été retestés sur de vrais groupes pour ce document. Le code prouve l'existence des chemins, pas leur fiabilité en conditions réelles. Les objectifs chiffrés ci-dessus restent à vérifier par télémétrie locale de test et sessions observées, sans suivre les utilisateurs de la version publique.
+This document cannot establish real-world enjoyment or physical-device reliability. Its numerical targets still require measured sessions.

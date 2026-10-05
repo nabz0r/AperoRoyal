@@ -1,40 +1,31 @@
-# Privacy / Confidentialité
+# Privacy and network model
 
-## English
+Apéro Royale has no account, advertising, analytics or telemetry. It does not run its own player-data server. The game works offline when everyone shares one phone.
 
-Apéro Royale stores each player's nickname, language, selected avatar or optional imported photo, scores, virtual sips, predictions, room-rule votes, game results and the active party in a local SQLite database on the host device. An imported photo is downscaled and encoded locally before storage. The all-time and per-game leaderboards are calculated from that device's local history. Uninstalling the app normally removes its local data under Android's app-data rules.
+## What the host stores
 
-The app has no Apéro Royale account, ads, analytics or telemetry. It does not operate its own player-data server.
+The host device stores player nicknames, languages, selected avatars or optional imported photos, scores, virtual sips, predictions, room-rule votes, game results and the active party in a local SQLite database. Imported photos are downsized and encoded on the device before storage. The all-time and per-game leaderboards are calculated from local history. Uninstalling the app normally removes its data under Android's app-data rules.
 
-- **One phone:** party data stays on that device.
-- **Wi-Fi room:** the host sends game snapshots and receives player actions over local TCP. This traffic is **not encrypted**. Use a trusted Wi-Fi network. Other joined phones receive nicknames, avatars/photos, scores and game state.
-- **Bluetooth room:** paired phones exchange the same room state and actions over RFCOMM. The available security depends on the Android Bluetooth pairing and device implementation.
-- **Internet room:** devices use a TLS MQTT relay. Room messages, including optional photos and nicknames, are additionally encrypted with AES-GCM using a key derived from the 12-character room code. The relay sees connection metadata and the room topic but cannot read correctly encrypted payloads without the room code. The default `broker.emqx.io` relay is a public test service operated by a third party; users can enter a private TLS MQTT relay URL. Share the room code only with participants.
+## What other phones receive
 
-The game does not request microphone access. Social-rule infractions are reported and judged by players through an in-room vote.
+Joined devices receive the room state needed to play, including nicknames, avatars or optional photos, scores and the current challenge. The host checks player actions and remains authoritative for the result.
 
-During multi-device parties, the host stores each player's hidden-game progress with the active session. A player receives their own progress; other players' progress and puzzle seed are removed from their snapshots. A completed discovery and any resulting room rule become visible to the room. No hidden-game progress is sent to a music provider.
+- **Wi-Fi:** the host exchanges snapshots and actions over local TCP. This traffic is **not encrypted**; use a trusted network.
+- **Bluetooth:** paired Android devices exchange the same state and actions over RFCOMM. Security depends on pairing and the device implementation.
+- **Internet:** devices use a TLS MQTT relay. Room payloads, including optional photos and nicknames, are additionally encrypted with AES-GCM using a key derived from the 12-character room code. The relay can see connection metadata and the room topic, but not correctly encrypted payloads without the code. The default `broker.emqx.io` relay is a public third-party test service; a private TLS MQTT relay URL can be entered. Share the code only with participants.
 
-In Trivia and Music Quiz, friends' individual answers remain hidden in game snapshots until the result. The host sends only the current room lead and the identity of a friend who has answered; choosing to trust that friend is resolved on the host. The final choice and score are revealed with the result.
+During multi-device parties, the host stores hidden-game progress in the active session. Each player receives their own progress; other players' progress and puzzle seeds are removed from their snapshots. Finished discoveries and any resulting room rule become visible to the group.
 
-The optional 9:16 round card is rendered on the device into the app cache. It includes player nicknames, game artwork and the resolved score or virtual sips; it does not include imported photos. The app opens Android's share chooser only when a player taps **Share**. The card leaves the app only if the player selects a destination, whose own privacy rules then apply.
+In Trivia and Music Quiz, individual answers stay hidden in guest snapshots during the round. The host sends the current room lead and the identity of a friend who has replied. A decision to trust that friend is resolved on the host. Final answers and scores are revealed with the result.
 
-A late guest's nickname and language are shared with the host for the admission vote. Individual admission ballots are hidden in guest snapshots; the vote count and outcome are shared. A rejected guest's virtual sip is recorded in the host's local history and leaderboard. The guest's waiting-room secret arcade runs only on that guest's phone; its progress is not sent to the room.
+For late admission, a guest's nickname and language go to the host. Individual admission ballots are hidden in guest snapshots; the count and outcome are shared. A declined guest's virtual sip enters the host's local history and leaderboard. The guest's waiting-room arcade runs only on that guest's phone; its progress is not sent to the room.
 
-The music menu can open Spotify, Deezer, Apple Music or Amazon Music through an HTTPS link. An optional playlist link and the selected service are stored in local app preferences. Apéro Royale does not connect to a music account, read its library, control external playback, transmit music credentials or send the playlist link to party peers. The chosen music app or website processes playback under its own terms and privacy policy. Original game music and sound effects are generated locally.
+## Sharing a result
 
-## Français
+When a player taps **Share**, the app draws a 9:16 PNG card in its local cache. The card includes nicknames, game art and the resolved score or virtual sips, but **no imported profile photos**. Android's share chooser then lets the player select a destination. There is no automatic posting. Once a player sends the card to another app, that app's privacy practices apply.
 
-Apéro Royale conserve localement dans SQLite les pseudos, langues, sprites ou photos facultatives, scores, gorgées virtuelles, pronostics, votes sur les règles, résultats et la partie en cours. Une photo importée est réduite sur l'appareil avant son enregistrement. Les classements historique et par jeu sont calculés depuis l'historique local du téléphone hôte. La désinstallation supprime normalement ces données selon les règles Android.
+## Music and microphone
 
-L'application ne possède ni compte Apéro Royale, ni publicité, ni analytique, ni télémétrie. En Wi-Fi, les données du salon circulent **sans chiffrement** sur le réseau local. En Bluetooth, elles passent entre appareils associés. Sur Internet, les messages passent par un relais MQTT TLS et sont chiffrés en AES-GCM à partir du code de salle ; le relais public proposé par défaut est `broker.emqx.io`, un service de test tiers. Le code doit rester entre participants. Les autres téléphones de la salle reçoivent les pseudos, avatars ou photos, scores et état de la partie. Le jeu ne demande pas l'accès au microphone : les infractions aux règles sociales sont signalées et soumises au vote des joueurs.
+The music menu can open Spotify, Deezer, Apple Music or Amazon Music through an HTTPS link. An optional playlist link and selected service are kept in local app preferences. Apéro Royale does not sign in to music accounts, read their libraries, control external playback, transmit credentials or send playlist links to party peers. Music services play in their own apps or sites under their own terms. The game creates its original music, quiz motifs and SFX locally.
 
-En partie à plusieurs appareils, l'hôte conserve aussi la progression des jeux secrets dans la session. Chaque joueur ne reçoit que sa propre progression ; la découverte terminée et une éventuelle règle de salle deviennent visibles par tous. Aucune progression secrète n'est transmise aux plateformes musicales.
-
-Dans Culture G et Blind Test, les réponses individuelles restent masquées dans les instantanés envoyés pendant la manche. L'hôte ne transmet que la tendance de la salle et l'identité d'un ami qui a répondu ; le choix de lui faire confiance est résolu par l'hôte. Le choix final et les points apparaissent au résultat.
-
-La carte verticale facultative d'une manche est créée sur l'appareil et placée dans le cache de l'application. Elle contient les pseudos, le décor du jeu et le score ou les gorgées virtuelles ; elle ne contient pas de photo importée. Le sélecteur de partage Android ne s'ouvre qu'après un appui sur **Partager**. La carte ne quitte l'application que si un joueur choisit un destinataire, qui applique alors ses propres règles de confidentialité.
-
-Lorsqu'un invité arrive en cours de partie, son pseudo et sa langue sont transmis à l'hôte pour le vote d'entrée. Les bulletins individuels sont masqués dans les instantanés envoyés aux invités ; le nombre de voix et le résultat sont partagés. La gorgée virtuelle d'un invité refusé est inscrite dans l'historique local et le classement de l'hôte. Sa petite arcade secrète tourne uniquement sur son téléphone et sa progression n'est pas envoyée à la salle.
-
-Le menu musical peut ouvrir Spotify, Deezer, Apple Music ou Amazon Music par un lien HTTPS. La plateforme choisie et un éventuel lien de playlist sont conservés dans les préférences locales. Apéro Royale ne se connecte pas à un compte musical, ne lit pas sa bibliothèque, ne contrôle pas la lecture externe et n'envoie ni identifiants ni playlist aux autres joueurs. La lecture est gérée par l'application ou le site choisi, selon ses propres conditions et règles de confidentialité. La musique originale et les effets du jeu sont produits localement.
+The app does **not** request microphone access. Players report and vote on social-rule infractions themselves; no conversation is monitored.

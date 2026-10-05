@@ -1,131 +1,115 @@
+<div align="center">
+
 # APÉRO ROYALE
 
-### La nuit est à vous.
+### THE NIGHT IS YOURS.
 
-**Dix défis, 2 à 6 amis, une table qui a des histoires à raconter.** Apéro Royale est un jeu de soirée Android en français et en anglais. Un téléphone suffit : on le passe à chaque action privée. Avec plusieurs téléphones, chacun vote, piège, dessine, devine ou juge depuis le sien.
+**Ten games. Two to six friends. One table full of stories.**
 
-[**Télécharger l’APK Android signé · 1.8.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.8.0.apk) · Android 8.0+ · [Notes de version](RELEASE.md) · [Confidentialité](PRIVACY.md)
+An illustrated Android party arcade built for people in the same room. Pass one phone around, or let everyone play and vote from their own. Every player can use French or English.
 
-![Accueil Apéro Royale](docs/screenshots/home.png)
+[**DOWNLOAD THE SIGNED APK · v1.8.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.8.0.apk) · [Release notes](RELEASE.md) · [Privacy](PRIVACY.md) · [License](LICENSE)
 
-**Un bar de nuit, pas une cour de récré.** Personnages adultes, affiches de bistrot et d’arcade, cuivre et aubergine, dix scènes illustrées. Le résultat révèle les alliés, les sceptiques et les auteurs du chaos. Culture G et Blind Test permettent de suivre un ami qui a répondu en secret : la confiance paie quand le duo voit juste. Chaque résultat peut devenir une carte verticale illustrée, créée sur le téléphone et partagée seulement si vous le choisissez. Des relances de conversation FR/EN surgissent entre certains tours et se coupent dans les options. Les petits jeux secrets restent cachés dans les temps d’attente.
+Android 8.0+ · Offline local play · No account · No ads
 
-<table>
-<tr><td><img src="docs/screenshots/avatar-choice.png" alt="Création d'un personnage adulte" width="240"></td><td><img src="docs/screenshots/settings-party.png" alt="Réglage de la langue des menus" width="240"></td><td><img src="docs/screenshots/games/trivia-result.png" alt="Révélation collective d'une manche" width="240"></td></tr>
-<tr><td>12 portraits ou votre photo</td><td>Menus FR/EN et relances réglables</td><td>La manche devient une anecdote</td></tr>
-</table>
+<img src="docs/screenshots/home.png" alt="English home screen, set in an illustrated late-night arcade bar" width="335"> <img src="docs/screenshots/round-card.png" alt="A shareable round card with adult game artwork" width="335">
 
-## Une soirée en trois gestes
+</div>
 
-1. **Posez les noms sur la table.** Ajoutez 2 à 6 profils avec pseudo, langue, l’un des 12 portraits adultes ou une photo. Plusieurs amis peuvent choisir le même portrait. Les profils reviennent à la prochaine soirée.
-2. **Choisissez le rythme.** **Vote** : chacun choisit le prochain jeu. **Libre** : la table ouvre le catalogue. **Turbo** : le jeu tire des manches surprises plus courtes.
-3. **Passez le téléphone ou jouez chacun sur le vôtre.** Avant le défi, chacun a une action. Le joueur actif mise 1 à 3 gorgées virtuelles, relève le défi, puis le rôle change au tour suivant.
+## The pitch
 
-La règle de base est simple : **tu perds le défi, tu prends les gorgées virtuelles que tu as misées**. Les points et le classement ajoutent du piquant. Pose et Bluff offrent un passage sans pénalité ; la table peut toujours remplacer une gorgée par de l’eau, du sans alcool, un défi ou rien.
+Someone takes the spotlight. Everyone else gets a move: vote, set a trap, make a prediction, build a pattern, guess a drawing or judge an alibi. The active player stakes **one to three virtual sips**, plays a short challenge, and hands the turn on. The reveal names the friends who helped, doubted or caused the chaos.
 
-<table>
-<tr><td><img src="docs/screenshots/lobby-two.png" alt="Salon à deux" width="240"></td><td><img src="docs/screenshots/vote.png" alt="Vote du prochain jeu" width="240"></td><td><img src="docs/screenshots/handoff.png" alt="Passage du téléphone" width="240"></td></tr>
-<tr><td>La table</td><td>Le choix collectif</td><td>À toi de jouer</td></tr>
-</table>
+The art direction is a midnight bar and arcade: warm brass, deep plum, illustrated adult characters and a distinct scene for each game. The controls stay easy to hit; the atmosphere does the heavy lifting.
 
-## Dix défis, dix ambiances
+> The drinking rule is optional. Replace any virtual sip with water, a non-alcoholic drink, a dare, or nothing. Pose and Bluff also offer a penalty-free pass.
 
-Chaque défi a sa scène illustrée, son geste d’arcade et un guide FR/EN dans l’app. L’entrée annonce l’enjeu ; le dévoilement raconte qui a participé. Les commandes restent faciles à toucher quand la soirée bat son plein. Le jury et la galerie du dessin accordent sept secondes aux derniers avis après une majorité de réponses ; les absents ne votent pas « non » par défaut.
+## Start a night in three moves
 
-| Défi | Ce qui se passe autour de la table |
+1. **Set the table.** Add 2–6 players. Pick a name, FR/EN language, one of 12 adult portraits, or an optional photo. Portraits can be shared; profiles survive across parties.
+2. **Pick the pace.** In **Vote**, the table chooses the next game. In **Free**, browse all ten. In **Turbo**, the game deals faster surprise rounds.
+3. **Play together.** On one phone, private actions use clear handoff screens. On several phones, players answer from their own devices. The active player's language follows their profile; menu language is a separate setting.
+
+<p align="center">
+<img src="docs/screenshots/avatar-choice.png" alt="Adult portrait selection" width="205"> <img src="docs/screenshots/lobby-two.png" alt="Two-player lobby" width="205"> <img src="docs/screenshots/handoff.png" alt="Private turn handoff" width="205">
+</p>
+
+## Ten games, ten reasons to talk
+
+Every game has an illustrated scene, a FR/EN tutorial and a social reveal. The table participates in all ten, including reflex and rhythm challenges.
+
+| Game | What the room does |
 | --- | --- |
-| **Culture G** | Tout le monde répond en secret ; l’acteur tente sa réponse, suit la salle ou fait confiance à un ami nommé. Un duo gagnant marque un bonus. |
-| **Positions à la con** | Une scène de bistrot à jouer seul, assis ou avec un complice volontaire ; le jury tranche. |
-| **Blind Test** | Un jingle fictif original à reconnaître ; chacun écoute et vote. L’acteur peut suivre la salle ou une oreille amie. |
-| **Réflexe néon** | Les amis placent les cibles que l’acteur devra toucher. |
-| **Roulette Royale** | Chacun protège un verre ; l’acteur choisit son risque. |
-| **Dessin maudit** | Un dessin, puis les devinettes privées des autres. |
-| **Mémoire flash** | Les amis composent la chaîne que l’acteur devra rejouer. |
-| **Rythme ou rien** | La salle construit la mesure ; l’acteur tape les temps justes. |
-| **Bluff royal** | Un ami interroge l’acteur avec une relance FR/EN ; alibi vrai ou inventé ? Le jury tranche, les crédules sont révélés. |
-| **Le dernier fil** | Un objet passe de main en main avant le choix final. |
+| [**Trivia**](docs/screenshots/games/trivia.png) | Friends answer in secret. The active player can go solo, follow the room, or trust a named friend; a correct duo earns bonus points. |
+| [**Absurd Poses**](docs/screenshots/games/poses.png) | Act out a bar-scene prompt alone, seated, or with a willing accomplice. The jury votes. |
+| [**Music Quiz**](docs/screenshots/games/blind-test.png) | Hear an original fictional jingle, cast private guesses and decide whether to trust a friend's ear. |
+| [**Neon Reflex**](docs/screenshots/games/reflex.png) | Friends place targets; the active player races through the course they built. |
+| [**Royal Roulette**](docs/screenshots/games/roulette.png) | Each friend protects a coaster. The active player picks a risk. |
+| [**Cursed Drawing**](docs/screenshots/games/drawing.png) | Draw a party-themed prompt, then watch everyone guess privately. |
+| [**Flash Memory**](docs/screenshots/games/memory.png) | Friends assemble a symbol chain for the active player to repeat. |
+| [**Rhythm or Nothing**](docs/screenshots/games/rhythm.png) | The room sets the measure; the active player hits the beats. |
+| [**Royal Bluff**](docs/screenshots/games/bluff.png) | Tell a true or invented alibi. A friend asks a follow-up and the jury decides. |
+| [**The Last Wire**](docs/screenshots/games/bomb.png) | Pass the bomb between players before somebody chooses the final wire. |
 
-<table>
-<tr><td><img src="docs/screenshots/games/trivia.png" alt="Culture G" width="180"></td><td><img src="docs/screenshots/games/poses.png" alt="Positions" width="180"></td><td><img src="docs/screenshots/games/blind-test.png" alt="Blind Test" width="180"></td><td><img src="docs/screenshots/games/reflex.png" alt="Réflexe" width="180"></td><td><img src="docs/screenshots/games/roulette.png" alt="Roulette" width="180"></td></tr>
-<tr><td>Culture G</td><td>Positions</td><td>Blind Test</td><td>Réflexe</td><td>Roulette</td></tr>
-<tr><td><img src="docs/screenshots/games/drawing.png" alt="Dessin" width="180"></td><td><img src="docs/screenshots/games/memory.png" alt="Mémoire" width="180"></td><td><img src="docs/screenshots/games/rhythm.png" alt="Rythme" width="180"></td><td><img src="docs/screenshots/games/bluff.png" alt="Bluff" width="180"></td><td><img src="docs/screenshots/games/bomb.png" alt="Bombe" width="180"></td></tr>
-<tr><td>Dessin</td><td>Mémoire</td><td>Rythme</td><td>Bluff</td><td>Bombe</td></tr>
-</table>
+The jury and drawing gallery leave a seven-second grace period after a majority responds. Missing players are not counted as “no” votes.
 
-### Une manche qui se raconte
+<p align="center">
+<img src="docs/screenshots/games/trivia-result.png" alt="A round reveal names the friends who trusted each other" width="260"> <img src="docs/screenshots/games/drawing-result.png" alt="Cursed Drawing gallery reveal" width="260"> <img src="docs/screenshots/games/bomb-result.png" alt="The Last Wire route reveal" width="260">
+</p>
 
-Le résultat donne une histoire courte avec les noms des joueurs. **Partager** fabrique une image 9:16 à partir du décor du mini-jeu, du pseudo, du verdict et du score ; la feuille de partage Android vous laisse choisir l’application destinataire. Aucun compte ni publication automatique. Les portraits et photos importées ne figurent pas sur cette carte.
+### A round worth sharing
 
-<table>
-<tr><td><img src="docs/screenshots/games/trivia-result.png" alt="Deux amis gagnent en se faisant confiance" width="240"></td><td><img src="docs/screenshots/round-card.png" alt="Carte verticale d'une manche" width="240"></td></tr>
-<tr><td>Le dévoilement à la table</td><td>La carte à partager</td></tr>
-</table>
+The result tells a short story with the players' names. **Share** renders a 1080 × 1920 illustrated card on the device and opens Android's share chooser. It includes the game art, nickname, verdict and score; imported photos never appear on the card. Nothing is posted automatically.
 
-<table>
-<tr><td><img src="docs/screenshots/games/trivia-result.png" alt="Résultat de Culture G" width="240"></td><td><img src="docs/screenshots/games/drawing-result.png" alt="Galerie du dessin" width="240"></td><td><img src="docs/screenshots/games/bomb-result.png" alt="Parcours de la bombe" width="240"></td></tr>
-<tr><td>Les bonnes intuitions</td><td>La galerie improvisée</td><td>Les mains de la table</td></tr>
-</table>
+## One phone, many phones
 
-## Un téléphone ou plusieurs
-
-| Vous êtes… | Mise en place |
+| Setup | How it works |
 | --- | --- |
-| **Autour d’un seul téléphone** | Créez les profils, puis passez l’appareil quand « C’est moi » apparaît. Les choix privés restent cachés jusqu’à la révélation. |
-| **Sur le même Wi-Fi** | L’hôte ouvre une salle Wi-Fi. Les amis rejoignent avec son adresse et le PIN à six chiffres. |
-| **À proximité en Bluetooth** | Appairez les téléphones Android, puis hébergez ou rejoignez la salle avec le PIN. |
-| **Connectés par Internet** | L’hôte partage un code de salle à douze caractères. Le relais MQTT TLS par défaut est un service public de test ; sa disponibilité n’est pas garantie. |
+| **One phone** | Create everyone locally and pass the device whenever a private action appears. The next turn goes to the next player. |
+| **Same Wi-Fi** | A host opens a room; friends join with its address and six-digit PIN. Local TCP traffic is not encrypted, so use a trusted network. |
+| **Nearby Bluetooth** | Pair Android devices, then host or join with the room PIN. |
+| **Across the Internet** | Share a 12-character room code. Room payloads are encrypted over a TLS MQTT relay. The default relay is a third-party public test service, with no uptime guarantee. |
 
-L’hôte conserve la partie et le classement. Les invités votent et agissent depuis leur écran ; chaque tour utilise la langue du joueur actif, tandis que la langue des menus se règle dès l’accueil ou dans **Options → Partie**. Une partie peut être reprise après fermeture. Le menu de pause permet de revenir au salon, de reprendre, ou d’annuler le défi courant sans points ni gorgée. Un ami absent peut passer son action privée pour que la soirée continue.
+The host saves the game and historical leaderboard. A player can rejoin an ongoing party, watch the current challenge and play hidden waiting-room games. At the next break, existing players vote to admit them. A declined guest receives a virtual sip and can try again. The lobby has a six-player cap.
 
-![Une réponse envoyée par un ami sur un autre téléphone apparaît chez l'hôte](docs/screenshots/wifi-peer-action.png)
+The pause menu can resume, return to the lobby or cancel the current challenge without awarding points or sips. An absent player can skip a private action so the table can keep moving.
 
-### Un ami débarque en pleine partie
+<p align="center">
+<img src="docs/screenshots/wifi-peer-action.png" alt="A remote friend's answer reaches the host" width="240"> <img src="docs/screenshots/late-join-spectator-en.png" alt="A late guest watches and plays a hidden game" width="240"> <img src="docs/screenshots/late-join-vote.png" alt="The table votes on admission" width="240">
+</p>
 
-Il rejoint la salle avec le même code et son pseudo, même si une manche a commencé. Son téléphone montre le défi en cours et lui ouvre une petite **arcade secrète** : chat pixel à attraper, code de pattes, puis miroir. À la fin de la manche, chaque joueur déjà présent vote **oui** ou **non** pour lui faire une place au tour suivant. La majorité des votes exprimés l’accueille ; une égalité ou aucun vote le refuse. Les votes individuels restent cachés, et le scrutin avance après douze secondes sans réponse.
+## Soundtrack, secrets and control
 
-En cas de refus, le nouvel arrivant prend **une gorgée virtuelle inscrite au classement** et peut demander un nouveau vote au tour suivant. Ses secrets restent jouables pendant l’attente. Une seule demande d’entrée peut attendre à la fois et la table garde sa limite de six joueurs. Pour une soirée sans alcool, la gorgée peut naturellement être remplacée par un défi ou une boisson sans alcool.
+The original soundtrack offers Chill and Arcade styles, separate music and SFX volume, and optional haptics. Music steps aside during listening, speaking and verdict moments. A compact radio menu can save a playlist link and open **Spotify, Deezer, Apple Music or Amazon Music** in its own app. Apéro Royale does **not** control those services or use their catalogs in the Music Quiz; the quiz plays original offline motifs.
 
-<table>
-<tr><td><img src="docs/screenshots/late-join-spectator-en.png" alt="Invité en tribune et arcade secrète" width="230"></td><td><img src="docs/screenshots/late-join-vote.png" alt="Vote pour accueillir un ami" width="230"></td><td><img src="docs/screenshots/late-join-rejected-en.png" alt="Refus, gorgée virtuelle et nouvelle tentative" width="230"></td></tr>
-<tr><td>Regarder et jouer</td><td>Décider ensemble</td><td>Retenter sa chance</td></tr>
-</table>
+Waiting screens hide small optional games. Discoveries can unlock a room-wide social rule; the table votes on disputed infractions. The app never listens to conversations or requests microphone access. Players can turn optional conversation prompts on or off in Settings.
 
-## Une radio qui vous laisse choisir
+<p align="center">
+<img src="docs/screenshots/settings-party.png" alt="Party and language settings" width="205"> <img src="docs/screenshots/settings-music.png" alt="Music and effects settings" width="205"> <img src="docs/screenshots/radio-dock.png" alt="Radio Apéro launcher" width="205">
+</p>
 
-Bande originale plus espacée, style Chill ou Arcade, volume, effets et vibrations se règlent séparément. Les jingles et les verdicts prennent la place de la musique pendant les moments clés. Les relances de table se règlent dans **Options → Partie**. Vous pouvez aussi choisir **Spotify, Deezer, Apple Music ou Amazon Music**, mémoriser un lien de playlist et ouvrir votre application musicale depuis la radio ♫. Le jeu ne pilote pas ces services et n’utilise pas leurs catalogues pour le Blind Test : celui-ci joue des motifs originaux, même hors ligne.
+## Built and tested in the open
 
-<table>
-<tr><td><img src="docs/screenshots/settings-music.png" alt="Réglages audio" width="230"></td><td><img src="docs/screenshots/settings-sources.png" alt="Sources musicales" width="230"></td><td><img src="docs/screenshots/radio-dock.png" alt="Radio Apéro" width="230"></td></tr>
-</table>
+Apéro Royale is a native Java Android app. `GameEngine` handles turns and scoring; `GameStore` persists profiles, history and the active party in SQLite; `ArcadeView` and `GameSprites` draw the game; `ArcadeAudio` generates its original audio. The signing key is not in this repository.
 
-## Des secrets à découvrir
+The v1.8.0 verification ran **60 passing tests**: three complementary synthetic party models covered 30,000 modeled sessions and 660,000 rounds; a focused test covered another 10,000 Trivia/Music Quiz rounds and 40,000 private player snapshots. A debug build completed all ten games with two alternating players on an Android 16 emulator. The signed APK was installed and launched on Android 8 and 16 emulators.
 
-Sur plusieurs appareils, les écrans d’attente cachent de petits jeux. Une découverte faite par un joueur déjà dans la partie peut donner le droit de proposer une règle valable pour toute la salle au tour suivant. L’arcade de l’invité en attente reste sur son téléphone et n’influence pas le vote d’entrée. Si une règle sociale est contestée, la salle vote. Aucun microphone ne surveille les conversations.
+These tests check rules, state and assumed timing. They do not prove that a real group will find a game funny or that Wi-Fi, Bluetooth and Internet latency will be low on physical phones. Read the [v1.8.0 test report](docs/RELEASE_180_SOCIAL.md) for the exact scope.
 
-<details><summary>Voir un secret en image</summary>
+```sh
+# JDK 17 and Android SDK 36
+./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
 
-![Un jeu secret](docs/screenshots/secret-paw-code.png)
-
-</details>
-
-## Confiance et fabrication
-
-Apéro Royale fonctionne sans compte, publicité ni télémétrie. Les profils, parties et classements sont stockés localement sur le téléphone hôte. Les photos facultatives sont réduites avant partage. [Données et réseau](PRIVACY.md) · [Licence MIT](LICENSE) · [Licences tierces](THIRD_PARTY_NOTICES.md).
-
-### Un laboratoire qui suit le rythme de la soirée
-
-Le [stress test organique](docs/LABO_ORGANIQUE_2026.md) a fait jouer **30 000 soirées virtuelles et 720 000 manches** au moteur réel, puis a rejoué **30 000 soirées** avec les règles 1.7.0 et les mêmes graines. La 1.8.0 a repassé **30 000 soirées de simulation** sur trois modèles complémentaires, ainsi que **10 000 manches sociales** Culture G/Blind Test avec 40 000 vues privées de joueurs. Le [rapport 1.8.0](docs/RELEASE_180_SOCIAL.md) détaille ce que ces tests vérifient et leurs limites. C'est un instrument de design : **aucune biométrie n'est collectée et aucun chiffre ne prétend mesurer le plaisir humain**.
-
-Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principales sont dans app/src/main/java/com/aperoroyale. GameEngine gère les tours, GameStore conserve la partie dans SQLite, ArcadeView et GameSprites dessinent les scènes, ArcadeAudio joue la musique et les effets. La clé de signature n’est pas dans le dépôt.
-
-~~~sh
-./gradlew testDebugUnitTest assembleDebug
+# Requires a debug build and an emulator with the expected display layout
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
-APERO_SOCIAL_ROUNDS=10000 ./gradlew :app:testDebugUnitTest --tests com.aperoroyale.SocialFeatureStressTest
-~~~
 
-[Conception et stress test 1.8.0](docs/RELEASE_180_SOCIAL.md) · [Rythme et stress test 1.7.0](docs/RELEASE_170_RYTHME.md) · [Direction artistique 1.6.0](docs/RELEASE_160_DESIGN.md) · [Laboratoire organique](docs/LABO_ORGANIQUE_2026.md) · [Stress test social](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
+# Longer focused social test
+APERO_SOCIAL_ROUNDS=10000 ./gradlew :app:testDebugUnitTest \
+  --tests com.aperoroyale.SocialFeatureStressTest
+```
 
----
+## Read more
 
-**English:** Apéro Royale 1.8.0 is a French/English Android party arcade for 2–6 friends, on one phone or several. Menus have their own FR/EN choice and turns follow each player’s language. Twelve adult portraits, optional photos, ten illustrated challenges, social round reveals and optional table prompts give the room something to talk about. In Trivia and Music Quiz, the active player can trust a named friend’s private answer; a winning duo earns bonus points. Bluff names a friend to ask a spoken follow-up. A resolved round can be shared as a locally generated illustrated 9:16 card via Android’s chooser. A late friend can spectate, play hidden games, and face an admission vote at the next break. Profiles and the leaderboard persist. The signed APK is linked at the top; streaming services open in their own apps, while the music quiz uses original offline motifs.
+[Release notes](RELEASE.md) · [Design and simulation reports](docs/README.md) · [Privacy and network model](PRIVACY.md) · [Third-party licenses](THIRD_PARTY_NOTICES.md) · [MIT license](LICENSE)
+
+No account, advertising, analytics or biometrics. Profiles and leaderboards live on the host device; optional photos are downsized locally. See [Privacy](PRIVACY.md) before using network rooms or sharing a round card.

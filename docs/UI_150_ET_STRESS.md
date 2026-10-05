@@ -1,31 +1,31 @@
-# Interface 1.5.0 et stress test de soirée
+# v1.5.0 — Interface and party stress test
 
-## Intention visuelle
+## Visual intent
 
-L'écran d'accueil conserve son illustration de soirée et réduit le poids visuel des commandes. Les boutons sont plus fins, sombres, avec un repère coloré et un libellé lisible. Leur zone tactile reste large. Le salon affiche les amis comme une liste et place les choix Vote, Libre et Turbo côte à côte. Les paramètres audio et de partie sont des lignes plutôt qu'une pile de grandes cartes.
+The home screen kept its party illustration while giving the controls less visual weight. Buttons became slimmer and darker, with a color cue and readable label; their touch targets remained generous. The lobby lists friends and places Vote, Free and Turbo side by side. Audio and party settings use rows rather than a tower of large cards.
 
-Dans les mini-jeux, l'identité des dix scènes et leurs sprites restent présents. Le cadrage est plus sobre et chaque scène garde sa couleur. Culture G, Blind Test et les réponses de Dessin utilisent des lignes A–D ; Roulette dessine six verres ; Mémoire emploie des cases sombres au liseré coloré ; Rythme et Bombe gardent une grande zone tactile avec un noyau visuel plus petit. Les autres actions bénéficient du même contrôle compact. [Captures de l'accueil](screenshots/home.png), du [salon](screenshots/lobby-four.png) et des [dix jeux](../README.md#dix-défis-dix-ambiances).
+The ten game scenes and sprites kept their identities, with calmer framing and a distinct color for each challenge. Trivia, Music Quiz and Drawing answers use A–D rows. Roulette draws six glasses. Memory uses dark cells with colored borders. Rhythm and Last Wire retain large touch regions around smaller visual cores. See the [home screen](screenshots/home.png), [lobby](screenshots/lobby-four.png) and [ten-game gallery](../README.md#ten-games-ten-reasons-to-talk).
 
-## Parcours réels sur émulateur
+## Emulator journeys
 
-- Android 16 : deux joueurs ont traversé les dix défis, avec relais, paris, actions de l'entourage, sauvegarde et classement ; les deux premiers tours en mode Vote et Turbo alternent le joueur actif.
-- Android 16 : choix directs Vote / Libre / Turbo, réglages et captures sur écran long 1080 × 2340 et écran court 1080 × 1920.
-- Deux émulateurs connectés en Wi-Fi local : arrivée d'un invité pendant une manche, affichage du défi en cours sur son téléphone Android 8.0, enchaînement des trois secrets tactiles, scrutin d'admission au changement de manche, refus par délai, gorgée enregistrée dans SQLite et bouton de nouvelle demande. Un parcours antérieur a aussi vérifié son admission après deux votes favorables puis son retour dans l'interface de jeu normale.
-- Ces parcours vérifient des interactions et leur rendu. Ils ne mesurent pas le plaisir, la musique sur des enceintes réelles ou la latence de téléphones physiques.
+- On Android 16, two players completed all ten games with handoffs, wagers, friend actions, saved state and leaderboard. The first Vote and Turbo rounds alternated the active player.
+- Vote, Free and Turbo selection, settings and screenshots were checked on 1080 × 2340 and 1080 × 1920 emulator displays.
+- Across two emulators on local Wi-Fi, a guest arrived during a round, saw the active challenge on their Android 8 phone, played three hidden waiting games, faced admission at the next break, was declined by timeout, received a virtual sip in SQLite and could request another vote. An earlier journey verified admission after two positive votes and a return to the normal game interface.
+- These journeys check interactions and rendering. They do not measure enjoyment, audio on real speakers or physical-phone latency.
 
-## Trois stress tests reproductibles
+## Three reproducible stress models
 
-| Modèle | Échantillon | Résultat automatisé |
+| Model | Sample | Automated result |
 | --- | ---: | --- |
-| `TenThousandDevicePartiesTest` | 10 000 soirées, 40 000 manches, 160 000 vues privées FR/EN | 2 tests réussis ; secrets et restaurations exercés |
-| `VirtualPeopleSimulationTest` avec `APERO_PEOPLE_PARTIES=10000` | 10 000 soirées, 240 000 manches | 3 tests réussis ; agents à mémoire, votes et contributions |
-| `ExtremePartySimulationTest` avec `APERO_SIM_PARTIES=10000` | 10 000 soirées, 180 000 manches | 1 test réussi ; 2–6 joueurs, un/deux/plusieurs appareils modélisés, trois modes, quatre scénarios d'attention |
+| `TenThousandDevicePartiesTest` | 10,000 parties, 40,000 rounds, 160,000 private FR/EN views | Two tests passed; secrets and restores exercised. |
+| `VirtualPeopleSimulationTest` with `APERO_PEOPLE_PARTIES=10000` | 10,000 parties, 240,000 rounds | Three tests passed; stateful agents, voting and contributions. |
+| `ExtremePartySimulationTest` with `APERO_SIM_PARTIES=10000` | 10,000 parties, 180,000 rounds | One test passed; 2–6 players, modeled device layouts, three modes and four attention scenarios. |
 
-Les trois modèles ont des hypothèses différentes ; leurs volumes ne constituent pas 30 000 soirées réelles. L'horloge virtuelle évalue des délais de moteur et des temps de réponse supposés. Dans son mélange de scénarios, la moyenne d'une manche va de **82 s** en Vote sur un téléphone à **41,6 s** en Turbo sur des téléphones individuels. Les fins par délai atteignent environ **26 %** en Vote sur un téléphone et **39 %** en Turbo sur téléphones individuels dans cet échantillon : raccourcir la manche ne suffit donc pas à la rendre fluide. Ces chiffres servent à repérer les étapes à expliquer ou raccourcir ; ils ne mesurent ni l'envie de rejouer ni la facilité perçue par de vraies personnes. Le nouveau parcours d'arrivée en cours de partie dispose de tests de transition, de reprise, de bulletins privés et d'un test sur deux émulateurs ; les trois simulations de 10 000 soirées ci-dessus n'intègrent pas encore le comportement social des demandes d'entrée.
+The models have different assumptions; their volume does not equal 30,000 real parties. The virtual clock applies engine deadlines to assumed response times. In its scenario mix, mean round duration ranged from **82 s** for Vote on one shared phone to **41.6 s** for Turbo on individual phones. Modeled timeout endings were about **26%** for shared-phone Vote and **39%** for individual-phone Turbo in this sample: a shorter round is not automatically smoother. These numbers help identify steps to shorten or explain, not willingness to replay or perceived ease with people. Late admission had transition, resume, ballot-privacy and two-emulator checks; the three long simulations above did not yet model the social behavior of admission requests.
 
-**Ce que l'interface change concrètement :** le salon explique chaque mode avant de lancer la partie ; une commande claire occupe chaque étape ; les réponses se lisent comme des choix plutôt que comme un mur de boutons ; les zones tactiles restent larges. Le prochain contrôle utile est chronométré avec de vrais amis : temps jusqu'à la première manche, hésitations avant chaque geste et besoin d'explications orales.
+The interface gives each mode a short explanation, one clear action per phase and answer choices that read as decisions rather than a wall of buttons. A useful next human check would time the first round, observe hesitation before each gesture and note when verbal explanation is needed.
 
-## Reproduire
+## Reproduce
 
 ```sh
 ./gradlew testDebugUnitTest --tests com.aperoroyale.TenThousandDevicePartiesTest --offline
@@ -36,4 +36,4 @@ ADB_SERIAL=emulator-5554 python3 tools/smoke_turns.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turbo.py
 ```
 
-Les scripts `smoke_*` pilotent l'app sur l'émulateur ciblé et peuvent remplacer sa session locale. Les tests Java ne nécessitent pas d'appareil.
+The `smoke_*` scripts operate the selected emulator and may replace its local session. Java tests do not require a device.

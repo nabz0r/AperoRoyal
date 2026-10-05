@@ -1,85 +1,71 @@
-# Audit de rythme, de répétition et de participation — 500 soirées simulées
+# Pace, repetition and participation — 500 modeled parties
 
-## 1.4.4 — chaque joueur a une action propre au défi
+This is a **historical model**, not a user study. It compares early 1.4.x builds under assumed reading, handoff and action times. Later releases changed the game. The figures below describe the model at the named version, not the current party experience.
 
-Le contre-essai 1.4.4 exécute **500 soirées et 7 990 manches** avec les six nouveaux choix collectifs, un vote de chaque non-artiste sur le dessin et les jurys/relais déjà présents. Chaque joueur a une action dans les dix mini-jeux quand il répond à temps. Les 500 soirées de robustesse séparées couvrent aussi les expirations et 40 041 restaurations d'état. Les durées ci-dessous sont des **hypothèses de modèle**, sans observation humaine ni mesure de latence.
+## 1.4.4: an action for every player
 
-| Configuration | Durée moyenne modélisée | Manches avec un seul joueur actif | Actions propres au défi par joueur |
+In the modeled 1.4.4 flow, friends answered in Trivia and Sound; placed starting targets in Reflex; protected cups in Roulette; built the initial Memory chain; and selected beats in Rhythm. Drawing guesses, Poses and Bluff juries, and the Bomb relay also involved the table. A private handoff paused the appropriate timer on one phone.
+
+| Configuration | Modeled mean round | Rounds with one participant | Game-specific actions per player |
 | --- | ---: | ---: | ---: |
-| 2 joueurs, 1 téléphone, Vote | 39,0 s | 0 % | 1,00 |
-| 4 joueurs, 1 téléphone, Vote | 58,2 s | 0 % | 1,00 |
-| 6 joueurs, 1 téléphone, Vote | **77,3 s** | 0 % | 1,00 |
-| 6 joueurs, 1 téléphone, Turbo | **49,4 s** | 0 % | 1,00 |
-| 6 joueurs, téléphones séparés, Vote | 35,5 s | 0 % | 1,00 |
+| 2 players, 1 phone, Vote | 39.0 s | 0% | 1.00 |
+| 4 players, 1 phone, Vote | 58.2 s | 0% | 1.00 |
+| 6 players, 1 phone, Vote | **77.3 s** | 0% | 1.00 |
+| 6 players, 1 phone, Turbo | **49.4 s** | 0% | 1.00 |
+| 6 players, separate phones, Vote | 35.5 s | 0% | 1.00 |
 
-Culture G et Blind Test font répondre chacun ; Réflexe utilise les coins choisis ; Roulette affiche les protections ; Mémoire commence par les symboles des amis ; Rythme retient quatre temps élus ; tous les non-artistes devinent le dessin. Le choix privé local suspend le chrono durant le passage. Le modèle suppose quatre secondes par ami sur un téléphone partagé et quatre secondes simultanées sur plusieurs appareils ; ces valeurs doivent être chronométrées avec des groupes réels. À six sur un téléphone, le scrutin de chaque manche explique encore la longueur du mode Vote. **Ce test confirme les transitions et la participation codée, pas le plaisir, la viralité ou la qualité du réseau réel.**
+The participation improvement did not prove the interactions were enjoyable. The six-player, one-phone Vote route remained long.
 
-Les sections suivantes conservent les audits historiques 1.4.2–1.4.3 et leurs diagnostics antérieurs à cette refonte.
+## 1.4.3 countercheck
 
-**4 octobre 2026, audit initial 1.4.2 et contre-essai 1.4.3.** Cet audit complète le [test de robustesse du moteur](SIMULATION_500_PARTIES.md). Le test reproductible [`PartyExperienceSimulationTest`](../app/src/test/java/com/aperoroyale/PartyExperienceSimulationTest.java) traverse **500 soirées et 7 990 manches par exécution** avec le vrai tirage, les modes Vote/Libre/Turbo, deux à six profils FR/EN et les transitions du moteur. Il compte les variantes réellement tirées et les rôles qui touchent au mini-jeu. Le temps est un **modèle**, pas un chronométrage humain ni une mesure du réseau.
+Earlier changes added game-specific actions but still left about half the rounds with only the featured player acting within the mini-game:
 
-## Contre-essai 1.4.3 — un relais plus vivant, une attente encore longue
-
-La version 1.4.3 enlève le prono générique avant Poses, Bluff et Bombe : les jurys et le relais donnent déjà aux amis une action. En Vote et Turbo, après deux manches où seuls certains participent au défi, la sélection suivante vient de ces trois jeux collectifs. La bombe fait choisir le prochain porteur, oblige tout le monde à la toucher avant de proposer un fil rouge/bleu risqué et suspend son chrono pendant le passage physique. Réflexe, Mémoire et Rythme possèdent six variantes mécaniques ; Roulette six dispositions de pièges ; les six motifs du Blind Test existent dans quatre tonalités. Le tirage de variantes épuise chaque paquet avant de le recommencer.
-
-| Cohorte sur un téléphone | Moyenne modélisée 1.4.2 → 1.4.3 | Manches où seul l'acteur agit 1.4.2 → 1.4.3 | Plus longue attente sans action propre au mini-jeu 1.4.2 → 1.4.3 |
+| One-phone cohort | Mean 1.4.2 → 1.4.3 | One-actor rounds 1.4.2 → 1.4.3 | Longest run without a game-specific action |
 | --- | ---: | ---: | ---: |
-| 2 joueurs, Vote | 41,7 → **41,3 s** | 59,5 → **52,8 %** | 1 → **1 manche** |
-| 4 joueurs, Vote | 64,8 → **61,1 s** | 59,8 → **50,0 %** | 3 → **2 manches** |
-| 6 joueurs, Vote | 87,3 → **81,0 s** | 60,7 → **50,9 %** | 5 → **2 manches** |
-| 6 joueurs, Turbo | 59,3 → **53,1 s** | 59,7 → **51,4 %** | 5 → **2 manches** |
+| 2 players, Vote | 41.7 → **41.3 s** | 59.5 → **52.8%** | 1 → **1 round** |
+| 4 players, Vote | 64.8 → **61.1 s** | 59.8 → **50.0%** | 3 → **2 rounds** |
+| 6 players, Vote | 87.3 → **81.0 s** | 60.7 → **50.9%** | 5 → **2 rounds** |
+| 6 players, Turbo | 59.3 → **53.1 s** | 59.7 → **51.4%** | 5 → **2 rounds** |
 
-Le générateur a choisi **330 coupes de fil** dans les 989 manches de bombe de ce contre-essai : 156 réussites, 174 échecs, et 659 relais complets. Les statistiques comptent seulement des règles exécutées par le moteur ; elles n'observent ni plaisanteries, ni revanche volontaire, ni satisfaction. Les deux versions utilisent les mêmes 500 identifiants de soirée et les mêmes hypothèses de temps, mais leurs tirages divergent après les changements de mécanique : ce tableau compare des cohortes simulées, pas des manches appariées une à une. Le rapport actuel imprimé par le test couvre les 30 cohortes et ne répète aucune variante avant épuisement de son paquet.
+## Original 1.4.2 baseline
 
-**Décision : le critère « tous les jeux sont viraux » n'est pas atteint ni mesurable par cette simulation.** Six mini-jeux restent des défis solo au cœur de la manche ; à six sur un téléphone, 81 s modélisées en Vote et jusqu'à deux manches sans action propre au défi sont encore trop longues pour promettre une soirée fluide. Les variantes rendent les manches moins identiques, sans créer à elles seules un choix amusant pour les amis. Le mode Turbo raccourcit la préparation mais ne résout pas la participation. Les prototypes collectifs et les vrais tests de groupe décrits dans [la refonte des dix jeux](REFONTE_DIX_MINI_JEUX.md) restent nécessaires.
+The model used deterministic input delays rather than real fingers or measured human behavior. Its preparation share included mode selection, wagers, predictions and physical handoffs. The exact round mix was governed by the test. It could identify bottlenecks and logic regressions, but could not infer laughter or replay intent.
 
-Les sections suivantes conservent les hypothèses, mesures et correctifs de l'audit initial **1.4.2** comme point de comparaison.
-
-## Ce que le modèle suppose
-
-Une sélection prend 3 s par personne et 2 s de passage sur un téléphone partagé ; les pronostics prennent 3 s + 2 s de passage par ami. Sur plusieurs téléphones, votes et pronostics sont supposés parallèles et prennent chacun 5 s pour la salle. Transition, confirmation, mise et résultat prennent ensemble 15 s sur un téléphone et 13 s sur plusieurs. Les actions sont estimées à 4–30 s selon le jeu, bornées par ses vrais chronos lorsque ceux-ci existent. Jury et devinette ajoutent du temps et des passages. Les actions humaines, le rire, les discussions, la latence, les déconnexions et les boissons peuvent allonger ces durées ; personne ne les a mesurées ici.
-
-Chaque soirée a 12 à 20 manches. En mode Libre, le simulateur choisit souvent un jeu favori pour éprouver les répétitions. « Action dans le mini-jeu » signifie un toucher, une réponse, un dessin, un vote de jury ou un relais de bombe ; **cela ne signifie pas un choix intéressant**. Le vote du prochain jeu et le pronostic générique sont comptés dans la préparation, jamais comme action propre au mini-jeu.
-
-## Résultats qui changent la décision produit
-
-| Configuration | Manche moyenne modélisée | Part de préparation | Manches > 45 s | Manches où seul l'acteur agit dans le mini-jeu | Plus longue série sans action propre au mini-jeu |
+| Configuration | Modeled mean round | Setup share | Rounds over 45 s | Actor-only game rounds | Longest actor-only run |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| 2 joueurs, 1 téléphone, Vote | 41,7 s | 67,2 % | 30,2 % | 59,5 % | 1 manche |
-| 4 joueurs, 1 téléphone, Vote | 64,8 s | 74,1 % | 100 % | 59,8 % | 3 manches |
-| 6 joueurs, 1 téléphone, Vote | **87,3 s** | **77,9 %** | **100 %** | **60,7 %** | **5 manches**, jusqu'à 434 s modélisées |
-| 6 joueurs, 1 téléphone, Turbo | 59,3 s | 67,4 % | 90,1 % | 59,7 % | 5 manches |
-| 6 joueurs, plusieurs téléphones, Vote | 36,8 s | 62,6 % | 9,1 % | 62,7 % | 5 manches |
+| 2 players, 1 phone, Vote | 41.7 s | 67.2% | 30.2% | 59.5% | 1 round |
+| 4 players, 1 phone, Vote | 64.8 s | 74.1% | 100% | 59.8% | 3 rounds |
+| 6 players, 1 phone, Vote | **87.3 s** | **77.9%** | **100%** | **60.7%** | **5 rounds**, up to 434 modeled seconds |
+| 6 players, 1 phone, Turbo | 59.3 s | 67.4% | 90.1% | 59.7% | 5 rounds |
+| 6 players, separate phones, Vote | 36.8 s | 62.6% | 9.1% | 62.7% | 5 rounds |
 
-La préparation de six amis sur un seul téléphone en Vote vaut environ **68 s par manche** dans ce scénario, avant l'action centrale. Même en supposant des gestes 35 % plus rapides, ce coût resterait proche de 44 s. Le mode Turbo évite le vote, mais conserve cinq pronostics séquentiels. Ces chiffres identifient un risque de rythme, pas la durée réelle d'une soirée. Ils invalident toute affirmation selon laquelle « 500 parties simulées » aurait prouvé que six personnes s'amusent sans attendre.
+Five sequential votes on one phone took roughly 68 modeled seconds per six-player Vote round before the central action; even 35% faster assumed gestures left roughly 44 seconds. That was a pacing risk, not a real-party duration.
 
-## Redondance et densité des dix jeux
+## Content and participation at the baseline
 
-| Jeu | Manches simulées | Qui agit dans le mini-jeu ? | Contenu distinct actuel | Diagnostic de rejouabilité |
+| Game | Modeled rounds | Who acted inside the game | Distinct content | Diagnosis then |
 | --- | ---: | --- | ---: | --- |
-| Culture G | 743 | acteur | 17 QCM | Les amis ne font que pronostiquer ; réponses à créer par chacun. |
-| Positions | 785 | acteur + jurés | 18 défis | Vrai moment de groupe, mais verdict binaire et même structure. |
-| Blind Test | 718 | acteur | **6 motifs** | Banque trop courte ; les autres n'ont pas de pari sur le son lui-même. |
-| Réflexe | 870 | acteur | cible aléatoire, **1 règle** | Les coordonnées changent, l'objectif « dix touches » reste identique. |
-| Roulette | 800 | acteur | piège aléatoire, **1 règle** | Choix rapide ; les amis n'influencent pas le retournement. |
-| Dessin | 765 | artiste + un devineur | 17 concepts | À six, quatre amis n'ont pas de rôle pendant la révélation. |
-| Mémoire | 830 | acteur | séquence aléatoire, **1 règle** | Longueur progresse, mais aucune décision des amis. |
-| Rythme | 783 | acteur | **1 règle** | Quatre frappes ; aucune comparaison ou contretemps collectif. |
-| Bluff | 839 | conteur + jurés | 17 amorces | Le plus social avec Positions ; il faut tester la qualité des histoires en vrai. |
-| Bombe | 857 | tout le monde touche | **1 règle** | Relais réel, mais deux touches imposées ne sont pas des décisions. |
+| Trivia | 743 | Featured player | 17 questions | Friends only predicted. |
+| Poses | 785 | Player and jurors | 18 prompts | Social, but binary judgment. |
+| Sound | 718 | Featured player | 6 motifs | Too little content. |
+| Reflex | 870 | Featured player | 1 rule | Variable targets, same ten-tap goal. |
+| Roulette | 800 | Featured player | 1 rule | Friends could not affect the reveal. |
+| Drawing | 765 | Artist and one guesser | 17 concepts | Four of six friends could wait. |
+| Memory | 830 | Featured player | 1 rule | Longer sequences, no friend decision. |
+| Rhythm | 783 | Featured player | 1 rule | Four taps, no call and response. |
+| Bluff | 839 | Storyteller and jurors | 17 prompts | Strong social seed needing real playtests. |
+| Bomb | 857 | Everyone tapped | 1 rule | Handoff without a meaningful choice. |
 
-**Six jeux sur dix** n'offrent une action dans leur défi qu'à l'acteur : Culture G, Blind Test, Réflexe, Roulette, Mémoire et Rythme. Le pronostic commun donne des points, mais il se répète à chaque tour. Le modèle ne sait pas mesurer une blague, une rivalité, une surprise ou l'envie de revanche. [Jackbox distingue lui aussi plusieurs formes de participation du public](https://www.jackboxgames.com/blog/how-audience-play-along-differs-in-each-jackbox-game) ; nous retenons ici comme piste de conception des actions qui modifient réellement la manche, et non un simple bouton de présence. Son [journal de développement de 2026](https://www-origin.jackboxgames.com/blog/trivia-murder-party-3-dev-diary-6) décrit le recours à des groupes de test pour savoir ce qui est drôle, frustrant ou sensible à la latence. C'est une raison supplémentaire de ne pas confondre ces métriques avec un verdict de plaisir.
+Six of ten games were actor-only inside the challenge at this point. Predictions were a common scoring layer, not sufficient participation. Compare the later 1.4.4 table above before drawing a current-product conclusion.
 
-## Correctifs inclus dans 1.4.2
+## Fixes made in 1.4.2
 
-1. **Cartes sans répétition prématurée.** QCM, poses, motifs sonores, dessins et amorces de bluff utilisent maintenant un paquet mélangé par jeu, persistant dans la sauvegarde. Chaque élément sort une fois avant tout retour, et la première carte du nouveau paquet diffère de la dernière de l'ancien. La simulation trouve **zéro doublon avant épuisement** sur les 7 990 manches. Les jeux Libre peuvent toujours être redemandés de suite par le groupe ; c'est un choix explicite.
-2. **Manches qui ne restent plus ouvertes indéfiniment.** La roulette a un chrono de choix de 10 s ; le gobelet choisi peut terminer son animation. Le dessin a 30 s pour créer puis 12 s pour deviner. Le passage du téléphone au devineur suspend son chrono jusqu'à sa confirmation. Le bonus de temps et le soutien peuvent encore allonger les chronos selon les règles existantes.
-3. **Régression automatique.** Les tests couvrent épuisement des paquets après sauvegarde/restauration, absence de carte identique au raccord, délais des deux phases de dessin et fin de la roulette après révélation.
+1. Questions, poses, sound motifs, drawings and bluff prompts used persisted shuffled decks. Each item appeared once before reuse, and the first item after reshuffling differed from the last. The 7,990-round model found **zero premature duplicates**. Free mode could still intentionally repeat a chosen game.
+2. Roulette gained a ten-second cup-choice deadline. Drawing gained 30 seconds to create and 12 seconds to guess; the guess timer paused for a physical handoff. Existing time bonuses could still extend play.
+3. Regression tests covered deck exhaustion across save and restore, reshuffle boundaries, drawing phases and roulette completion.
 
-## Ce qui n'est pas encore validé
+Reproduce this historical audit with:
 
-La simulation classe le **mode Vote local à quatre à six** comme risque de rythme, et les six défis solo comme risque de spectateur passif. Elle ne valide donc pas le critère « fun entre joueurs ». Les correctifs de 1.4.2 ciblent la répétition des contenus écrits et les manches sans fin ; ils ne transforment pas encore les jeux solo en défis collectifs ni la bombe en dilemme. Les pistes précises par jeu sont dans [la refonte des dix mini-jeux](REFONTE_DIX_MINI_JEUX.md).
+    ./gradlew testDebugUnitTest --tests com.aperoroyale.PartyExperienceSimulationTest
 
-Pour ouvrir une vraie validation : trois groupes indépendants de 2, 4 et 6 personnes, chacun sur un puis plusieurs téléphones, FR/EN mélangés, cinq manches de découverte puis dix manches libres. Observer sans guider : temps du premier plaisir, durée de préparation et d'attente par personne, incompréhensions, actions qui influencent le résultat, retours spontanés, choix volontaire de refaire un jeu, et vote final « lequel retire-t-on ? ». Rejouer avec les mêmes groupes après modification. Les séances réseau doivent enregistrer délai de réception et divergence de score, séparément du ressenti. La [spécification de refonte](REFONTE_DIX_MINI_JEUX.md) contient les critères de sortie de chaque jeu.
-
-Reproduire l'audit : `./gradlew testDebugUnitTest --tests com.aperoroyale.PartyExperienceSimulationTest`. Le tableau complet des **30 cohortes** est imprimé dans le résultat du test (`app/build/test-results/testDebugUnitTest/TEST-com.aperoroyale.PartyExperienceSimulationTest.xml`).
+The test result contains the 30-cohort table. A proper follow-up remains an observed 2/4/6-player session on one and several phones, with mixed FR/EN players and unprompted replay choices. Record network divergence separately from enjoyment.

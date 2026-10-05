@@ -1,42 +1,43 @@
-# 1.8.0 — Faire confiance à la table
+# v1.8.0 — Trust the table
 
-La manche doit créer une histoire entre amis, pas seulement annoncer un score. Cette version donne un choix social précis à Culture G et Blind Test : répondre soi-même, suivre la tendance de la salle ou miser sa réponse sur un ami nommé. L'ami a déjà répondu, mais sa réponse reste cachée jusqu'au dévoilement. Si le duo a raison, chacun gagne **25 points supplémentaires**. Une mauvaise confiance ne crée pas de gorgée supplémentaire : la mise ordinaire de la manche reste la seule pénalité éventuelle.
+A round should create a story between friends, not merely return a score. This release gives Trivia and Music Quiz three clear choices: answer independently, follow the room's lead, or trust a named friend. The friend has already answered, but their choice remains hidden until the reveal. When that answer is right, **both players earn 25 bonus points**. Misplaced trust adds no separate drinking penalty; the round's ordinary stake remains the only possible virtual-sip consequence.
 
-Bluff royal désigne maintenant un ami chargé de poser à voix haute une question de relance adaptée à la langue de l'acteur. Le jury continue de voter individuellement. Les dix jeux gardent leurs décors illustrés, leurs actions de groupe et leur aide FR/EN.
+Royal Bluff now designates a friend to ask a spoken follow-up in the active player's language. The jury still votes individually. All ten games retain their illustrated scenes, group actions and FR/EN help.
 
-## Une image de la soirée, sur demande
+## A shareable memory, by choice
 
-Le résultat propose **Partager** à côté du classement. Le jeu dessine une carte PNG de 1080 × 1920 pixels avec le décor du mini-jeu, le pseudo de l'acteur, le verdict, une partie de l'histoire et le score ou les gorgées virtuelles. Le badge de résultat et la carte utilisent le numéro du défi avec l'illustration adulte. La carte n'inclut ni portrait ni photo personnelle. Elle reste dans le cache local tant que personne ne choisit un destinataire dans la feuille de partage Android ; aucun envoi automatique n'existe.
+The result screen places **Share** beside the leaderboard. The app renders a 1080 × 1920 PNG card with the game's scene, the active player's nickname, a short reveal, and the score or virtual sips. The result and card use a numbered game badge with the adult illustration. Neither portraits nor imported photos are included. The card stays in the local app cache unless a player chooses a destination in Android's share chooser; there is no automatic upload.
 
-![Résultat social](screenshots/games/trivia-result.png)
+<p align="center">
+<img src="screenshots/games/trivia-result.png" alt="A reveal about two friends trusting each other" width="260"> <img src="screenshots/round-card.png" alt="The locally generated vertical round card" width="260">
+</p>
 
-![Carte verticale à partager](screenshots/round-card.png)
+## Consistency across devices
 
-## Cohérence sur plusieurs appareils
+The host keeps individual Trivia and Music Quiz answers private during play. Guest snapshots include the number of replies, the name of an eligible friend and the room's leading option, but not each person's answer. The **trust a friend** command goes to the host, which locks in that friend's actual answer and awards points. The final choice becomes visible with the result. Contributions for other challenges remain available where their gameplay requires them.
 
-L'hôte garde les réponses privées de Culture G et Blind Test pendant la manche. Les instantanés envoyés aux téléphones invités contiennent le nombre de réponses, l'identité du premier ami disponible pour ce choix social et la tendance de la salle, sans les réponses individuelles. Le bouton « suivre un ami » envoie une commande à l'hôte, qui verrouille la vraie réponse de cet ami et distribue les points. Les résultats sont ensuite diffusés normalement. Les contributions des autres mini-jeux restent disponibles là où leur gameplay en a besoin.
+## Reproducible stress test
 
-## Stress test reproductible
+The complete verification used:
 
-Commande utilisée pour la vérification complète :
-
-~~~sh
+```sh
 APERO_SIM_PARTIES=10000 APERO_PEOPLE_PARTIES=10000 \
 APERO_ORGANISM_PARTIES=10000 APERO_SOCIAL_ROUNDS=10000 \
-./gradlew :app:testDebugUnitTest :app:assembleRelease :app:lintVitalRelease --offline --rerun-tasks
-~~~
+./gradlew :app:testDebugUnitTest :app:assembleRelease :app:lintVitalRelease \
+  --offline --rerun-tasks
+```
 
-| Modèle | Parcours exécuté | Ce qu'il vérifie |
+| Model | Executed | Invariant or assumption exercised |
 | --- | ---: | --- |
-| Horloge et topologies | 10 000 soirées, 180 000 manches | Tours, délais, actions manquantes, reprise, répétition des jeux. |
-| Joueurs virtuels | 10 000 soirées, 240 000 manches | Choix influencés par les préférences, les relations et la fatigue supposées. |
-| Trajectoires relatives | 10 000 soirées, 240 000 manches | Variation modélisée par rapport à l'état propre de chaque joueur virtuel. |
-| Confiance sociale 1.8 | 10 000 manches Culture G/Blind Test, 40 000 vues privées | 2 à 6 joueurs FR/EN, réponses masquées, tendance publique, verrouillage, points et reprise. |
+| Virtual clock and device layouts | 10,000 parties, 180,000 rounds | Turn order, deadlines, missing actions, resume and game repetition. |
+| Stateful virtual players | 10,000 parties, 240,000 rounds | Choices shaped by assumed preferences, relationships and fatigue. |
+| Relative player trajectories | 10,000 parties, 240,000 rounds | Modeled changes compared with each virtual player's own baseline. |
+| v1.8.0 social trust | 10,000 Trivia/Music Quiz rounds, 40,000 private views | 2–6 FR/EN players, masked answers, public room lead, lock-in, scores and resume. |
 
-Dans le dernier parcours synthétique, 3 334 acteurs ont choisi de suivre un ami et 2 000 manches ont été gagnées. Ces proportions viennent des choix déterministes du test : **ce ne sont pas des mesures de plaisir, de viralité ou d'efficacité de la mécanique**. Le test impose aussi le passage par les deux langues et les cinq tailles de table. Les trois premiers modèles sont des simulations complémentaires ; ils ne représentent pas 30 000 groupes humains différents.
+In the focused synthetic run, 3,334 actors chose to trust a friend and 2,000 rounds were won. Those shares follow the test's deterministic choices: **they are not measurements of enjoyment, virality or the feature's effectiveness**. The test covers both languages and all five table sizes. The first three models complement one another; they do not represent 30,000 distinct human groups.
 
-La vérification sur Android 16 émulé en version de débogage a parcouru les dix mini-jeux avec deux profils alternés, paris, actions des amis et sauvegarde d'historique. La carte PNG a été produite depuis un résultat réel et prévisualisée dans le sélecteur de partage Android. L'APK signée a été installée par mise à jour de la 1.7.0 sur Android 8 émulé et en installation neuve sur Android 16 émulé ; l'activité principale a démarré sur les deux. Le parcours automatisé qui lit SQLite utilise `run-as` et ne fonctionne que sur la version de débogage.
+On an Android 16 emulator, the debug build played through all ten challenges with two alternating profiles, wagers, friend actions and saved history. A real round generated the PNG card, which was previewed in Android's share chooser. The signed APK installed as an update from v1.7.0 on an Android 8 emulator and as a fresh install on an Android 16 emulator; the main activity started on both. The scripted smoke test reads SQLite through `run-as`, so it applies to debug builds rather than the signed production build.
 
-## Limites
+## Evidence boundary
 
-Les comportements, relations et délais des joueurs virtuels sont des hypothèses. Aucun groupe humain, téléphone physique connecté en Wi-Fi/Bluetooth/Internet ou test de plateforme musicale externe n'a été ajouté à cette vérification. La carte est volontairement un souvenir facultatif : aucune donnée biométrique ni mesure physiologique n'est collectée. Le partage d'une image vers une autre application dépend du choix du joueur et de cette application.
+Virtual-player behavior, relationships and timing are assumptions. This release did not add tests with human groups, connected physical phones over Wi-Fi/Bluetooth/Internet, or active external music services. The card is an optional souvenir; the app collects no biometric or physiological data. Sharing an image to another app depends on a player's choice and that app's behavior.

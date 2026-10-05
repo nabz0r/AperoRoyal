@@ -1,56 +1,54 @@
-# 1.7.0 — Le temps de la table
+# v1.7.0 — Room to breathe
 
-La soirée doit laisser assez de place au dessin, à l'écoute et aux amis qui hésitent, sans obliger toute la table à attendre une réponse absente. Cette version transforme les observations du [laboratoire organique](LABO_ORGANIQUE_2026.md) en quatre règles de jeu vérifiables.
+A party needs enough time for drawing, listening and friends who hesitate, without making everyone wait for an absent answer. This release turned findings from the [relative-response lab](LABO_ORGANIQUE_2026.md) into four testable game rules.
 
-## Les règles qui changent
+## Rules changed
 
-1. **Jury et galerie :** dès que la moitié des amis a répondu, les autres disposent de sept secondes pour se prononcer, sans dépasser le chrono de la manche. Si tout le monde répond, le verdict part aussitôt. Sur un téléphone partagé, le décompte est suspendu pendant le passage de main ; l'hôte synchronise sa date de fin aux autres appareils.
-2. **Votes exprimés :** Pose et Dessin évaluent les réponses reçues. Une personne absente ne compte pas comme un refus. Une égalité au jury ne valide pas la pose ; au dessin, au moins la moitié des devinettes effectivement jouées doit être juste. Les amis peuvent toujours répondre pendant la grâce.
-3. **Un peu d'air :** Dessin reçoit 50 secondes pour créer l'image au lieu de 40 ; Blind Test reçoit 28 secondes au lieu de 23. À deux en Turbo, la réduction est de deux secondes au lieu de quatre. Ce sont des durées maximales : les joueurs qui terminent tôt passent à la suite.
-4. **Relances de table :** une phrase liée au jeu apparaît ponctuellement au résultat et au passage de téléphone, en FR ou EN. Elle invite à raconter, taquiner ou improviser, sans bloquer la manche. **Options → Partie → Relances de table** les active ou les coupe sur chaque appareil.
+1. **Jury and gallery grace.** Once half of the friends have replied, the rest have seven seconds to answer, without extending beyond the round's hard deadline. If everyone replies, the verdict is immediate. On a shared phone, a private handoff pauses this countdown; the host syncs its end time to the other devices.
+2. **Cast votes only.** Poses and Drawing evaluate answers that actually arrived. An absent person is not treated as a rejection. A tied jury does not approve a pose; at least half of the drawing guesses that were actually played must be right. Friends may still answer during the grace period.
+3. **A little more air.** Drawing received 50 seconds to create the picture rather than 40; Music Quiz received 28 seconds rather than 23. Two-player Turbo removes two seconds rather than four. These are maximum durations: early finishes advance at once.
+4. **Table prompts.** An occasional game-specific FR/EN line appears at results and phone handoffs. It invites storytelling without blocking the round. Each device can toggle it in **Settings → Party → Table prompts**.
 
-## Comparaison reproductible
+## Paired synthetic comparison
 
-Trois graines identiques ont été rejouées avant et après : **30 000 soirées et 720 000 manches par version**, dix jeux, 2 à 6 profils, FR/EN, un, deux ou plusieurs téléphones simulés. Les tableaux donnent l'intervalle min–max des trois graines pour le modèle de récupération médian. Les agents virtuels utilisent des gestes et délais supposés, aucune mesure de vraies personnes ni aucun paquet réseau.
+Three identical seeds were replayed before and after the changes: **30,000 modeled parties and 720,000 rounds per version**, ten games, 2–6 FR/EN profiles, and one, two or several simulated phones. The tables show the minimum–maximum across seeds for the middle recovery model. The virtual players use assumed gestures and response times; these are not observations of people or network packets.
 
-| Situation | Manches expirées 1.6.0 | Manches expirées 1.7.0 | Plus long silence p90 1.6.0 | Plus long silence p90 1.7.0 |
+| Setup | Expired rounds, v1.6.0 | Expired rounds, v1.7.0 | Longest no-action stretch p90, v1.6.0 | Longest no-action stretch p90, v1.7.0 |
 | --- | ---: | ---: | ---: | ---: |
-| Un téléphone | 15,3–15,6 % | 12,7–13,1 % | 106,1–107,6 s | 106,5–108,6 s |
-| Deux téléphones | 8,2–8,5 % | 6,3–6,6 % | 69,7–70,9 s | 70,7–70,9 s |
-| Un téléphone chacun | 8,1–8,3 % | 6,3–6,4 % | 64,7–65,3 s | 66,1–66,4 s |
-| Turbo | 14,5–14,8 % | 11,6–11,9 % | 93,0–94,9 s | 92,4–94,6 s |
-| Deux joueurs | 9,7–10,2 % | 7,0–7,4 % | 53,5–53,9 s | 55,1–56,1 s |
-| Six joueurs | 12,1–12,5 % | 10,1–10,4 % | 98,2–101,2 s | 98,9–100,7 s |
+| One shared phone | 15.3–15.6% | 12.7–13.1% | 106.1–107.6 s | 106.5–108.6 s |
+| Two phones | 8.2–8.5% | 6.3–6.6% | 69.7–70.9 s | 70.7–70.9 s |
+| One phone per player | 8.1–8.3% | 6.3–6.4% | 64.7–65.3 s | 66.1–66.4 s |
+| Turbo | 14.5–14.8% | 11.6–11.9% | 93.0–94.9 s | 92.4–94.6 s |
+| Two players | 9.7–10.2% | 7.0–7.4% | 53.5–53.9 s | 55.1–56.1 s |
+| Six players | 12.1–12.5% | 10.1–10.4% | 98.2–101.2 s | 98.9–100.7 s |
 
-Le silence p90 augmente légèrement dans certaines configurations : les secondes ajoutées au dessin et au Blind Test donnent du temps aux réponses mais ne créent pas forcément plus d'actions. Les relances de table ne sont pas interprétées par les agents virtuels ; leur effet social reste donc à observer avec des personnes.
+The p90 no-action stretch rises slightly in some layouts: extra drawing and listening time helps late responses but does not necessarily create more actions. Virtual players do not interpret the table prompts, so their social effect remains unmeasured.
 
-| Jeu | Manches expirées 1.6.0 | Manches expirées 1.7.0 |
+| Game | Expired rounds, v1.6.0 | Expired rounds, v1.7.0 |
 | --- | ---: | ---: |
-| Culture G | 12,0–12,5 % | 11,2–12,0 % |
-| Positions | 8,4–8,8 % | 7,7–8,0 % |
-| Blind Test | 14,2–14,9 % | 6,1–6,9 % |
-| Réflexe | 12,4–12,8 % | 11,7–12,3 % |
-| Roulette | 1,1–1,2 % | 1,1–1,2 % |
-| Dessin | 17,8–18,1 % | 7,9–8,3 % |
-| Mémoire | 12,0–12,4 % | 11,9–12,1 % |
-| Rythme | 0 % | 0 % |
-| Bluff | 14,0–14,4 % | 13,6–13,9 % |
-| Bombe | 10,6–10,9 % | 10,6–10,7 % |
+| Trivia | 12.0–12.5% | 11.2–12.0% |
+| Poses | 8.4–8.8% | 7.7–8.0% |
+| Music Quiz | 14.2–14.9% | 6.1–6.9% |
+| Reflex | 12.4–12.8% | 11.7–12.3% |
+| Roulette | 1.1–1.2% | 1.1–1.2% |
+| Drawing | 17.8–18.1% | 7.9–8.3% |
+| Memory | 12.0–12.4% | 11.9–12.1% |
+| Rhythm | 0% | 0% |
+| Bluff | 14.0–14.4% | 13.6–13.9% |
+| Last Wire | 10.6–10.9% | 10.6–10.7% |
 
-Rythme vaut 0 % parce que les agents terminent son script avant le délai ; ce n'est pas une garantie sur un téléphone réel. Les petites variations des jeux sans réglage direct viennent de l'évolution de la soirée simulée après les manches touchées.
+Rhythm reads 0% because the scripted players finish its pattern before the deadline; that is not a guarantee on a real phone. Small changes in unaffected games come from the simulated party evolving differently after the adjusted rounds.
 
-| Graine | Cohortes 1.7.0 | Dix jeux 1.7.0 |
+| Seed | v1.7.0 cohorts | v1.7.0 games |
 | --- | --- | --- |
 | `20261005` | [CSV](data/organism-v170-10k-20261005-cohorts.csv) | [CSV](data/organism-v170-10k-20261005-games.csv) |
 | `8675309` | [CSV](data/organism-v170-10k-8675309-cohorts.csv) | [CSV](data/organism-v170-10k-8675309-games.csv) |
 | `11674260475909` | [CSV](data/organism-v170-10k-11674260475909-cohorts.csv) | [CSV](data/organism-v170-10k-11674260475909-games.csv) |
 
-Les [CSV de 1.6.0](LABO_ORGANIQUE_2026.md#fichiers-et-reproduction), hypothèses et commandes d'export sont dans le laboratoire. Pour reproduire 1.7.0, relancer le même test avec `APERO_ORGANISM_PARTIES=10000` et chacune des trois graines, puis exporter avec `tools/export_organism_stress.py`.
+The [v1.6.0 CSVs](LABO_ORGANIQUE_2026.md), assumptions and export commands are in the lab report. To reproduce v1.7.0, rerun the same test with `APERO_ORGANISM_PARTIES=10000` and each seed, then export with `tools/export_organism_stress.py`.
 
-## Vérifications et limites
+## Verification boundary
 
-- 56 tests Java réussis, dont cinq nouveaux tests pour le quorum, les votes exprimés, la grâce à deux, les délais et les relances FR/EN. Les trois campagnes de 10 000 soirées passent avec les autres simulations.
-- Le parcours sur émulateur Android 16 a terminé les dix jeux avec deux profils alternés, mises, actions de l'ami, résultats et historique. La capture [Dessin](screenshots/games/drawing-result.png) montre une relance au résultat ; [Blind Test](screenshots/games/blind-test.png) montre le nouveau chrono ; [Options](screenshots/settings-party.png) montre l'interrupteur.
-- APK 1.7.0 signée et installée sur Android 16 et Android 8 émulés ; le certificat est identique à celui de 1.6.0. La mise à jour signée de 1.6.0 vers 1.7.0 a été acceptée sur les deux émulateurs avant le parcours de débogage.
+The historical release reported 56 passing Java tests, including five new checks for quorum, cast votes, two-player grace, deadlines and bilingual prompts. An Android 16 emulator completed all ten games with two alternating profiles, stakes, friend actions, results and history. The signed v1.7.0 APK installed and launched on Android 8 and 16 emulators with the same certificate as v1.6.0.
 
-Le test virtuel ne valide ni l'amusement, ni le goût graphique ou sonore, ni la latence Wi-Fi/Bluetooth/Internet sur des téléphones physiques. La radio externe ouvre les services musicaux dans leur application ; le Blind Test reste fondé sur des motifs originaux hors ligne.
+The virtual test does not validate fun, visual or audio appeal, or Wi-Fi/Bluetooth/Internet latency on physical phones. External music services open in their own apps; Music Quiz remains based on original offline motifs.
