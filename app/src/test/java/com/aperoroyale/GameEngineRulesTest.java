@@ -313,4 +313,47 @@ public final class GameEngineRulesTest {
     assertEquals("RESULT", game.screen);
     assertTrue(game.lastWon);
   }
+
+  @Test public void missingVoteAbstainsAndThePartyContinuesAfterRestore() {
+    GameEngine game = room();
+    game.mode = "VOTE";
+    game.begin();
+    assertEquals("VOTE", game.screen);
+    assertTrue(game.castVote("A", 1));
+    assertFalse(game.voteTimedOut(game.deadline - 1));
+    GameEngine restored = new GameEngine();
+    restored.restore(game.json());
+    assertTrue(restored.voteTimedOut(restored.deadline + 1));
+    assertEquals("TRANSITION", restored.screen);
+    assertEquals(3, restored.votes[1]);
+    assertEquals(1, restored.voteWinner);
+    assertFalse(restored.voteTimedOut(restored.deadline + 1));
+  }
+
+  @Test public void unansweredSecretRuleCannotFreezeTurbo() {
+    GameEngine game = room();
+    game.mode = "TURBO";
+    game.ruleOwner = "A";
+    game.ruleOffers = new int[] {3, 5, 7};
+    game.startSelection();
+    assertEquals("RULE_PICK", game.screen);
+    assertFalse(game.rulePickTimedOut(game.deadline - 1));
+    assertTrue(game.rulePickTimedOut(game.deadline + 1));
+    assertEquals(3, game.ruleId);
+    assertEquals("TRANSITION", game.screen);
+  }
+
+  @Test public void voteTimeoutAlsoResolvesAnUnansweredSecretRule() {
+    GameEngine game = room();
+    game.mode = "VOTE";
+    game.ruleOwner = "B";
+    game.ruleOffers = new int[] {4, 6, 8};
+    game.begin();
+    assertTrue(game.castVote("A", 2));
+    assertTrue(game.voteTimedOut(game.deadline + 1));
+    assertEquals(4, game.ruleId);
+    assertEquals(3, game.votes[1]);
+    assertEquals(2, game.voteWinner);
+    assertEquals("TRANSITION", game.screen);
+  }
 }

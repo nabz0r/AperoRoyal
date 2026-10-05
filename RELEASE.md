@@ -1,3 +1,26 @@
+# Apéro Royale 1.4.7 — Le laboratoire de soirée
+
+- [Télécharger l'APK Android signé 1.4.7](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.7.apk) · `com.aperoroyale` · versionCode `14` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `327f774ca63ba399821f6e6c795ac875cbffebac06de5fcb8db9bae71a395408`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.6
+
+## Nouveautés
+
+- [Laboratoire de soirées synthétiques](docs/LABO_EXPERIENCE_2026.md) : 3 000 groupes et 36 000 manches, 2–6 joueurs FR/EN, un ou plusieurs téléphones, trois modes, profils rapides ou hésitants, passages de téléphone, pauses et trois scénarios de délai réseau. Les résultats séparent la préparation, l'attente sans saisie et les six jeux où les amis préparent le défi puis regardent l'acteur. Les hypothèses et la méthode sont publiées ; **aucun score de plaisir ou de viralité n'est revendiqué**.
+- Le mode Vote ne reste plus figé si une personne ne répond pas. Après 18 secondes pour le premier vote, puis 12 secondes après chaque voix, les joueurs absents s'abstiennent ; seules les voix réellement reçues départagent les jeux. Le compteur apparaît à l'écran. Le passage du téléphone et les pauses locales suspendent le délai.
+- Le salon indique désormais que Turbo accélère les manches sur un téléphone partagé à partir de quatre joueurs, tout en laissant le choix du mode au groupe. [Capture du salon à quatre](docs/screenshots/lobby-four.png).
+- Le choix d'une règle secrète sans réponse reçoit son premier choix proposé après 15 secondes en Turbo ; en Vote, le même filet de sécurité s'applique à l'expiration du scrutin. L'accroche de l'accueil ne promet plus « zéro temps mort », ce que nos simulations ne démontrent pas.
+
+## Vérifications
+
+- `testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite. Le nouveau laboratoire couvre 30 cohortes et les dix mini-jeux ; le stress test ajoute 15 000 scrutins avec absences hypothétiques. Des tests unitaires vérifient abstention, restauration et règle secrète sans réponse.
+- Émulateur Android 16 : parcours de la version 1.4.6 repassé avec deux profils, pause de plus de 12 secondes, annulation, retour au salon, redémarrage et radio. Nouveau parcours : un vote absent, puis deux votes absents, débloquent le tour après les délais annoncés.
+- APK signée v2 vérifiée ; `aapt` confirme versionCode 14 et minSdk 26. Installation en mise à jour de 1.4.6 sur émulateur Android 8.0, lancement et ouverture de l'accueil conservant le portrait local.
+
+**Limites.** Les durées du laboratoire sont des hypothèses et les délais réseau ne proviennent pas de sockets réels. La participation sociale, l'envie de rejouer, la qualité audio et la latence sur téléphones physiques restent à étudier. Le mode Vote à six sur un téléphone demeure lent dans tous nos scénarios ; cette release rend ses blocages finis, elle ne refond pas encore le déroulement des dix jeux.
+
+---
+
 # Apéro Royale 1.4.6 — La table se retrouve
 
 - [Télécharger l'APK Android signé 1.4.6](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.6.apk) · `com.aperoroyale` · versionCode `13` · Android 8.0+ (API 26)

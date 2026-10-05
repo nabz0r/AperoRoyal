@@ -223,6 +223,7 @@ public final class GameEngine {
     }
     if ("TURBO".equals(mode) && !ruleOwner.isEmpty() && ruleId < 0) {
       screen = "RULE_PICK";
+      deadline = System.currentTimeMillis() + 15000;
       return;
     }
     bonusId = random.nextInt(4);
@@ -250,6 +251,7 @@ public final class GameEngine {
     votes = new int[players.size()];
     java.util.Arrays.fill(votes, -1);
     screen = "VOTE";
+    deadline = System.currentTimeMillis() + 18000;
   }
 
   public int indexOf(String name) {
@@ -262,8 +264,25 @@ public final class GameEngine {
     int i = indexOf(name);
     if (!"VOTE".equals(screen) || i < 0 || i >= votes.length || votes[i] >= 0 || choice < 0 || choice >= 3) return false;
     votes[i] = choice;
+    // Give the next voter time to act without making the whole room wait indefinitely.
+    deadline = System.currentTimeMillis() + 12000;
     completeVoteIfReady();
     return true;
+  }
+
+  /** Missing votes become abstentions. An unanswered secret rule uses its first offered option. */
+  public boolean voteTimedOut(long now) {
+    if (!"VOTE".equals(screen) || deadline <= 0 || now < deadline) return false;
+    if (!ruleOwner.isEmpty() && ruleId < 0)
+      ruleId = ruleOffers.length == 0 ? 0 : ruleOffers[0];
+    for (int i = 0; i < votes.length; i++) if (votes[i] < 0) votes[i] = 3;
+    completeVoteIfReady();
+    return true;
+  }
+
+  public boolean rulePickTimedOut(long now) {
+    if (!"RULE_PICK".equals(screen) || deadline <= 0 || now < deadline) return false;
+    return chooseRule(ruleOwner, ruleOffers.length == 0 ? 0 : ruleOffers[0]);
   }
 
   public int voteCount() {
@@ -275,7 +294,7 @@ public final class GameEngine {
   private void completeVoteIfReady() {
     if (voteCount() != players.size() || (!ruleOwner.isEmpty() && ruleId < 0)) return;
     int[] counts = new int[3];
-    for (int v : votes) counts[v]++;
+    for (int v : votes) if (v >= 0 && v < counts.length) counts[v]++;
     int max = Math.max(counts[0], Math.max(counts[1], counts[2]));
     ArrayList<Integer> tied = new ArrayList<>();
     for (int i = 0; i < 3; i++) if (counts[i] == max) tied.add(i);
@@ -375,6 +394,7 @@ public final class GameEngine {
     for (int value : ruleOffers) if (value == id) offered = true;
     if (!offered) return false;
     ruleId = id;
+    if ("VOTE".equals(screen)) deadline = System.currentTimeMillis() + 18000;
     if ("VOTE".equals(screen)) completeVoteIfReady();
     else if ("RULE_PICK".equals(screen)) startSelection();
     return true;

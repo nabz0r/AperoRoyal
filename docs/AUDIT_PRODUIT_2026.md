@@ -4,6 +4,8 @@
 **Base examinée :** `main` à `cf4c9f9`, version Android 1.2.1  
 **Méthode :** lecture du code, du README, des captures d'émulateur et des sources primaires ci-dessous. Aucun test avec de vrais joueurs ni mesure réseau sur appareils physiques n'a été réalisé pour cet audit.
 
+**Complément du 5 octobre, version 1.4.7 :** le [laboratoire de soirées synthétiques](LABO_EXPERIENCE_2026.md) réévalue les dix défis et le rythme avec 3 000 salles modélisées. Le vote manquant qui pouvait bloquer la salle a été corrigé ; les constats ci-dessous restent datés de leur base 1.2.1.
+
 ## Verdict
 
 Apéro Royale possède déjà une base jouable : 10 défis, profils FR/EN, passage de téléphone, paris, votes, jurys, sauvegarde locale, scores et transport Wi-Fi/Bluetooth/Internet. La priorité n'est pas d'ajouter un onzième défi. Il faut faire de chaque manche **une histoire vécue par tout le groupe** : choix rapide, participation simultanée, révélation drôle, conséquence claire, puis revanche immédiate.

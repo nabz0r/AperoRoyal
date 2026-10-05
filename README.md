@@ -4,7 +4,7 @@
 
 ![Nouvel accueil Apéro Royale](docs/screenshots/home.png)
 
-[**Télécharger l’APK signé 1.4.6**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.6.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK signé 1.4.7**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.7.apk) · Android 8.0+ · [Détails de la release](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 **La table vous retrouve.** Créez les profils une fois : pseudos, langues FR/EN, sprites et photos restent disponibles pour la soirée suivante. Un menu de pause permet d'annuler un défi sans score ni gorgée, de revenir au salon ou à l'accueil, puis de reprendre. La Radio Apéro s'ouvre d'un toucher, avec sources, playlist favorite et commandes du lecteur Android actif. [Voir la refonte 1.4.6 et les références Play Store](docs/RELEASE_146_DESIGN.md).
 
@@ -32,6 +32,8 @@ En local, **☰** suspend les chronos et donne accès à *Annuler ce défi*, *Re
 **Toute la salle 1.4.4.** Les six anciens défis solo deviennent collectifs ; le dessin invite désormais tous les amis à deviner. Une interaction propre à chaque jeu remplace le pronostic répétitif. L’écran garde les choix privés jusqu’au démarrage et diffuse ensuite le même état depuis l’hôte. [Le nouvel audit de 500 soirées](docs/SIMULATION_EXPERIENCE_500.md) compte **0 manche solo** parmi 7 990 manches modélisées ; à six sur un téléphone, Vote reste lent (77,3 s modélisées), tandis que Turbo est plus direct. Ce chiffre ne mesure ni les rires ni la latence réelle.
 
 **La ruelle secrète 1.4.5.** Sur plusieurs téléphones, les invités qui attendent après leur action peuvent remarquer deux yeux dans le décor. Les tapoter ouvre un micro-jeu caché : poursuite de chat, code de pattes ou miroir. La découverte se poursuit entre la manche, le résultat et la sélection suivante ; elle reste privée jusqu’au trophée. Le premier à réussir un secret peut choisir une nouvelle règle qui s’applique à toute la salle **au prochain tour**. Ces jeux n’apparaissent ni dans le catalogue ni dans les guides. L’interface des invités suit mieux leur propre langue FR/EN ; les noms longs du catalogue sont plus lisibles. [La simulation de 10 000 soirées](docs/SIMULATION_10000_MULTI.md) teste 40 000 manches et 160 000 vues privées FR/EN, sans prétendre mesurer le plaisir humain ou la latence réelle.
+
+**Laboratoire d’expérience 1.4.7.** [3 000 soirées synthétiques et 36 000 manches](docs/LABO_EXPERIENCE_2026.md) explorent des groupes rapides, hésitants ou interrompus, sur un ou plusieurs téléphones. Le modèle révèle un risque de cadence du Vote partagé à quatre à six et distingue gestes, attente et préparation ; ses durées sont des hypothèses, pas des observations de plaisir. Le salon suggère Turbo pour accélérer une soirée à quatre ou plus sur un téléphone. Un vote non envoyé devient désormais une abstention après son délai, afin que la salle puisse continuer. Le passage local du téléphone suspend ce décompte. Le nouvel écran affiche les secondes restantes.
 
 L’eau, les boissons sans alcool et les défis sans consommation ont toute leur place. Les gorgées affichées sont des **compteurs de jeu** ; chacun décide librement de ce qu’il boit.
 
@@ -116,10 +118,12 @@ Android natif Java, JDK 17, Android SDK 36 et Gradle 8.14.3. Aucun serveur n’e
 ```sh
 ./gradlew test assembleDebug
 ./gradlew testDebugUnitTest --tests com.aperoroyale.PartyExperienceSimulationTest
+./gradlew testDebugUnitTest --tests com.aperoroyale.ExperienceRiskLabTest
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turns.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_turbo.py
 ADB_SERIAL=emulator-5554 python3 tools/smoke_pacing.py
+ADB_SERIAL=emulator-5554 python3 tools/smoke_vote_timeout.py
 ```
 
 Pour créer une mise à jour signée, utilisez votre propre clé PKCS12 et placez ses paramètres dans `signing.properties` à la racine ; ce fichier reste hors Git :
@@ -137,8 +141,8 @@ keyPassword=your-password
 
 Illustrations originales dans [`art/source`](art/source), décors des mini-jeux sous [`app/src/main/res/drawable-nodpi`](app/src/main/res/drawable-nodpi) et captures réelles d’émulateur sous [`docs/screenshots`](docs/screenshots). Licence [MIT](LICENSE). Pas de compte Apéro Royale, de publicité ni de télémétrie. [Notes sur les données](PRIVACY.md) et [licences tierces](THIRD_PARTY_NOTICES.md).
 
-**Pour guider la prochaine version :** [diagnostic et refonte détaillée des dix mini-jeux](docs/REFONTE_DIX_MINI_JEUX.md), puis [audit produit initial](docs/AUDIT_PRODUIT_2026.md). Ces documents distinguent les mécaniques déjà livrées des hypothèses à tester avec de vrais groupes.
+**Pour guider la prochaine version :** [laboratoire de soirées synthétiques](docs/LABO_EXPERIENCE_2026.md), [diagnostic et refonte détaillée des dix mini-jeux](docs/REFONTE_DIX_MINI_JEUX.md), puis [audit produit initial](docs/AUDIT_PRODUIT_2026.md). Ces documents distinguent les mécaniques déjà livrées des hypothèses à tester avec de vrais groupes.
 
 ---
 
-**English:** Apéro Royale 1.4.6 is a French/English Android party arcade for 2–6 friends on one phone or several over Wi-Fi, paired Bluetooth or an Internet room code. Local player profiles now survive new parties and app restarts. The pause menu can cancel an unfinished challenge without recording a result, return to the lobby or resume later. The new Party Radio panel opens Spotify, Deezer, Apple Music or Amazon Music, remembers a playlist link and sends play/pause/next keys to Android's active player when available; streaming stays in the external app. Every player has a game-specific action in all ten challenges, and waiting guests can discover hidden cat games. The host decides results and saves the leaderboard. The signed APK is linked above.
+**English:** Apéro Royale 1.4.7 is a French/English Android party arcade for 2–6 friends on one phone or several over Wi-Fi, paired Bluetooth or an Internet room code. Local player profiles survive new parties and app restarts. The pause menu can cancel an unfinished challenge without recording a result, return to the lobby or resume later. Party Radio opens external music apps and can send media keys to Android's active player; streaming stays in the external app. Each player has a game-specific action in all ten challenges, and waiting guests can discover hidden cat games. A missing game vote now becomes an abstention after a visible countdown. A new synthetic lab examines pacing across 3,000 modeled parties without claiming to measure human enjoyment. The host decides results and saves the leaderboard. The signed APK is linked above.

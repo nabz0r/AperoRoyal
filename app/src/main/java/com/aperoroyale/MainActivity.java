@@ -123,6 +123,9 @@ public final class MainActivity extends Activity
       }
     }
     boolean timersActive = (network.hosting || foreground) && localDialogDepth == 0;
+    if (!network.connected && timersActive && !passPending
+        && (game.voteTimedOut(System.currentTimeMillis())
+            || game.rulePickTimedOut(System.currentTimeMillis()))) save();
     if (!network.connected && timersActive && !passPending && game.predictionTimedOut()) {
       setPassPending(false);
       beginGameAudio();
@@ -162,7 +165,8 @@ public final class MainActivity extends Activity
   protected void onResume() {
     super.onResume();
     boolean timedScreen = "GAME".equals(game.screen) || "PREDICT".equals(game.screen)
-        || "CREW".equals(game.screen)
+        || "CREW".equals(game.screen) || "VOTE".equals(game.screen)
+        || "RULE_PICK".equals(game.screen)
         || "RULE_VOTE".equals(game.screen);
     if (backgroundAt > 0 && localDialogDepth == 0 && network != null && !network.hosting && !network.connected
         && !passPending && timedScreen) {
@@ -540,7 +544,9 @@ public final class MainActivity extends Activity
   public void confirmPass() {
     if (!passPending) return;
     long paused = Math.max(0, System.currentTimeMillis() - passStartedAt);
-    if (("PREDICT".equals(game.screen) || "CREW".equals(game.screen)) && game.deadline > 0)
+    if (("PREDICT".equals(game.screen) || "CREW".equals(game.screen)
+        || "VOTE".equals(game.screen) || "RULE_PICK".equals(game.screen))
+        && game.deadline > 0)
       game.deadline += paused;
     if ("GAME".equals(game.screen) && (game.juryPhase ||
         (game.game == 5 && game.drawingReady) || game.game == 9) && game.deadline > 0)
@@ -925,7 +931,8 @@ public final class MainActivity extends Activity
         localDialogDepth = 0;
         long paused = Math.max(0, System.currentTimeMillis() - localDialogStartedAt);
         boolean timed = "GAME".equals(game.screen) || "PREDICT".equals(game.screen)
-            || "CREW".equals(game.screen) || "RULE_VOTE".equals(game.screen);
+            || "CREW".equals(game.screen) || "VOTE".equals(game.screen)
+            || "RULE_PICK".equals(game.screen) || "RULE_VOTE".equals(game.screen);
         if (!timed) return;
         if (game.started > 0) game.started += paused;
         if (game.deadline > 0) game.deadline += paused;
@@ -949,6 +956,8 @@ public final class MainActivity extends Activity
       long now = System.currentTimeMillis();
       if ("PREDICT".equals(game.screen) || "CREW".equals(game.screen))
         game.deadline = now + ("TURBO".equals(game.mode) ? 5000 : 12000);
+      if ("VOTE".equals(game.screen)) game.deadline = now + 18000;
+      if ("RULE_PICK".equals(game.screen)) game.deadline = now + 15000;
       if ("RULE_VOTE".equals(game.screen)) game.reportDeadline = now + 10000;
       setPassPending(("VOTE".equals(game.screen) && game.voteCount() > 0 && localVoter() != null)
           || ("PREDICT".equals(game.screen) && localPredictor() != null)
@@ -1420,7 +1429,8 @@ public final class MainActivity extends Activity
         : "GUIDE".equals(game.screen) ? guideOrigin : "HOME";
     if (fromSettings && !passPending && !network.connected
         && ("GAME".equals(game.screen) || "PREDICT".equals(game.screen)
-            || "CREW".equals(game.screen)
+            || "CREW".equals(game.screen) || "VOTE".equals(game.screen)
+            || "RULE_PICK".equals(game.screen)
             || "RULE_VOTE".equals(game.screen))) {
       long paused = Math.max(0, System.currentTimeMillis() - settingsPausedAt);
       game.started += paused;

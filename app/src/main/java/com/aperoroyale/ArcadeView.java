@@ -496,7 +496,7 @@ public final class ArcadeView extends View {
     float pulse = (float) (Math.sin(System.currentTimeMillis() / 330.0) * .5 + .5);
     p.setColor(Color.argb(150 + (int) (pulse * 90), 236, 190, 99));
     c.drawCircle(48, top + 34, 3 + pulse * 1.5f, p);
-    text(c, g.t("10 JEUX · ZÉRO TEMPS MORT", "10 GAMES · NO DOWNTIME"),
+    text(c, g.t("10 JEUX · À VOUS DE JOUER", "10 GAMES · YOUR MOVE"),
         176, top + 39, 11, YELLOW, true);
     display(c, g.t("FAITES DU", "MAKE SOME"), 43, top + heroHeight - 91, 31, WHITE, false);
     display(c, g.t("BRUIT.", "NOISE."), 43, top + heroHeight - 54, 37, YELLOW, false);
@@ -582,6 +582,9 @@ public final class ArcadeView extends View {
     String modeLabel = "FREE".equals(g.mode) ? g.t("LIBRE • CHOIX DU JEU", "FREE • PICK A GAME")
         : "TURBO".equals(g.mode) ? g.t("TURBO • DÉFIS EXPRESS", "TURBO • QUICK ROUNDS")
         : g.t("VOTE • LE GROUPE CHOISIT", "VOTE • GROUP CHOOSES");
+    if (g.players.size() >= 4 && "VOTE".equals(g.mode))
+      text(c, g.t("1 TÉLÉPHONE ? TURBO EST PLUS RAPIDE", "ONE PHONE? TURBO IS FASTER"),
+          200, H - 267, 12, CYAN, true);
     button(c, "mode", modeLabel, 30, H - 253, 340, 52, CYAN);
     button(c, "add", g.t("+ AJOUTER JOUEUR", "+ ADD PLAYER"), 30, H - 189, 340, 55, YELLOW);
     button(
@@ -648,7 +651,9 @@ public final class ArcadeView extends View {
       if (voter != null) hits.add(new Hit("vote:" + i, new RectF(26, y, 374, y + 87),
           vt("Voter pour ", "Vote for ") + title(g.offers[i])));
     }
-    text(c, g.voteCount() + " / " + g.players.size() + " " + vt("VOTES", "VOTES"), 200, 585, 17, CYAN, true);
+    long voteLeft = Math.max(0, (g.deadline - a.hostNow() + 999) / 1000);
+    text(c, g.voteCount() + " / " + g.players.size() + " " + vt("VOTES", "VOTES")
+        + "  •  " + voteLeft + " s", 200, 585, 17, CYAN, true);
     bonusCard(c);
     ruleReportButton(c);
     if (voter == null) hiddenWaiting(c);
@@ -1054,6 +1059,10 @@ public final class ArcadeView extends View {
     block(c, owner ? vt("Choisis une règle pour toute la partie", "Choose one rule for the whole party")
         : g.ruleOwner + vt(" choisit la règle…", " is choosing the rule…"),
         200, 349, 350, 20, WHITE, true);
+    long ruleLeft = Math.max(0,
+        (g.deadline - ((MainActivity) getContext()).hostNow() + 999) / 1000);
+    text(c, vt("CHOIX AUTO DANS ", "AUTO PICK IN ") + ruleLeft + " s",
+        200, 384, 13, MUTED, true);
     for (int i = 0; i < 3; i++) {
       int id = g.ruleOffers.length > i ? g.ruleOffers[i] : i;
       float y = 415 + i * 83;

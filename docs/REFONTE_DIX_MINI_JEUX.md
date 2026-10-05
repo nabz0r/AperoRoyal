@@ -1,5 +1,7 @@
 # Les dix défis qui donnent envie de relancer une manche
 
+Le [laboratoire 1.4.7](LABO_EXPERIENCE_2026.md) ajoute des scénarios de vitesse, d'attente, de délai réseau et de répétition des concepts pour prioriser les prototypes ci-dessous. Ses chiffres ne remplacent pas les réactions de groupes réels.
+
 ## État livré en 1.4.4
 
 Les dix défis demandent désormais une action propre à chaque joueur. Avant Culture G et Blind Test, les amis répondent ; avant Réflexe, ils placent les premières cibles ; avant Roulette, ils protègent des gobelets ; avant Mémoire, ils construisent le début de la chaîne ; avant Rythme, ils élisent des temps. Tous les autres devinent le dessin et leurs réponses décident de la victoire de l'artiste. Poses et Bluff utilisent le jury, Bombe un relais physique ou réseau. Sur un téléphone, le passage privé attend la confirmation du joueur suivant. Sur plusieurs, chaque choix est envoyé à l'hôte et l'état est diffusé à la salle.
