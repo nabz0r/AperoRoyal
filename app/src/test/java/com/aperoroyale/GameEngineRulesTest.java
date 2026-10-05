@@ -248,7 +248,7 @@ public final class GameEngineRulesTest {
     game.screen = "GAME";
     game.resumeGame();
     long drawLimit = game.deadline - game.started;
-    assertTrue(drawLimit >= 30_000 && drawLimit <= 41_000);
+    assertTrue(drawLimit >= 40_000 && drawLimit <= 51_000);
     assertTrue(game.beginDrawGuess());
     long guessLimit = game.deadline - game.started;
     assertTrue(guessLimit >= 12_000 && guessLimit <= 23_000);
@@ -355,5 +355,92 @@ public final class GameEngineRulesTest {
     assertEquals(3, game.votes[1]);
     assertEquals(2, game.voteWinner);
     assertEquals("TRANSITION", game.screen);
+  }
+
+  @Test public void sharedPhoneCanSkipAbsentVoterWithoutFabricatingAVote() {
+    GameEngine game = room();
+    game.mode = "VOTE";
+    game.begin();
+    assertTrue(game.castVote("A", 1));
+    assertTrue(game.skipParticipation("B"));
+    assertEquals("TRANSITION", game.screen);
+    assertEquals(3, game.votes[1]);
+    assertEquals(1, game.voteWinner);
+    assertFalse(game.skipParticipation("B"));
+  }
+
+  @Test public void skippedCrewJuryAndDrawingAnswersNeverEarnPoints() {
+    GameEngine game = room();
+    game.startNext(0);
+    game.screen = "BET";
+    assertTrue(game.placeBet(1));
+    assertTrue(game.skipParticipation("B"));
+    assertEquals("GAME", game.screen);
+    assertEquals(0, game.crewCount());
+    assertFalse(game.crewPick("B", 0));
+    game.finish(true);
+    assertEquals(0, game.players.get(1).score);
+
+    game.startNext(1);
+    game.screen = "GAME";
+    assertTrue(game.beginJury());
+    assertTrue(game.skipParticipation("B"));
+    assertTrue(game.juryComplete());
+    assertFalse(game.juryVerdict());
+
+    game.startNext(5);
+    game.screen = "GAME";
+    assertTrue(game.beginDrawGuess());
+    assertTrue(game.skipParticipation("B"));
+    assertTrue(game.drawGuessComplete());
+    assertFalse(game.drawWin());
+    assertEquals(0, game.drawCorrectCount());
+  }
+
+  @Test public void skippedPredictionCannotEarnPointsOrCauseASip() {
+    GameEngine game = room();
+    game.startNext(0);
+    game.screen = "PREDICT";
+    game.predictions = new int[] {2, -1};
+    assertTrue(game.skipParticipation("B"));
+    assertEquals("GAME", game.screen);
+    game.finish(false);
+    assertEquals(0, game.players.get(1).score);
+    assertEquals(0, game.players.get(1).sips);
+  }
+
+  @Test public void virtualClockDrivesProductionDeadlines() {
+    java.util.concurrent.atomic.AtomicLong now = new java.util.concurrent.atomic.AtomicLong(100_000);
+    GameEngine game = new GameEngine(5, now::get);
+    assertTrue(game.addPlayer("A", "FR", 0));
+    assertTrue(game.addPlayer("B", "EN", 1));
+    game.begin();
+    assertEquals(118_000, game.deadline);
+    now.set(118_001);
+    assertTrue(game.voteTimedOut(now.get()));
+    assertEquals("TRANSITION", game.screen);
+    assertEquals(3, game.votes[0]);
+    assertEquals(3, game.votes[1]);
+  }
+
+  @Test public void crewDeadlineRenewsAfterEachSharedPhoneContribution() {
+    java.util.concurrent.atomic.AtomicLong now = new java.util.concurrent.atomic.AtomicLong(100_000);
+    GameEngine game = new GameEngine(7, now::get);
+    assertTrue(game.addPlayer("A", "FR", 0));
+    assertTrue(game.addPlayer("B", "EN", 1));
+    assertTrue(game.addPlayer("C", "FR", 2));
+    game.mode = "TURBO";
+    game.startNext(0);
+    game.screen = "BET";
+    assertTrue(game.placeBet(1));
+    assertEquals(108_000, game.deadline);
+    now.set(107_500);
+    assertTrue(game.crewPick("B", 0));
+    assertEquals(115_500, game.deadline);
+    assertFalse(game.crewTimedOut());
+    now.set(114_000);
+    assertTrue(game.skipParticipation("C"));
+    assertEquals("GAME", game.screen);
+    assertEquals(1, game.crewCount());
   }
 }

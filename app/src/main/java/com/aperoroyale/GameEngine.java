@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Random;
+import java.util.function.LongSupplier;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -56,13 +57,19 @@ public final class GameEngine {
 
   public final ArrayList<Player> players = new ArrayList<>();
   private final Random random;
+  private final LongSupplier clock;
 
   public GameEngine() {
     this(new Random().nextLong());
   }
 
   GameEngine(long seed) {
+    this(seed, System::currentTimeMillis);
+  }
+
+  GameEngine(long seed, LongSupplier clock) {
     random = new Random(seed);
+    this.clock = clock;
   }
   private final ArrayList<Integer> deck = new ArrayList<>();
   private final int[] lastVariant = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
@@ -210,7 +217,7 @@ public final class GameEngine {
 
   public void startSelection() {
     deadline = 0;
-    started = System.currentTimeMillis();
+    started = clock.getAsLong();
     voteWinner = -1;
     if (!queuedRuleOwner.isEmpty()) {
       ruleOwner = queuedRuleOwner;
@@ -223,7 +230,7 @@ public final class GameEngine {
     }
     if ("TURBO".equals(mode) && !ruleOwner.isEmpty() && ruleId < 0) {
       screen = "RULE_PICK";
-      deadline = System.currentTimeMillis() + 15000;
+      deadline = clock.getAsLong() + 15000;
       return;
     }
     bonusId = random.nextInt(4);
@@ -251,7 +258,7 @@ public final class GameEngine {
     votes = new int[players.size()];
     java.util.Arrays.fill(votes, -1);
     screen = "VOTE";
-    deadline = System.currentTimeMillis() + 18000;
+    deadline = clock.getAsLong() + 18000;
   }
 
   public int indexOf(String name) {
@@ -265,9 +272,50 @@ public final class GameEngine {
     if (!"VOTE".equals(screen) || i < 0 || i >= votes.length || votes[i] >= 0 || choice < 0 || choice >= 3) return false;
     votes[i] = choice;
     // Give the next voter time to act without making the whole room wait indefinitely.
-    deadline = System.currentTimeMillis() + 12000;
+    deadline = clock.getAsLong() + 12000;
     completeVoteIfReady();
     return true;
+  }
+
+  /** Explicit abstention lets a shared-phone group continue when someone steps away. */
+  public boolean skipParticipation(String name) {
+    int i = indexOf(name);
+    if (i < 0) return false;
+    if ("VOTE".equals(screen) && i < votes.length && votes[i] < 0) {
+      votes[i] = 3;
+      deadline = clock.getAsLong() + 12000;
+      completeVoteIfReady();
+      return true;
+    }
+    if ("CREW".equals(screen) && i != active && i < crewChoices.length
+        && crewChoices[i] == -1) {
+      crewChoices[i] = -2;
+      if (crewReady()) startGame();
+      else deadline = clock.getAsLong() + ("TURBO".equals(mode) ? 8000 : 12000);
+      return true;
+    }
+    if ("PREDICT".equals(screen) && i != active && i < predictions.length
+        && predictions[i] == -1) {
+      predictions[i] = 2;
+      if (predictionsReady()) startGame();
+      return true;
+    }
+    if ("GAME".equals(screen) && juryPhase && i != active && i < juryVotes.length
+        && juryVotes[i] == -1) {
+      juryVotes[i] = 2;
+      return true;
+    }
+    if ("GAME".equals(screen) && game == 5 && drawingReady && i != active
+        && i < drawGuesses.length && drawGuesses[i] == -1) {
+      drawGuesses[i] = 4;
+      return true;
+    }
+    if ("RULE_VOTE".equals(screen) && i < reportVotes.length && reportVotes[i] == -1) {
+      reportVotes[i] = 2;
+      if (ruleVoteReady()) resolveRuleVote();
+      return true;
+    }
+    return false;
   }
 
   /** Missing votes become abstentions. An unanswered secret rule uses its first offered option. */
@@ -394,7 +442,7 @@ public final class GameEngine {
     for (int value : ruleOffers) if (value == id) offered = true;
     if (!offered) return false;
     ruleId = id;
-    if ("VOTE".equals(screen)) deadline = System.currentTimeMillis() + 18000;
+    if ("VOTE".equals(screen)) deadline = clock.getAsLong() + 18000;
     if ("VOTE".equals(screen)) completeVoteIfReady();
     else if ("RULE_PICK".equals(screen)) startSelection();
     return true;
@@ -447,7 +495,7 @@ public final class GameEngine {
     int count = 4 + Math.min(3, turn / 5);
     sequence = chosen == 6 ? memorySequence(random, variant, count) : new int[0];
     screen = "TRANSITION";
-    started = System.currentTimeMillis();
+    started = clock.getAsLong();
     deadline = 0;
   }
 
@@ -500,13 +548,13 @@ public final class GameEngine {
   public void enterGame() {
     if (!"TRANSITION".equals(screen)) return;
     screen = "HANDOFF";
-    started = System.currentTimeMillis();
+    started = clock.getAsLong();
   }
 
   public void readyTurn() {
     if (!"HANDOFF".equals(screen)) return;
     screen = "BET";
-    started = System.currentTimeMillis();
+    started = clock.getAsLong();
   }
 
   public boolean placeBet(int sips) {
@@ -525,7 +573,7 @@ public final class GameEngine {
     java.util.Arrays.fill(crewChoices, -1);
     crewChoices[active] = 2;
     screen = "CREW";
-    deadline = System.currentTimeMillis() + ("TURBO".equals(mode) ? 5000 : 12000);
+    deadline = clock.getAsLong() + ("TURBO".equals(mode) ? 8000 : 12000);
     return true;
   }
 
@@ -537,6 +585,7 @@ public final class GameEngine {
         || crewChoices[i] >= 0 || choice < 0 || choice >= crewOptionCount()) return false;
     crewChoices[i] = choice;
     if (crewReady()) startGame();
+    else deadline = clock.getAsLong() + ("TURBO".equals(mode) ? 8000 : 12000);
     return true;
   }
 
@@ -549,11 +598,13 @@ public final class GameEngine {
 
   public boolean crewReady() {
     if (!"CREW".equals(screen)) return false;
-    return crewCount() == players.size() - 1;
+    for (int i = 0; i < crewChoices.length; i++)
+      if (i != active && crewChoices[i] == -1) return false;
+    return true;
   }
 
   public boolean crewTimedOut() {
-    if (!"CREW".equals(screen) || System.currentTimeMillis() < deadline) return false;
+    if (!"CREW".equals(screen) || clock.getAsLong() < deadline) return false;
     startGame();
     return true;
   }
@@ -593,7 +644,7 @@ public final class GameEngine {
   }
 
   public boolean predictionTimedOut() {
-    if (!"PREDICT".equals(screen) || System.currentTimeMillis() < deadline) return false;
+    if (!"PREDICT".equals(screen) || clock.getAsLong() < deadline) return false;
     startGame();
     return true;
   }
@@ -622,7 +673,7 @@ public final class GameEngine {
 
   public void resumeGame() {
     if (!"GAME".equals(screen)) return;
-    started = System.currentTimeMillis();
+    started = clock.getAsLong();
     if (juryPhase) {
       deadline = started + 20000;
       return;
@@ -630,14 +681,14 @@ public final class GameEngine {
     int seconds =
         switch (game) {
           case 0 -> 16;
-          case 1 -> 24;
+          case 1 -> 40;
           case 2 -> 18;
           case 3 -> 15;
           case 4 -> 10;
-          case 5 -> drawingReady ? 12 + 8 * Math.max(0, players.size() - 2) : 30;
+          case 5 -> drawingReady ? 12 + 8 * Math.max(0, players.size() - 2) : 40;
           case 6 -> 22;
           case 7 -> 16;
-          case 8 -> 24;
+          case 8 -> 40;
           case 9 -> variant >= 3 ? 24 : 30;
           default -> 0;
         };
@@ -708,7 +759,7 @@ public final class GameEngine {
   public boolean reflexTap(String name, int expectedStep) {
     if (!"GAME".equals(screen) || game != 3 || current() == null
         || !current().name.equals(name) || expectedStep != taps || taps >= reflexGoal()
-        || (deadline > 0 && System.currentTimeMillis() > deadline)) return false;
+        || (deadline > 0 && clock.getAsLong() > deadline)) return false;
     taps++;
     targetX = reflexX(taps);
     targetY = reflexY(taps);
@@ -723,8 +774,8 @@ public final class GameEngine {
     if (!"GAME".equals(screen) || game != 7 || current() == null
         || !current().name.equals(name) || rhythmHits >= 4 || beat <= progress
         || Math.floorMod(beat, 8) != rhythmPattern()[rhythmHits]
-        || !RhythmClock.accepts(started, System.currentTimeMillis(), beat, remote)
-        || (deadline > 0 && System.currentTimeMillis() > deadline)) return false;
+        || !RhythmClock.accepts(started, clock.getAsLong(), beat, remote)
+        || (deadline > 0 && clock.getAsLong() > deadline)) return false;
     progress = beat;
     rhythmHits++;
     return true;
@@ -755,7 +806,7 @@ public final class GameEngine {
   public boolean selectCup(int cup) {
     if (!"GAME".equals(screen) || game != 4 || cup < 0 || cup >= 6 || chosenCup >= 0) return false;
     chosenCup = cup;
-    revealUntil = System.currentTimeMillis() + 1300;
+    revealUntil = clock.getAsLong() + 1300;
     deadline = 0; // Let the selected cup finish its reveal even if picked at the last second.
     return true;
   }
@@ -781,7 +832,7 @@ public final class GameEngine {
     juryVotes = new int[players.size()];
     java.util.Arrays.fill(juryVotes, -1);
     if (active < juryVotes.length) juryVotes[active] = 2;
-    deadline = System.currentTimeMillis() + 20000;
+    deadline = clock.getAsLong() + 20000;
     return true;
   }
 
@@ -864,7 +915,7 @@ public final class GameEngine {
     if (won) {
       p.wins++;
       int speed = (game == 0 || game == 2) && deadline > 0
-          ? Math.min(80, (int) Math.max(0, (deadline - System.currentTimeMillis()) / 1000L) * 5) : 0;
+          ? Math.min(80, (int) Math.max(0, (deadline - clock.getAsLong()) / 1000L) * 5) : 0;
       roundPoints = winPoints() + speed + (game == 9 && bombCutAttempted ? 100 : 0);
       p.score += roundPoints;
     } else {
@@ -877,7 +928,7 @@ public final class GameEngine {
       p.score += roundPoints;
     }
     for (int i = 0; i < players.size() && i < predictions.length; i++) {
-      if (i == active || predictions[i] < 0) continue;
+      if (i == active || predictions[i] < 0 || predictions[i] > 1) continue;
       Player spectator = players.get(i);
       if ((predictions[i] == 1) == won) spectator.score += predictions[i] == 0 ? 50 : 35;
       else if (ruleId != 1) { spectator.drinks++; spectator.sips++; }
@@ -895,10 +946,10 @@ public final class GameEngine {
     }
     if (won) {
       boolean secret = switch (game) {
-        case 0 -> deadline - System.currentTimeMillis() >= 8000;
+        case 0 -> deadline - clock.getAsLong() >= 8000;
         case 1, 8 -> juryPhase && juryComplete() && juryVerdict();
-        case 2 -> deadline - System.currentTimeMillis() >= 4000;
-        case 3 -> taps >= reflexGoal() && deadline - System.currentTimeMillis() >= 4000;
+        case 2 -> deadline - clock.getAsLong() >= 4000;
+        case 3 -> taps >= reflexGoal() && deadline - clock.getAsLong() >= 4000;
         case 4 -> wager == 3;
         case 5 -> strokes.size() >= 12;
         case 6 -> sequence.length >= 5;
@@ -910,7 +961,7 @@ public final class GameEngine {
     }
     screen = "RESULT";
     deadline = 0;
-    started = System.currentTimeMillis();
+    started = clock.getAsLong();
   }
 
   public boolean bombTap(String name) {
@@ -979,7 +1030,7 @@ public final class GameEngine {
     java.util.Arrays.fill(reportVotes, -1);
     if (players.size() > 2) reportVotes[targetIndex] = 2;
     reportVotes[reporterIndex] = 1;
-    reportDeadline = System.currentTimeMillis() + 10000;
+    reportDeadline = clock.getAsLong() + 10000;
     rulePenaltyApplied = false;
     screen = "RULE_VOTE";
     return true;
@@ -1001,7 +1052,7 @@ public final class GameEngine {
   }
 
   public boolean ruleVoteTimedOut() {
-    if (!"RULE_VOTE".equals(screen) || System.currentTimeMillis() < reportDeadline) return false;
+    if (!"RULE_VOTE".equals(screen) || clock.getAsLong() < reportDeadline) return false;
     resolveRuleVote();
     return true;
   }
@@ -1017,7 +1068,7 @@ public final class GameEngine {
   }
 
   public void checkTimeout() {
-    if ("GAME".equals(screen) && deadline > 0 && System.currentTimeMillis() > deadline) {
+    if ("GAME".equals(screen) && deadline > 0 && clock.getAsLong() > deadline) {
       if (juryPhase) finish(juryVerdict());
       else if (game == 3) finish(taps >= reflexGoal());
       else if (game == 7) finish(rhythmHits >= 4);
@@ -1109,7 +1160,7 @@ public final class GameEngine {
 
   private static JSONArray masked(int[] values) {
     JSONArray result = new JSONArray();
-    for (int value : values) result.put(value < 0 ? -1 : 2);
+    for (int value : values) result.put(value == -1 ? -1 : 2);
     return result;
   }
 
@@ -1123,7 +1174,7 @@ public final class GameEngine {
     JSONObject j = new JSONObject();
     try {
       j.put("revision", revision);
-      j.put("sentAt", System.currentTimeMillis());
+      j.put("sentAt", clock.getAsLong());
       j.put("screen", screen);
       j.put("active", active);
       j.put("turn", turn);

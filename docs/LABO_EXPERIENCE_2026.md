@@ -1,5 +1,7 @@
 # Laboratoire de soirées synthétiques — 5 octobre 2026
 
+> La version 1.4.8 approfondit ce travail avec une [horloge virtuelle branchée sur les délais du moteur, trois graines et 5,4 millions de manches](LABO_EXTREME_2026.md). Les chiffres ci-dessous restent le résultat du premier modèle 1.4.7.
+
 ## Ce que le laboratoire peut conclure
 
 Le test [`ExperienceRiskLabTest`](../app/src/test/java/com/aperoroyale/ExperienceRiskLabTest.java) fait tourner le vrai moteur de sélection, les dix défis, les votes, les paris, les jurys, les devinettes, les relais et l'avancement des tours. Il traverse **3 000 salles de 2 à 6 joueurs, FR/EN, sur un ou plusieurs appareils**, soit **36 000 manches** en modes Vote, Libre et Turbo. Les profils de vitesse restent stables pendant une soirée. Chaque action varie autour de ce profil ; les passages de téléphone, la préparation, les pauses et trois niveaux de délai réseau sont modélisés séparément. Les dix jeux reçoivent chacun plus de 3 500 manches.

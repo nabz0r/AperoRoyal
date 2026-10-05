@@ -77,6 +77,8 @@ public final class ArcadeView extends View {
 
     void confirmPass();
 
+    void skipPass();
+
     void hiddenTap(int slot);
 
     void chooseRule(int id);
@@ -704,7 +706,9 @@ public final class ArcadeView extends View {
             : vt("Ton vote reste secret. À toi de choisir !", "Your vote stays secret. Your turn to choose!");
     block(c, instruction,
         200, 510, 338, 18, WHITE, true);
-    text(c, vt("CHRONO EN PAUSE", "TIMER PAUSED"), 200, H - 151, 14, YELLOW, true);
+    text(c, vt("CHRONO EN PAUSE", "TIMER PAUSED"), 200, H - 215, 14, YELLOW, true);
+    button(c, "skipPass", vt("ABSENT ? PASSER SON TOUR", "AWAY? SKIP THEIR TURN"),
+        36, H - 192, 328, 56, PINK);
     button(c, "readyVote", vt("C'EST MOI", "THAT'S ME"), 36, H - 124, 328, 68, CYAN);
   }
 
@@ -2191,6 +2195,7 @@ public final class ArcadeView extends View {
       case "judgeYes" -> actions.judge(true);
       case "judgeNo" -> actions.judge(false);
       case "readyVote" -> actions.confirmPass();
+      case "skipPass" -> actions.skipPass();
       case "musicToggle" -> actions.toggleMusic();
       case "musicStyle" -> actions.changeMusicStyle();
       case "musicVolume" -> actions.changeMusicVolume();

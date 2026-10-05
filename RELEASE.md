@@ -1,3 +1,26 @@
+# Apéro Royale 1.4.8 — L'horloge de soirée
+
+- [Télécharger l'APK Android signé 1.4.8](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.8.apk) · `com.aperoroyale` · versionCode `15` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `454ac14fb6b71d7d4848e0e7f4204273083cb54fb9a557ae5848b4b9ec0d30f1`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.4.7
+
+## Nouveautés
+
+- [Laboratoire extrême à horloge virtuelle](docs/LABO_EXTREME_2026.md) : trois graines, 100 000 soirées de 18 manches chacune, soit 5,4 millions de manches. Les vrais délais et transitions du moteur sont exercés avec des profils persistants, des interruptions et des réponses manquantes corrélées, sur un, deux ou plusieurs téléphones modélisés. Les [180 cohortes](docs/data/extreme-100k-cohorts.csv), les [dix jeux](docs/data/extreme-100k-games.csv) et les hypothèses sont publiés. Ce ne sont pas des mesures de plaisir ou de réseau réel.
+- Un joueur absent ne bloque plus l'écran privé d'un téléphone partagé. [« Absent ? Passer son tour »](docs/screenshots/handoff-skip.png) enregistre une abstention sans inventer sa réponse ni ses points ; le défi continue avec ceux qui participent.
+- La fenêtre de contribution de groupe repart après chaque ami : huit secondes en Turbo, douze dans les autres modes. Le modèle signale nettement moins de contributions coupées, avec une hausse assumée de la durée de manche.
+- Positions, Dessin et Bluff donnent 40 secondes à la création avant le verdict ou la phase suivante. Le simulateur tient compte du chrono suspendu lors du passage physique de la bombe.
+
+## Vérifications
+
+- `testDebugUnitTest assembleDebug assembleRelease lintVitalRelease --offline` : réussite, dont tests de l'horloge virtuelle, abstentions, score, reprise et dix défis. Trois exécutions longues de 100 000 soirées ont passé sans erreur d'état.
+- Android 16 sur émulateur : vote et contribution sautés par le nouveau bouton, vote absent résolu par délai, profils et reprise, pause, annulation, radio. Scripts : `tools/smoke_skip_handoff.py`, `tools/smoke_vote_timeout.py`, `tools/smoke_release_146.py`.
+- APK signée v2 vérifiée ; `aapt` confirme versionCode 15 et minSdk 26. Mise à jour installée et lancée sur émulateur Android 8.0.
+
+**Limites.** Les comportements, durées et délais réseau du laboratoire sont des hypothèses. Aucun groupe humain ni plusieurs téléphones physiques connectés n'ont servi à calibrer ce modèle. Les taux de réussite et d'échéance simulés ne prédisent donc ni l'amusement ni la fidélisation.
+
+---
+
 # Apéro Royale 1.4.7 — Le laboratoire de soirée
 
 - [Télécharger l'APK Android signé 1.4.7](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.4.7.apk) · `com.aperoroyale` · versionCode `14` · Android 8.0+ (API 26)

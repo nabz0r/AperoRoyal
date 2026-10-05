@@ -210,7 +210,7 @@ public final class MainActivity extends Activity
     if (p != null) store.record(p, game.game, won,
         game.roundPoints, game.roundSips > 0 ? 1 : 0, game.roundSips, duration);
     for (int i = 0; i < game.players.size() && i < game.predictions.length; i++) {
-      if (i == game.active || game.predictions[i] < 0) continue;
+      if (i == game.active || game.predictions[i] < 0 || game.predictions[i] > 1) continue;
       boolean correct = (game.predictions[i] == 1) == won;
       store.recordPrediction(game.players.get(i), game.game, correct,
           correct ? game.predictions[i] == 0 ? 50 : 35 : 0,
@@ -252,11 +252,11 @@ public final class MainActivity extends Activity
     if (network.connected) {
       int i = game.indexOf(network.localName);
       return i >= 0 && i != game.active && i < game.drawGuesses.length
-          && game.drawGuesses[i] < 0 ? game.players.get(i) : null;
+          && game.drawGuesses[i] == -1 ? game.players.get(i) : null;
     }
     for (int step = 1; step < game.players.size(); step++) {
       int i = (game.active + step) % game.players.size();
-      if (i < game.drawGuesses.length && game.drawGuesses[i] < 0
+      if (i < game.drawGuesses.length && game.drawGuesses[i] == -1
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
     }
     return null;
@@ -291,11 +291,11 @@ public final class MainActivity extends Activity
     if (network.connected) {
       int i = game.indexOf(network.localName);
       return i >= 0 && i != game.active && i < game.crewChoices.length
-          && game.crewChoices[i] < 0 ? game.players.get(i) : null;
+          && game.crewChoices[i] == -1 ? game.players.get(i) : null;
     }
     for (int step = 1; step < game.players.size(); step++) {
       int i = (game.active + step) % game.players.size();
-      if (i < game.crewChoices.length && game.crewChoices[i] < 0
+      if (i < game.crewChoices.length && game.crewChoices[i] == -1
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
     }
     return null;
@@ -318,11 +318,11 @@ public final class MainActivity extends Activity
     if (network.connected) {
       int i = game.indexOf(network.localName);
       return i >= 0 && i != game.active && i < game.predictions.length
-          && game.predictions[i] < 0 ? game.players.get(i) : null;
+          && game.predictions[i] == -1 ? game.players.get(i) : null;
     }
     for (int step = 1; step < game.players.size(); step++) {
       int i = (game.active + step) % game.players.size();
-      if (i < game.predictions.length && game.predictions[i] < 0
+      if (i < game.predictions.length && game.predictions[i] == -1
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
     }
     return null;
@@ -364,11 +364,11 @@ public final class MainActivity extends Activity
     if (network.connected) {
       int i = game.indexOf(network.localName);
       return i >= 0 && i != game.active && i < game.juryVotes.length
-          && game.juryVotes[i] < 0 ? game.players.get(i) : null;
+          && game.juryVotes[i] == -1 ? game.players.get(i) : null;
     }
     for (int step = 1; step < game.players.size(); step++) {
       int i = (game.active + step) % game.players.size();
-      if (i < game.juryVotes.length && game.juryVotes[i] < 0
+      if (i < game.juryVotes.length && game.juryVotes[i] == -1
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
     }
     return null;
@@ -443,12 +443,12 @@ public final class MainActivity extends Activity
     if (!"RULE_VOTE".equals(game.screen)) return null;
     if (network.connected) {
       int i = game.indexOf(network.localName);
-      return i >= 0 && i < game.reportVotes.length && game.reportVotes[i] < 0
+      return i >= 0 && i < game.reportVotes.length && game.reportVotes[i] == -1
           ? game.players.get(i) : null;
     }
     for (int step = 0; step < game.players.size(); step++) {
       int i = (game.active + step) % game.players.size();
-      if (i < game.reportVotes.length && game.reportVotes[i] < 0
+      if (i < game.reportVotes.length && game.reportVotes[i] == -1
           && !network.isRemote(game.players.get(i).name)) return game.players.get(i);
     }
     return null;
@@ -555,6 +555,54 @@ public final class MainActivity extends Activity
     if ("RULE_VOTE".equals(game.screen) && game.reportDeadline > 0)
       game.reportDeadline += paused;
     setPassPending(false);
+    save();
+  }
+
+  @Override
+  public void skipPass() {
+    if (!passPending || network.connected) return;
+    String stage = game.screen;
+    GameEngine.Player waiting = switch (stage) {
+      case "VOTE" -> localVoter();
+      case "CREW" -> localCrew();
+      case "PREDICT" -> localPredictor();
+      case "RULE_VOTE" -> localRuleVoter();
+      case "GAME" -> game.juryPhase ? localJudge()
+          : game.game == 5 && game.drawingReady ? localGuesser()
+          : game.game == 9 ? localBomber() : null;
+      default -> null;
+    };
+    if (waiting == null) return;
+    confirmPass(); // The private handoff timer was paused for this person.
+    if ("GAME".equals(stage) && game.game == 9 && !game.juryPhase) {
+      finishGame(false);
+      return;
+    }
+    if (!game.skipParticipation(waiting.name)) return;
+    if ("GAME".equals(stage) && game.juryPhase && game.juryComplete()) {
+      finishGame(game.juryVerdict());
+      return;
+    }
+    if ("GAME".equals(stage) && game.game == 5 && game.drawingReady
+        && game.drawGuessComplete()) {
+      finishGame(game.drawWin());
+      return;
+    }
+    if ("RULE_VOTE".equals(stage) && !"RULE_VOTE".equals(game.screen)) {
+      finishRuleVote();
+      return;
+    }
+    setPassPending(switch (game.screen) {
+      case "VOTE" -> localVoter() != null;
+      case "CREW" -> localCrew() != null;
+      case "PREDICT" -> localPredictor() != null;
+      case "RULE_VOTE" -> localRuleVoter() != null;
+      case "GAME" -> game.juryPhase ? localJudge() != null
+          : game.game == 5 && game.drawingReady ? localGuesser() != null : false;
+      default -> false;
+    });
+    if ("GAME".equals(game.screen) && ("CREW".equals(stage) || "PREDICT".equals(stage)))
+      beginGameAudio();
     save();
   }
 
@@ -955,7 +1003,7 @@ public final class MainActivity extends Activity
       }
       long now = System.currentTimeMillis();
       if ("PREDICT".equals(game.screen) || "CREW".equals(game.screen))
-        game.deadline = now + ("TURBO".equals(game.mode) ? 5000 : 12000);
+        game.deadline = now + ("TURBO".equals(game.mode) ? 8000 : 12000);
       if ("VOTE".equals(game.screen)) game.deadline = now + 18000;
       if ("RULE_PICK".equals(game.screen)) game.deadline = now + 15000;
       if ("RULE_VOTE".equals(game.screen)) game.reportDeadline = now + 10000;
