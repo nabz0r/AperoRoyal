@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ClipData;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -36,6 +37,8 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -243,6 +246,48 @@ public final class MainActivity extends Activity
   public void answer(int choice) {
     if (!game.lockAnswer(choice)) return;
     finishGame(choice == game.target);
+  }
+
+  @Override
+  public void trustFriend(int playerIndex) {
+    if (network.connected) { network.command("TRUST_FRIEND", playerIndex); return; }
+    GameEngine.Player actor = game.current();
+    if (actor != null && game.trustFriend(actor.name, playerIndex))
+      finishGame(game.selected == game.target);
+  }
+
+  @Override
+  public void shareRound() {
+    if (!"RESULT".equals(game.screen)) return;
+    GameEngine snapshot = new GameEngine();
+    snapshot.restore(game.json());
+    boolean en = network.connected ? "EN".equals(network.localLanguage) : game.english();
+    new Thread(() -> {
+      try {
+        File dir = new File(getCacheDir(), "share-cards");
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new java.io.IOException("card cache");
+        File file = new File(dir, "round-" + snapshot.turn + ".png");
+        Bitmap card = RoundCard.render(this, snapshot, en);
+        try (FileOutputStream stream = new FileOutputStream(file)) {
+          if (!card.compress(Bitmap.CompressFormat.PNG, 100, stream))
+            throw new java.io.IOException("PNG export");
+        } finally { card.recycle(); }
+        Uri uri = Uri.parse("content://" + getPackageName() + ".share/" + file.getName());
+        runOnUiThread(() -> {
+          Intent send = new Intent(Intent.ACTION_SEND);
+          send.setType("image/png");
+          send.putExtra(Intent.EXTRA_STREAM, uri);
+          send.setClipData(ClipData.newUri(getContentResolver(), "Apéro Royale", uri));
+          send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          startActivity(Intent.createChooser(send,
+              en ? "Share this round" : "Partager cette manche"));
+        });
+      } catch (Exception error) {
+        runOnUiThread(() -> Toast.makeText(this,
+            en ? "Could not make this card" : "Impossible de créer cette carte",
+            Toast.LENGTH_SHORT).show());
+      }
+    }, "round-card").start();
   }
 
   @Override
@@ -1703,6 +1748,10 @@ public final class MainActivity extends Activity
         if ("GAME".equals(game.screen)) beginGameAudio();
         save();
       }
+      return;
+    }
+    if ("TRUST_FRIEND".equals(command)) {
+      if (game.trustFriend(name, value)) finishGame(game.selected == game.target);
       return;
     }
     if ("READY".equals(command)) {

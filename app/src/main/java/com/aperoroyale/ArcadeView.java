@@ -45,6 +45,10 @@ public final class ArcadeView extends View {
 
     void crewPick(int choice);
 
+    void trustFriend(int playerIndex);
+
+    void shareRound();
+
     void addPlayer();
 
     void editPlayer(int index);
@@ -1609,6 +1613,8 @@ public final class ArcadeView extends View {
           "Your symbol builds part of the chain."};
       case 7 -> new String[] {"Ton temps influence la mesure du groupe.",
           "Your beat influences the room's pattern."};
+      case 8 -> new String[] {"Interroge l'alibi, puis vote sans voir la vérité.",
+          "Challenge the alibi, then vote before the truth is revealed."};
       default -> new String[] {"Le jury va bientôt trancher.", "The jury will decide soon."};
     };
     block(c, vt(involvement[0], involvement[1]),
@@ -1636,8 +1642,12 @@ public final class ArcadeView extends View {
       text(c, g.t("LA SALLE : ", "THE ROOM: ") + g.crewCount()
           + g.t(" RÉPONSES", " ANSWERS"), 200, 331, 13, CYAN, true);
       if (lead >= 0)
-        button(c, "trustCrew", g.t("SUIVRE LA SALLE • RÉPONSE ", "FOLLOW THE ROOM • ANSWER ")
-            + (lead + 1), 45, 620, 310, 47, PINK);
+        button(c, "trustCrew", g.t("SALLE · ", "ROOM · ")
+            + (lead + 1), 45, 625, 145, 47, PINK);
+      int friend = g.featuredFriend();
+      if (friend >= 0) button(c, "trustFriend:" + friend,
+          g.t("SUIVRE ", "TRUST ") + g.players.get(friend).name.toUpperCase(Locale.ROOT),
+          lead >= 0 ? 209 : 45, 625, lead >= 0 ? 145 : 310, 47, CYAN);
     }
     for (int i = 0; i < 4; i++) {
       int opt = (i - g.target + 4) % 4;
@@ -1704,8 +1714,12 @@ public final class ArcadeView extends View {
         true);
     button(c, "tune", g.t("▶ ÉCOUTER", "▶ PLAY TUNE"), 60, 309, 280, 55, PINK);
     if (g.crewCount() > 0 && g.crewLead() >= 0)
-      button(c, "trustCrew", g.t("SUIVRE LA SALLE • ", "FOLLOW THE ROOM • ")
-          + (g.crewLead() + 1), 63, 644, 274, 44, PINK);
+      button(c, "trustCrew", g.t("SALLE · ", "ROOM · ")
+          + (g.crewLead() + 1), 35, 654, 154, 44, PINK);
+    int friend = g.featuredFriend();
+    if (friend >= 0) button(c, "trustFriend:" + friend,
+        g.t("SUIVRE ", "TRUST ") + g.players.get(friend).name.toUpperCase(Locale.ROOT),
+        g.crewLead() >= 0 ? 209 : 35, 654, g.crewLead() >= 0 ? 154 : 330, 44, CYAN);
     for (int i = 0; i < 4; i++) {
       int option = (i - g.target + 4) % 4;
       String name =
@@ -1932,6 +1946,14 @@ public final class ArcadeView extends View {
   private void bluff(Canvas c) {
     String[] q = GameEngine.BLUFF[g.variant];
     block(c, q[g.english() ? 1 : 0], 200, 286, 315, 23, WHITE, true);
+    int examiner = g.crossExaminer();
+    if (examiner >= 0) {
+      panel(c, 38, 348, 324, 94, Color.argb(228, 24, 31, 37), CYAN);
+      text(c, g.players.get(examiner).name.toUpperCase(Locale.ROOT)
+          + g.t(" • INTERROGATOIRE", " • CROSS-EXAM"), 200, 377, 12, CYAN, true);
+      block(c, RoundStories.crossExamQuestion(g, g.english()),
+          200, 414, 294, 15, WHITE, true);
+    }
     GameSprites.icon(c, p, 8, 200, 500, 5f, g.variant, System.currentTimeMillis());
     block(
         c,
@@ -2008,8 +2030,10 @@ public final class ArcadeView extends View {
     panel(c, 33, 179, 334, 65, Color.argb(225, 26, 24, 29), GameSprites.accent(g.game));
     avatar(c, a, 68, 212, .75f);
     text(c, a.name, 112, 217, 23, WHITE, false);
-    GameSprites.icon(c, p, g.game, 338, 213, 1.75f, g.lastWon ? 9 : 0,
-        System.currentTimeMillis());
+    p.setColor(Color.argb(235, 25, 25, 30));
+    c.drawRoundRect(316, 192, 361, 232, 8, 8, p);
+    text(c, String.format(Locale.ROOT, "%02d", g.game + 1),
+        338, 220, 18, YELLOW, true);
     String verdict = g.roundPassed ? vt("ON PASSE, ON CONTINUE", "PASS, THEN PLAY ON")
         : g.lastWon ? vt("LA TABLE S'EN SOUVIENDRA", "ONE FOR THE TABLE")
             : vt("ÇA SE RACONTERA DEMAIN", "A STORY FOR TOMORROW");
@@ -2033,7 +2057,8 @@ public final class ArcadeView extends View {
         && RoundStories.hasTableSpark(g) && H >= 820)
       block(c, "✦ " + RoundStories.tableSpark(g, viewerEnglish()),
           200, 620, 308, 12, YELLOW, true);
-    button(c, "board", vt("CLASSEMENT", "LEADERBOARD"), 35, H - 157, 330, 49, PANEL);
+    button(c, "board", vt("CLASSEMENT", "LEADERBOARD"), 35, H - 157, 153, 49, PANEL);
+    button(c, "shareRound", vt("PARTAGER", "SHARE CARD"), 212, H - 157, 153, 49, YELLOW);
     GameEngine.Player nextPlayer = g.players.get(Math.floorMod(
         g.active + (g.ruleId == 2 ? -1 : 1), g.players.size()));
     button(
@@ -2460,6 +2485,7 @@ public final class ArcadeView extends View {
       case "predictYes" -> actions.predict(true);
       case "predictNo" -> actions.predict(false);
       case "trustCrew" -> { if (g.crewLead() >= 0) actions.answer(g.crewLead()); }
+      case "shareRound" -> actions.shareRound();
       case "passPerformance" -> actions.passPerformance();
       case "ruleReport" -> actions.reportRule();
       case "ruleYes" -> actions.ruleVote(true);
@@ -2506,6 +2532,9 @@ public final class ArcadeView extends View {
         }
         if (id.startsWith("vote:")) { actions.vote(Integer.parseInt(id.substring(5))); return; }
         if (id.startsWith("crew:")) { actions.crewPick(Integer.parseInt(id.substring(5))); return; }
+        if (id.startsWith("trustFriend:")) {
+          actions.trustFriend(Integer.parseInt(id.substring(12))); return;
+        }
         if (id.startsWith("bet:")) { actions.placeBet(Integer.parseInt(id.substring(4))); return; }
         if (id.startsWith("rule:")) { actions.chooseRule(Integer.parseInt(id.substring(5))); return; }
         if (id.startsWith("pick:")) { actions.selectGame(Integer.parseInt(id.substring(5))); return; }

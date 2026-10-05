@@ -15,6 +15,10 @@ The game does not request microphone access. Social-rule infractions are reporte
 
 During multi-device parties, the host stores each player's hidden-game progress with the active session. A player receives their own progress; other players' progress and puzzle seed are removed from their snapshots. A completed discovery and any resulting room rule become visible to the room. No hidden-game progress is sent to a music provider.
 
+In Trivia and Music Quiz, friends' individual answers remain hidden in game snapshots until the result. The host sends only the current room lead and the identity of a friend who has answered; choosing to trust that friend is resolved on the host. The final choice and score are revealed with the result.
+
+The optional 9:16 round card is rendered on the device into the app cache. It includes player nicknames, game artwork and the resolved score or virtual sips; it does not include imported photos. The app opens Android's share chooser only when a player taps **Share**. The card leaves the app only if the player selects a destination, whose own privacy rules then apply.
+
 A late guest's nickname and language are shared with the host for the admission vote. Individual admission ballots are hidden in guest snapshots; the vote count and outcome are shared. A rejected guest's virtual sip is recorded in the host's local history and leaderboard. The guest's waiting-room secret arcade runs only on that guest's phone; its progress is not sent to the room.
 
 The music menu can open Spotify, Deezer, Apple Music or Amazon Music through an HTTPS link. An optional playlist link and the selected service are stored in local app preferences. Apéro Royale does not connect to a music account, read its library, control external playback, transmit music credentials or send the playlist link to party peers. The chosen music app or website processes playback under its own terms and privacy policy. Original game music and sound effects are generated locally.
@@ -26,6 +30,10 @@ Apéro Royale conserve localement dans SQLite les pseudos, langues, sprites ou p
 L'application ne possède ni compte Apéro Royale, ni publicité, ni analytique, ni télémétrie. En Wi-Fi, les données du salon circulent **sans chiffrement** sur le réseau local. En Bluetooth, elles passent entre appareils associés. Sur Internet, les messages passent par un relais MQTT TLS et sont chiffrés en AES-GCM à partir du code de salle ; le relais public proposé par défaut est `broker.emqx.io`, un service de test tiers. Le code doit rester entre participants. Les autres téléphones de la salle reçoivent les pseudos, avatars ou photos, scores et état de la partie. Le jeu ne demande pas l'accès au microphone : les infractions aux règles sociales sont signalées et soumises au vote des joueurs.
 
 En partie à plusieurs appareils, l'hôte conserve aussi la progression des jeux secrets dans la session. Chaque joueur ne reçoit que sa propre progression ; la découverte terminée et une éventuelle règle de salle deviennent visibles par tous. Aucune progression secrète n'est transmise aux plateformes musicales.
+
+Dans Culture G et Blind Test, les réponses individuelles restent masquées dans les instantanés envoyés pendant la manche. L'hôte ne transmet que la tendance de la salle et l'identité d'un ami qui a répondu ; le choix de lui faire confiance est résolu par l'hôte. Le choix final et les points apparaissent au résultat.
+
+La carte verticale facultative d'une manche est créée sur l'appareil et placée dans le cache de l'application. Elle contient les pseudos, le décor du jeu et le score ou les gorgées virtuelles ; elle ne contient pas de photo importée. Le sélecteur de partage Android ne s'ouvre qu'après un appui sur **Partager**. La carte ne quitte l'application que si un joueur choisit un destinataire, qui applique alors ses propres règles de confidentialité.
 
 Lorsqu'un invité arrive en cours de partie, son pseudo et sa langue sont transmis à l'hôte pour le vote d'entrée. Les bulletins individuels sont masqués dans les instantanés envoyés aux invités ; le nombre de voix et le résultat sont partagés. La gorgée virtuelle d'un invité refusé est inscrite dans l'historique local et le classement de l'hôte. Sa petite arcade secrète tourne uniquement sur son téléphone et sa progression n'est pas envoyée à la salle.
 

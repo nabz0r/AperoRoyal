@@ -63,6 +63,61 @@ public final class SocialRoundTest {
     assertFalse(story[2].contains("Cam"));
   }
 
+  @Test public void trustingAFriendIsPrivateAndRewardsTheDuo() throws Exception {
+    GameEngine g = table();
+    g.startNext(0);
+    g.screen = "BET";
+    assertTrue(g.placeBet(1));
+    assertTrue(g.crewPick("Bee", g.target));
+    assertTrue(g.crewPick("Cam", (g.target + 1) % 4));
+    assertEquals("GAME", g.screen);
+    assertEquals(1, g.featuredFriend());
+    org.json.JSONObject actorView = g.networkJsonFor("Ari");
+    assertEquals(2, actorView.getJSONArray("crewChoices").getInt(1));
+    assertEquals(2, actorView.getJSONArray("crewChoices").getInt(2));
+    GameEngine remoteActor = new GameEngine();
+    remoteActor.restore(actorView);
+    assertEquals(g.crewLead(), remoteActor.crewLead());
+    assertEquals(g.featuredFriend(), remoteActor.featuredFriend());
+    assertFalse(g.trustFriend("Bee", 1));
+    assertFalse(g.trustFriend("Ari", 2));
+    assertTrue(g.trustFriend("Ari", 1));
+    assertEquals(g.target, g.selected);
+    assertFalse(g.trustFriend("Ari", 1));
+    g.finish(true);
+    assertEquals(60, g.crewPoints[1]);
+    assertTrue(RoundStories.forRound(g, false)[0].contains("Bee"));
+    GameEngine restored = new GameEngine();
+    restored.restore(g.json());
+    assertEquals(1, restored.trustedFriend);
+    assertEquals(g.roundPoints, restored.roundPoints);
+  }
+
+  @Test public void publicCrewInputsRemainUsableForPhysicalChallenges() throws Exception {
+    GameEngine g = table();
+    g.startNext(3);
+    g.screen = "BET";
+    assertTrue(g.placeBet(1));
+    assertTrue(g.crewPick("Bee", 0));
+    assertTrue(g.crewPick("Cam", 1));
+    assertEquals("GAME", g.screen);
+    org.json.JSONObject view = g.networkJsonFor("Ari");
+    assertEquals(0, view.getJSONArray("crewChoices").getInt(1));
+    assertEquals(1, view.getJSONArray("crewChoices").getInt(2));
+  }
+
+  @Test public void bluffQuestionNamesAnActualFriendInBothLanguages() {
+    GameEngine g = table();
+    g.startNext(8);
+    g.screen = "GAME";
+    int friend = g.crossExaminer();
+    assertTrue(friend >= 0 && friend != g.active);
+    assertFalse(RoundStories.crossExamQuestion(g, false).isEmpty());
+    assertFalse(RoundStories.crossExamQuestion(g, true).isEmpty());
+    g.finish(false);
+    assertTrue(RoundStories.forRound(g, true)[0].contains(g.players.get(friend).name));
+  }
+
   @Test public void bombRelayOrderSurvivesSaveAndCanBeRecounted() {
     GameEngine g = table();
     g.startNext(9);

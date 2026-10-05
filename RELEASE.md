@@ -1,3 +1,26 @@
+# Apéro Royale 1.8.0 — Faire confiance à la table
+
+- [Télécharger l'APK Android signé 1.8.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.8.0.apk) · `com.aperoroyale` · versionCode `20` · Android 8.0+ (API 26)
+- SHA-256 de l'APK : `b7e8cf73c69f06ccbdd1f34075a80ae5b36866680d02906e1e581965c5c577d4`
+- Certificat SHA-256 : `3128c11a3bdfba86472d2ca304cafe4105b8d1e13f20d56986ed10c20f94e120` — même clé que 1.7.0
+
+## Nouveautés
+
+- Culture G et Blind Test : l'acteur peut faire confiance à un ami nommé dont la réponse reste privée jusqu'au résultat. Si le duo a raison, chacun reçoit 25 points supplémentaires. La tendance de la salle reste disponible ; les choix individuels sont masqués sur les téléphones invités pendant la manche.
+- Bluff royal : un ami désigné pose une relance à voix haute dans la langue du joueur actif, avant le vote du jury.
+- Résultat : décor illustré, histoire du tour et accès **Partager**. La carte PNG verticale est créée localement, sans photos de profil, puis proposée à la feuille de partage Android. Le résultat et la carte remplacent leur petit badge pixel par un numéro de défi.
+- [Conception et stress test 1.8.0](docs/RELEASE_180_SOCIAL.md), [captures du résultat](docs/screenshots/games/trivia-result.png) et de [la carte](docs/screenshots/round-card.png).
+
+## Vérifications
+
+- `APERO_SIM_PARTIES=10000 APERO_PEOPLE_PARTIES=10000 APERO_ORGANISM_PARTIES=10000 APERO_SOCIAL_ROUNDS=10000 ./gradlew :app:testDebugUnitTest :app:assembleRelease :app:lintVitalRelease --offline --rerun-tasks` : 60 tests, zéro échec. Trois modèles ont parcouru 30 000 soirées simulées et 660 000 manches ; le test social ciblé a vérifié 10 000 manches Culture G/Blind Test, 2–6 joueurs FR/EN et 40 000 vues privées.
+- Android 16 émulé en version de débogage : les dix jeux parcourus avec deux profils alternés ; carte PNG d'un résultat générée et prévisualisée dans la feuille de partage Android. APK signée installée par mise à jour de 1.7.0 sur Android 8 émulé et en installation neuve sur Android 16 émulé ; activité principale ouverte sur les deux.
+- Signature v2 vérifiée avec `apksigner` ; `aapt` confirme versionCode 20, versionName 1.8.0 et minSdk 26. SHA-256 ci-dessus calculé sur l'APK de ce dépôt.
+
+**Limites.** Les tests synthétiques ne mesurent pas le plaisir, la viralité ni la latence de vrais téléphones. Le partage vers une application externe, le relais Internet public et le Bluetooth n'ont pas été revalidés avec des appareils physiques. L'app ne collecte aucune biométrie ; le Blind Test utilise des motifs originaux hors ligne.
+
+---
+
 # Apéro Royale 1.7.0 — Le temps de la table
 
 - [Télécharger l'APK Android signé 1.7.0](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.7.0.apk) · `com.aperoroyale` · versionCode `19` · Android 8.0+ (API 26)

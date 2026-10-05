@@ -4,11 +4,11 @@
 
 **Dix défis, 2 à 6 amis, une table qui a des histoires à raconter.** Apéro Royale est un jeu de soirée Android en français et en anglais. Un téléphone suffit : on le passe à chaque action privée. Avec plusieurs téléphones, chacun vote, piège, dessine, devine ou juge depuis le sien.
 
-[**Télécharger l’APK Android signé · 1.7.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.7.0.apk) · Android 8.0+ · [Notes de version](RELEASE.md) · [Confidentialité](PRIVACY.md)
+[**Télécharger l’APK Android signé · 1.8.0**](https://raw.githubusercontent.com/nabz0r/AperoRoyal/main/releases/AperoRoyale-v1.8.0.apk) · Android 8.0+ · [Notes de version](RELEASE.md) · [Confidentialité](PRIVACY.md)
 
 ![Accueil Apéro Royale](docs/screenshots/home.png)
 
-**Un bar de nuit, pas une cour de récré.** Personnages adultes, affiches de bistrot et d’arcade, cuivre et aubergine, dix scènes illustrées. Le résultat révèle les alliés, les sceptiques et les auteurs du chaos. Des relances de conversation FR/EN surgissent entre certains tours et se coupent dans les options. Les petits jeux secrets restent cachés dans les temps d’attente.
+**Un bar de nuit, pas une cour de récré.** Personnages adultes, affiches de bistrot et d’arcade, cuivre et aubergine, dix scènes illustrées. Le résultat révèle les alliés, les sceptiques et les auteurs du chaos. Culture G et Blind Test permettent de suivre un ami qui a répondu en secret : la confiance paie quand le duo voit juste. Chaque résultat peut devenir une carte verticale illustrée, créée sur le téléphone et partagée seulement si vous le choisissez. Des relances de conversation FR/EN surgissent entre certains tours et se coupent dans les options. Les petits jeux secrets restent cachés dans les temps d’attente.
 
 <table>
 <tr><td><img src="docs/screenshots/avatar-choice.png" alt="Création d'un personnage adulte" width="240"></td><td><img src="docs/screenshots/settings-party.png" alt="Réglage de la langue des menus" width="240"></td><td><img src="docs/screenshots/games/trivia-result.png" alt="Révélation collective d'une manche" width="240"></td></tr>
@@ -34,15 +34,15 @@ Chaque défi a sa scène illustrée, son geste d’arcade et un guide FR/EN dans
 
 | Défi | Ce qui se passe autour de la table |
 | --- | --- |
-| **Culture G** | Tout le monde répond en secret ; l’acteur tente sa réponse ou suit la tendance. |
+| **Culture G** | Tout le monde répond en secret ; l’acteur tente sa réponse, suit la salle ou fait confiance à un ami nommé. Un duo gagnant marque un bonus. |
 | **Positions à la con** | Une scène de bistrot à jouer seul, assis ou avec un complice volontaire ; le jury tranche. |
-| **Blind Test** | Un jingle fictif original à reconnaître ; chacun écoute et vote. |
+| **Blind Test** | Un jingle fictif original à reconnaître ; chacun écoute et vote. L’acteur peut suivre la salle ou une oreille amie. |
 | **Réflexe néon** | Les amis placent les cibles que l’acteur devra toucher. |
 | **Roulette Royale** | Chacun protège un verre ; l’acteur choisit son risque. |
 | **Dessin maudit** | Un dessin, puis les devinettes privées des autres. |
 | **Mémoire flash** | Les amis composent la chaîne que l’acteur devra rejouer. |
 | **Rythme ou rien** | La salle construit la mesure ; l’acteur tape les temps justes. |
-| **Bluff royal** | Alibi vrai ou inventé ? Le jury tranche, les crédules sont révélés. |
+| **Bluff royal** | Un ami interroge l’acteur avec une relance FR/EN ; alibi vrai ou inventé ? Le jury tranche, les crédules sont révélés. |
 | **Le dernier fil** | Un objet passe de main en main avant le choix final. |
 
 <table>
@@ -50,6 +50,15 @@ Chaque défi a sa scène illustrée, son geste d’arcade et un guide FR/EN dans
 <tr><td>Culture G</td><td>Positions</td><td>Blind Test</td><td>Réflexe</td><td>Roulette</td></tr>
 <tr><td><img src="docs/screenshots/games/drawing.png" alt="Dessin" width="180"></td><td><img src="docs/screenshots/games/memory.png" alt="Mémoire" width="180"></td><td><img src="docs/screenshots/games/rhythm.png" alt="Rythme" width="180"></td><td><img src="docs/screenshots/games/bluff.png" alt="Bluff" width="180"></td><td><img src="docs/screenshots/games/bomb.png" alt="Bombe" width="180"></td></tr>
 <tr><td>Dessin</td><td>Mémoire</td><td>Rythme</td><td>Bluff</td><td>Bombe</td></tr>
+</table>
+
+### Une manche qui se raconte
+
+Le résultat donne une histoire courte avec les noms des joueurs. **Partager** fabrique une image 9:16 à partir du décor du mini-jeu, du pseudo, du verdict et du score ; la feuille de partage Android vous laisse choisir l’application destinataire. Aucun compte ni publication automatique. Les portraits et photos importées ne figurent pas sur cette carte.
+
+<table>
+<tr><td><img src="docs/screenshots/games/trivia-result.png" alt="Deux amis gagnent en se faisant confiance" width="240"></td><td><img src="docs/screenshots/round-card.png" alt="Carte verticale d'une manche" width="240"></td></tr>
+<tr><td>Le dévoilement à la table</td><td>La carte à partager</td></tr>
 </table>
 
 <table>
@@ -105,17 +114,18 @@ Apéro Royale fonctionne sans compte, publicité ni télémétrie. Les profils, 
 
 ### Un laboratoire qui suit le rythme de la soirée
 
-Le [stress test organique](docs/LABO_ORGANIQUE_2026.md) a fait jouer **30 000 soirées virtuelles et 720 000 manches** au moteur réel, puis a rejoué **30 000 soirées** avec les règles 1.7.0 et les mêmes graines. Chaque joueur simulé garde ses goûts, ses liens et sa fatigue ; le rapport compare sa réaction et sa récupération à son propre point de départ. [La comparaison avant/après](docs/RELEASE_170_RYTHME.md) donne les résultats des dix jeux et des topologies de téléphone. C'est un instrument de design : **aucune biométrie n'est collectée et aucun chiffre ne prétend mesurer le plaisir humain**.
+Le [stress test organique](docs/LABO_ORGANIQUE_2026.md) a fait jouer **30 000 soirées virtuelles et 720 000 manches** au moteur réel, puis a rejoué **30 000 soirées** avec les règles 1.7.0 et les mêmes graines. La 1.8.0 a repassé **30 000 soirées de simulation** sur trois modèles complémentaires, ainsi que **10 000 manches sociales** Culture G/Blind Test avec 40 000 vues privées de joueurs. Le [rapport 1.8.0](docs/RELEASE_180_SOCIAL.md) détaille ce que ces tests vérifient et leurs limites. C'est un instrument de design : **aucune biométrie n'est collectée et aucun chiffre ne prétend mesurer le plaisir humain**.
 
 Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principales sont dans app/src/main/java/com/aperoroyale. GameEngine gère les tours, GameStore conserve la partie dans SQLite, ArcadeView et GameSprites dessinent les scènes, ArcadeAudio joue la musique et les effets. La clé de signature n’est pas dans le dépôt.
 
 ~~~sh
 ./gradlew testDebugUnitTest assembleDebug
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
+APERO_SOCIAL_ROUNDS=10000 ./gradlew :app:testDebugUnitTest --tests com.aperoroyale.SocialFeatureStressTest
 ~~~
 
-[Rythme et stress test 1.7.0](docs/RELEASE_170_RYTHME.md) · [Direction artistique 1.6.0](docs/RELEASE_160_DESIGN.md) · [Laboratoire organique](docs/LABO_ORGANIQUE_2026.md) · [Stress test social](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
+[Conception et stress test 1.8.0](docs/RELEASE_180_SOCIAL.md) · [Rythme et stress test 1.7.0](docs/RELEASE_170_RYTHME.md) · [Direction artistique 1.6.0](docs/RELEASE_160_DESIGN.md) · [Laboratoire organique](docs/LABO_ORGANIQUE_2026.md) · [Stress test social](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
 
 ---
 
-**English:** Apéro Royale 1.7.0 is a French/English Android party arcade for 2–6 friends, on one phone or several. Menus have their own FR/EN choice and turns follow each player’s language. Twelve adult portraits, optional photos, ten illustrated challenges, social round reveals and optional table prompts give the room something to talk about. Jury and drawing votes allow a short grace period after a majority responds. A late friend can spectate, play hidden games, and face an admission vote at the next break. Profiles and the leaderboard persist. The signed APK is linked at the top; streaming services open in their own apps, while the music quiz uses original offline motifs.
+**English:** Apéro Royale 1.8.0 is a French/English Android party arcade for 2–6 friends, on one phone or several. Menus have their own FR/EN choice and turns follow each player’s language. Twelve adult portraits, optional photos, ten illustrated challenges, social round reveals and optional table prompts give the room something to talk about. In Trivia and Music Quiz, the active player can trust a named friend’s private answer; a winning duo earns bonus points. Bluff names a friend to ask a spoken follow-up. A resolved round can be shared as a locally generated illustrated 9:16 card via Android’s chooser. A late friend can spectate, play hidden games, and face an admission vote at the next break. Profiles and the leaderboard persist. The signed APK is linked at the top; streaming services open in their own apps, while the music quiz uses original offline motifs.

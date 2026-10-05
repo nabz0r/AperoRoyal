@@ -60,6 +60,20 @@ public final class RoundStories {
     return cues[Math.floorMod(g.game, cues.length)][en ? 1 : 0];
   }
 
+  public static String crossExamQuestion(GameEngine g, boolean en) {
+    String[][] prompts = {
+        {"Quel détail embarrassant as-tu oublié ?", "Which embarrassing detail did you leave out?"},
+        {"Qui pourrait confirmer cette histoire ?", "Who could confirm this story?"},
+        {"À quel moment tout a dérapé ?", "When did it all go wrong?"},
+        {"Quelle était ta pire excuse ?", "What was your worst excuse?"},
+        {"Qui aurait dû t'arrêter ?", "Who should have stopped you?"},
+        {"Quel objet prouverait ta version ?", "What object would prove your version?"},
+        {"Qu'est-ce que tu n'oses pas raconter ?", "What part are you afraid to tell?"},
+        {"Comment la soirée s'est-elle terminée ?", "How did the night end?"}
+    };
+    return prompts[Math.floorMod(g.turn, prompts.length)][en ? 1 : 0];
+  }
+
   public static String[] forRound(GameEngine g, boolean en) {
     String actor = g.current() == null ? (en ? "Someone" : "Quelqu'un") : g.current().name;
     if (g.roundPassed) return new String[] {
@@ -69,7 +83,7 @@ public final class RoundStories {
     };
     return switch (g.game) {
       case 0 -> new String[] {
-          en ? "The room had its theories" : "La salle avait ses théories",
+          trustHeadline(g, en, "The room had its theories", "La salle avait ses théories"),
           (en ? "Answer: " : "Réponse : ") + quizAnswer(g, en),
           rightNames(g, g.crewChoices, g.target, en)
       };
@@ -80,7 +94,7 @@ public final class RoundStories {
               + names(g, g.juryVotes, 1, en)
       };
       case 2 -> new String[] {
-          en ? "The tune unmasked" : "Le jingle démasqué",
+          trustHeadline(g, en, "The tune unmasked", "Le jingle démasqué"),
           (en ? "It was: " : "C'était : ") + tuneAnswer(g, en),
           rightNames(g, g.crewChoices, g.target, en)
       };
@@ -98,7 +112,9 @@ public final class RoundStories {
               + names(g, g.crewChoices, g.chosenCup, en)
       };
       case 5 -> new String[] {
-          en ? "The improvised gallery" : "La galerie improvisée",
+          g.drawCorrectCount() == 0
+              ? (en ? "The gallery went gloriously wrong" : "La galerie s'est égarée")
+              : (en ? "The improvised gallery" : "La galerie improvisée"),
           (en ? "Subject: " : "Sujet : ") + drawAnswer(g, en),
           (en ? "Guessed it: " : "Ont trouvé : ")
               + names(g, g.drawGuesses, g.target, en)
@@ -115,7 +131,10 @@ public final class RoundStories {
           (en ? "Composed by: " : "Composé par : ") + contributors(g, en)
       };
       case 8 -> new String[] {
-          en ? "Who believed the story?" : "Qui a cru l'histoire ?",
+          g.crossExaminer() >= 0
+              ? (en ? g.players.get(g.crossExaminer()).name + " asked the question"
+                  : g.players.get(g.crossExaminer()).name + " a posé la question")
+              : (en ? "Who believed the story?" : "Qui a cru l'histoire ?"),
           g.bluffTruth < 0 ? (en ? "The story stayed untold." : "L'histoire n'a pas été racontée.")
               : g.bluffTruth == 1 ? (en ? "It was true." : "C'était vrai.")
                   : (en ? "It was made up." : "C'était inventé."),
@@ -136,6 +155,15 @@ public final class RoundStories {
   private static String quizAnswer(GameEngine g, boolean en) {
     if (g.variant < 0 || g.variant >= GameEngine.QUIZ_FR.length) return "?";
     return (en ? GameEngine.QUIZ_EN : GameEngine.QUIZ_FR)[g.variant][1];
+  }
+
+  private static String trustHeadline(GameEngine g, boolean en, String defaultEn,
+      String defaultFr) {
+    if (g.trustedFriend < 0 || g.trustedFriend >= g.players.size() || g.current() == null)
+      return en ? defaultEn : defaultFr;
+    String friend = g.players.get(g.trustedFriend).name;
+    return en ? g.current().name + " trusted " + friend
+        : g.current().name + " a suivi " + friend;
   }
 
   private static String tuneAnswer(GameEngine g, boolean en) {

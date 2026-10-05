@@ -97,6 +97,9 @@ public final class GameEngine {
   public int[] predictions = {};
   /** Private one-tap contribution from every non-actor in the six arcade challenges. */
   public int[] crewChoices = {}, crewPoints = {}, drawGuesses = {};
+  /** One named friend can be trusted by the actor in quiz and music rounds. */
+  public int trustedFriend = -1;
+  private int publicCrewLead = -2;
   public boolean betPlaced = false;
   public long deadline = 0, started = 0;
   /** A short grace period after a real majority has answered; never outlives the hard deadline. */
@@ -290,6 +293,8 @@ public final class GameEngine {
     roundPassed = false;
     bombRoute = new int[0];
     juryVotes = predictions = crewChoices = crewPoints = drawGuesses = new int[0];
+    trustedFriend = -1;
+    publicCrewLead = -2;
     revision = 0;
   }
 
@@ -587,6 +592,8 @@ public final class GameEngine {
     juryVotes = new int[0];
     predictions = new int[0];
     crewChoices = crewPoints = drawGuesses = new int[0];
+    trustedFriend = -1;
+    publicCrewLead = -2;
     betPlaced = false;
     bombNext = active;
     bombRoute = new int[] {active};
@@ -727,6 +734,7 @@ public final class GameEngine {
 
   /** A strict lead gives the actor a useful, understandable crowd option. */
   public int crewLead() {
+    if (publicCrewLead >= -1) return publicCrewLead;
     int best = -1, votes = 0;
     for (int choice = 0; choice < crewOptionCount(); choice++) {
       int n = crewChoiceCount(choice);
@@ -734,6 +742,20 @@ public final class GameEngine {
       else if (n == votes && n > 0) best = -1;
     }
     return best;
+  }
+
+  /** Select a visible contributor without revealing their private answer. */
+  public int featuredFriend() {
+    for (int step = 1; step < players.size(); step++) {
+      int i = (active + step) % players.size();
+      if (i < crewChoices.length && crewChoices[i] >= 0) return i;
+    }
+    return -1;
+  }
+
+  /** The next friend in turn order asks the bluff's spoken follow-up. */
+  public int crossExaminer() {
+    return players.size() < 2 ? -1 : (active + 1 + turn % (players.size() - 1)) % players.size();
   }
 
   public boolean predict(String name, boolean win) {
@@ -943,6 +965,15 @@ public final class GameEngine {
     return true;
   }
 
+  public boolean trustFriend(String actor, int friend) {
+    if ((game != 0 && game != 2) || current() == null || !current().name.equals(actor)
+        || friend != featuredFriend() || friend < 0 || friend >= crewChoices.length
+        || crewChoices[friend] < 0 || crewChoices[friend] > 3) return false;
+    if (!lockAnswer(crewChoices[friend])) return false;
+    trustedFriend = friend;
+    return true;
+  }
+
   public boolean passPerformance(String name) {
     if (!"GAME".equals(screen) || (game != 1 && game != 8) || juryPhase
         || current() == null || !current().name.equals(name)) return false;
@@ -1106,6 +1137,13 @@ public final class GameEngine {
           || game == 5 && drawGuesses[i] == target;
       crewPoints[i] = correct ? 35 : won ? 20 : 10;
       players.get(i).score += crewPoints[i];
+    }
+    if (won && trustedFriend >= 0 && trustedFriend < crewPoints.length
+        && crewChoices[trustedFriend] == target) {
+      roundPoints += 25;
+      p.score += 25;
+      crewPoints[trustedFriend] += 25;
+      players.get(trustedFriend).score += 25;
     }
     if (won && !roundPassed) {
       boolean secret = switch (game) {
@@ -1273,7 +1311,10 @@ public final class GameEngine {
         if ("VOTE".equals(screen)) j.put("votes", masked(votes));
         if ("PREDICT".equals(screen) || "GAME".equals(screen))
           j.put("predictions", masked(predictions));
-        if ("CREW".equals(screen)) j.put("crewChoices", masked(crewChoices));
+        if ("CREW".equals(screen) || ("GAME".equals(screen) && (game == 0 || game == 2))) {
+          if (game == 0 || game == 2) j.put("publicCrewLead", crewLead());
+          j.put("crewChoices", masked(crewChoices));
+        }
         if (game == 5 && drawingReady) j.put("drawGuesses", masked(drawGuesses));
         if (juryPhase) j.put("juryVotes", masked(juryVotes));
         if (!actor && game == 8) j.put("bluffTruth", -1);
@@ -1367,6 +1408,7 @@ public final class GameEngine {
       j.put("juryVotes", new JSONArray(juryVotes));
       j.put("predictions", new JSONArray(predictions));
       j.put("crewChoices", new JSONArray(crewChoices));
+      j.put("trustedFriend", trustedFriend);
       j.put("crewPoints", new JSONArray(crewPoints));
       j.put("drawGuesses", new JSONArray(drawGuesses));
       j.put("betPlaced", betPlaced);
@@ -1487,6 +1529,8 @@ public final class GameEngine {
     juryVotes = readInts(j.optJSONArray("juryVotes"));
     predictions = readInts(j.optJSONArray("predictions"));
     crewChoices = readInts(j.optJSONArray("crewChoices"));
+    trustedFriend = j.optInt("trustedFriend", -1);
+    publicCrewLead = j.optInt("publicCrewLead", -2);
     crewPoints = readInts(j.optJSONArray("crewPoints"));
     drawGuesses = readInts(j.optJSONArray("drawGuesses"));
     betPlaced = j.optBoolean("betPlaced");
