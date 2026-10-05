@@ -1,5 +1,7 @@
 # Laboratoire de joueurs virtuels — 5 octobre 2026
 
+Pour la lecture sociale et artistique de ces chiffres, voir le [stress test des succès Android et des scènes autour de la table](STRESS_TEST_SOCIAL_2026.md).
+
 ## Ce que font ces joueurs
 
 [`VirtualPeopleSimulationTest`](../app/src/test/java/com/aperoroyale/VirtualPeopleSimulationTest.java) fait agir **des personnes artificielles avec une mémoire** dans le vrai `GameEngine`. Chacune possède des goûts et aptitudes propres aux dix défis, un rythme stable, de la patience, une tolérance à la mise, une confiance, une énergie, une humeur et une affinité avec chaque ami. Ces états évoluent d'une manche à l'autre. Une personne peut préférer un défi inédit, voter pour celui que son ami actif aime, réduire sa mise après des défaites, juger une histoire selon sa confiance dans le conteur ou répondre moins souvent après une soirée frustrante. Un test contrôlé vérifie que la mémoire et l'amitié changent effectivement ses choix.

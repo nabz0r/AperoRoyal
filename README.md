@@ -96,7 +96,7 @@ Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principale
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ~~~
 
-[Refonte visuelle et stress tests 1.5.0](docs/UI_150_ET_STRESS.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
+[Stress test social des succès Android et vision artistique](docs/STRESS_TEST_SOCIAL_2026.md) · [Refonte visuelle et stress tests 1.5.0](docs/UI_150_ET_STRESS.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
 
 ---
 
