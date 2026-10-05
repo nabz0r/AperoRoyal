@@ -121,7 +121,7 @@ public final class VirtualPeopleSimulationTest {
 
   private static double clamp(double value) { return Math.max(0, Math.min(1, value)); }
 
-  private static final class Stats {
+  static final class Stats {
     long parties, rounds, wins, sips, missed, votes, crew, jury, guesses, timeouts;
     long gameRepeats, preferredChoices, highBets, depleted, disengaged, seconds, visits;
     final long[] game = new long[10], gameTimeout = new long[10], gameDisengage = new long[10];
@@ -158,7 +158,29 @@ public final class VirtualPeopleSimulationTest {
     }
   }
 
-  private static final class Party {
+  /** Engine-observed round trace for independent, paired experience models. */
+  static final class RoundObservation {
+    final int game, actor, wager, sips;
+    final double seconds;
+    final boolean won, expired, repeated;
+    final double[] inclusion;
+    final boolean[] voted;
+    RoundObservation(int game, int actor, int wager, int sips, double seconds,
+        boolean won, boolean expired, boolean repeated, double[] inclusion, boolean[] voted) {
+      this.game = game;
+      this.actor = actor;
+      this.wager = wager;
+      this.sips = sips;
+      this.seconds = seconds;
+      this.won = won;
+      this.expired = expired;
+      this.repeated = repeated;
+      this.inclusion = inclusion;
+      this.voted = voted;
+    }
+  }
+
+  static final class Party {
     final Clock clock = new Clock();
     final Random random;
     final GameEngine room;
@@ -168,6 +190,7 @@ public final class VirtualPeopleSimulationTest {
     final int id;
     int lastGame = -1;
     boolean roundExpired;
+    RoundObservation lastObservation;
     Party(int id, Stats stats) {
       this.id = id;
       random = new Random(SEED ^ (id * 0x9E3779B97F4A7C15L));
@@ -447,9 +470,13 @@ public final class VirtualPeopleSimulationTest {
       if (room.lastWon) stats.wins++;
       stats.sips += room.roundSips;
       stats.seconds += clock.now - start;
+      double[] inclusion = new double[people.length];
+      boolean[] voted = new boolean[people.length];
       for (int i = 0; i < people.length; i++) {
         Person p = people[i];
-        p.observe(game, i == actor, room.lastWon, inclusionFor(i, game, actor), expired, group);
+        inclusion[i] = inclusionFor(i, game, actor);
+        voted[i] = room.votes.length > i && room.votes[i] >= 0 && room.votes[i] < 3;
+        p.observe(game, i == actor, room.lastWon, inclusion[i], expired, group);
         if (p.energy < .4) stats.depleted++;
         // This is an assumed signal for design exploration, never measured churn.
         if (p.mood < .4 && p.energy < .6) {
@@ -465,6 +492,9 @@ public final class VirtualPeopleSimulationTest {
         }
       }
       delay(actor, 2.8);
+      lastObservation = new RoundObservation(game, actor, wager, room.roundSips,
+          (clock.now - start) / 1000.0, room.lastWon, expired, game == lastGame,
+          inclusion, voted);
       room.advance();
       lastGame = game;
     }

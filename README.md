@@ -103,6 +103,10 @@ Sur plusieurs appareils, les écrans d’attente cachent de petits jeux. Une dé
 
 Apéro Royale fonctionne sans compte, publicité ni télémétrie. Les profils, parties et classements sont stockés localement sur le téléphone hôte. Les photos facultatives sont réduites avant partage. [Données et réseau](PRIVACY.md) · [Licence MIT](LICENSE) · [Licences tierces](THIRD_PARTY_NOTICES.md).
 
+### Un laboratoire qui suit le rythme de la soirée
+
+Le [nouveau stress test organique](docs/LABO_ORGANIQUE_2026.md) a fait jouer **30 000 soirées virtuelles et 720 000 manches** au moteur réel. Chaque joueur simulé garde ses goûts, ses liens et sa fatigue ; le rapport compare sa réaction et sa récupération à son propre point de départ. Il révèle le compromis entre passage de téléphone, attente et rythme soutenu, avec trois hypothèses de récupération et les données CSV reproductibles. C'est un instrument de design : **aucune biométrie n'est collectée et aucun chiffre ne prétend mesurer le plaisir humain**.
+
 Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principales sont dans app/src/main/java/com/aperoroyale. GameEngine gère les tours, GameStore conserve la partie dans SQLite, ArcadeView et GameSprites dessinent les scènes, ArcadeAudio joue la musique et les effets. La clé de signature n’est pas dans le dépôt.
 
 ~~~sh
@@ -110,7 +114,7 @@ Projet Android natif Java, JDK 17, SDK 36, Gradle 8.14.3. Les sources principale
 ADB_SERIAL=emulator-5554 python3 tools/smoke_v120.py
 ~~~
 
-[Direction artistique, dix scènes et stress test 1.6.0](docs/RELEASE_160_DESIGN.md) · [Stress test social des succès Android](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
+[Direction artistique et stress test 1.6.0](docs/RELEASE_160_DESIGN.md) · [Laboratoire organique](docs/LABO_ORGANIQUE_2026.md) · [Stress test social](docs/STRESS_TEST_SOCIAL_2026.md) · [Analyse des dix jeux](docs/REFONTE_DIX_MINI_JEUX.md) · [Modèle de joueurs virtuels](docs/LABO_GENS_VIRTUELS_2026.md) · [Historique des versions](RELEASE.md). Les simulations vérifient des règles et des délais supposés ; elles ne prouvent pas l’amusement ou la latence sur de vrais téléphones.
 
 ---
 
